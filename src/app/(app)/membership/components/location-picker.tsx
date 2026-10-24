@@ -188,7 +188,7 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
             </button>
           </>
         ) : (
-          <span>Search, use your location, or tap the map to drop a pin. You can drag it to adjust.</span>
+          <span>Search, use your location, or tap the map to drop a pin, then drag it to adjust. Zoom with the + and - buttons.</span>
         )}
       </div>
       <p className="text-[11px] text-muted-foreground">

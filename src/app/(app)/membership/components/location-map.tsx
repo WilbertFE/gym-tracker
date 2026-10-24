@@ -53,8 +53,11 @@ export default function LocationMap({ value, focus, onPick }: LocationMapProps) 
       center={value ? [value.latitude, value.longitude] : [20, 0]}
       zoom={value ? 16 : 2}
       minZoom={2}
-      scrollWheelZoom
-      className="h-72 w-full border bg-background [&_.leaflet-tile-pane]:[filter:invert(1)_hue-rotate(180deg)_brightness(0.95)_contrast(0.9)] [&_.leaflet-control-attribution]:!bg-card/80 [&_.leaflet-control-attribution]:!text-muted-foreground [&_.leaflet-control-attribution_a]:!text-muted-foreground"
+      // The wheel and one-finger drags scroll the page instead, so the map never traps scrolling.
+      // Zoom with the buttons, double click or pinch. Phones pan with a two-finger pinch.
+      scrollWheelZoom={false}
+      dragging={!L.Browser.mobile}
+      className="h-72 w-full border bg-background [&_.leaflet-tile]:outline [&_.leaflet-tile]:outline-1 [&_.leaflet-tile]:outline-transparent [&_.leaflet-tile-pane]:[filter:invert(1)_hue-rotate(180deg)_brightness(0.95)_contrast(0.9)] [&_.leaflet-control-attribution]:!bg-card/80 [&_.leaflet-control-attribution]:!text-muted-foreground [&_.leaflet-control-attribution_a]:!text-muted-foreground"
     >
       <TileLayer
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"

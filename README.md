@@ -448,6 +448,7 @@ The membership form has a map for choosing where the gym is. It uses Leaflet thr
 - **Use my location**: the browser's Geolocation API (needs permission, and HTTPS or localhost).
 - **Rate limit**: requests to Nominatim are spaced at least 1.1 seconds apart in the browser, to stay within its fair use policy (about 1 request per second, intended for light use).
 - **Privacy**: tiles, searches and reverse lookups are requested from OpenStreetMap servers by your browser, so they see your IP address and the places you look at. Nothing else from the app is sent. The required attribution is shown on the map.
+- **Scrolling**: mouse wheel zoom is off so the page scrolls normally over the map, and on touch devices one-finger dragging does not pan it. Zoom with the + and - buttons, double click, or pinch.
 - **Accessibility**: the map is not keyboard friendly, so the same result is reachable by searching, "Use my location" or typing the address in the text field.
 - **Dark theme**: the tile layer is inverted with CSS so the map matches the interface.
 - **Marker**: a CSS dot, because Leaflet's default marker images do not survive bundling.
@@ -464,6 +465,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Verified the map picker against the live project (search, pin, address autofill, save, persisted coordinates). Fixed the map capturing the mouse wheel and touch drags, and added the Leaflet tile seam fix.
 - 2026-10-24: Map picker for the membership location: search a place, tap the map, drag the pin or use your current location (Leaflet and OpenStreetMap, no account or API key). Stores `latitude` and `longitude` next to the address. Needs migrations `20261024000300` and `20261024000400`.
 - 2026-10-24: Membership location: optional free text field (branch, area or address) with an "Open in maps" link, shown on the Membership page and the dashboard. Needs migration `20261024000300_membership_location.sql`.
 - 2026-10-24: Verified the Supabase backend end to end against the live project (about 60 API checks plus a visual pass of the dashboard, body, progress and schedule pages). Fixed a bug found by that run: a malformed id (for example `/api/workouts/not-a-uuid`, or an unknown exercise id in a set) made Postgres throw and returned 500; the Supabase repositories now validate uuids (`isUuid`) and answer 404 or 400 like the demo backend. Confirmed the photo bucket is private: the public storage URL answers "Bucket not found" and the anon key cannot read the object.
