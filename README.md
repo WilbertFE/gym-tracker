@@ -315,6 +315,7 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Phase 1: Foundation | Done, except applying the migration to a Supabase project (pending, needs the owner to pick or create a project) |
 | Phase 2: Daily basics | Done on dummy data (see Demo mode and Data layer below) |
 | Phase 3: Workout logging | Done on dummy data |
+| Phase 4: Dashboard | Done on dummy data |
 | shadcn setup | Style `radix-lyra` (boxy, sharp), neutral base, CSS variables, dark only |
 | Design tokens | HUD palette mapped to shadcn variables in `globals.css`, plus `surface`, `surface-raised`, `intensity-*` tokens |
 | Fonts | IBM Plex Sans and JetBrains Mono via `next/font`; `.tabular` utility for mono tabular numerals |
@@ -328,6 +329,9 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Workout sessions | Start (only one in progress at a time), live elapsed timer, finish (duration in minutes is computed automatically, minimum 1), delete with confirmation |
 | Fast set logging | Exercise picker grouped by muscle, chips to switch between exercises already in the workout, big minus/plus steppers (1 rep, 2.5 kg), reps and weight prefilled from the last set of that exercise (this workout first, then history), inputs stay after logging so a repeat set is one tap |
 | Workout history | List of finished workouts with duration, set count and volume; detail page with sets grouped by exercise |
+| Weekly summary | Dashboard: workouts, total time and total volume for the current Monday to Sunday week, each compared with last week, plus a volume bar per day (`src/lib/week.ts`) |
+| Next workout suggestion | Dashboard: suggests push, pull or legs, whichever has waited longest (never trained counts as longest, ties go push, pull, legs), with up to 5 exercises (at most 2 per muscle), favouring the ones used most. Shows a resume link and timer instead while a workout is in progress (`src/lib/suggestion.ts`) |
+| Dashboard snapshots | Check-in and streak, weight trend (last 12 entries), membership status with days left |
 | Pages | Landing, login, dashboard, workouts (list, detail, library), body, membership are functional; schedule is a placeholder |
 | Phases 2 to 7 | Not started |
 
@@ -378,6 +382,7 @@ Until a Supabase project is connected, the app runs on dummy data:
 - All data access goes through `src/lib/repositories/` (`checkins.ts`, `weights.ts`, `memberships.ts`). They read and write an in-memory store (`store.ts`, seeded with sample data, reset when the server restarts).
 - Migration to Supabase later: replace the bodies of the repository functions with Supabase queries (the tables already exist in the migration), delete `store.ts`, remove `NEXT_PUBLIC_DEMO_MODE`, and fill in the Supabase env vars. Function signatures, API routes, validation and UI stay unchanged.
 - Business logic is pure and tested: `src/lib/streak.ts`, `src/lib/membership.ts`, `src/lib/weight.ts`, `src/lib/workout.ts` (duration, volume, set numbering, grouping, formatting).
+- Dashboard panels (`src/app/(app)/dashboard/components/`) only read through the repositories, so they need no change when Supabase is connected. Each panel fetches its own data inside its own `Suspense`; if the extra queries matter later, wrap the repository reads in React `cache`.
 - Repositories added in Phase 3: `exercises.ts` and `workouts.ts` (sessions and sets). The seeded demo history has three finished workouts.
 - Extra migration work for Phase 3: built-in exercises currently use stable slug ids (`builtin-barbell-bench-press`). With Supabase, add a seed migration inserting `BUILT_IN_EXERCISES` as rows with `user_id` null and uuid ids, and change `exercise-library.ts` and the repositories to read them from the table. `workout_sets.exercise_id` references `exercises.id`, so the repository must write real ids.
 - The unfinished workout is identified by `ended_at` being null. Add a partial unique index on `workout_sessions (user_id) where ended_at is null` in the migration to enforce one active workout in the database too.
@@ -394,7 +399,7 @@ Status: written, not yet applied to any Supabase project.
 
 ## 17. Testing and CI
 
-- Vitest config: `vitest.config.mts`; tests in `tests/unit/`: rate limiter, proxy protection, login route, streak, membership status, weight summary, workout logic, and CRUD routes for check-ins, weights, membership, exercises and workouts (validation, set numbering and renumbering, one active workout, idempotent finish, cascade delete, prefill priority, user isolation, write rate limits).
+- Vitest config: `vitest.config.mts`; tests in `tests/unit/`: rate limiter, proxy protection, login route, streak, membership status, weight summary, workout logic, week ranges and summaries, delta formatting, next workout suggestion, and CRUD routes for check-ins, weights, membership, exercises and workouts (validation, set numbering and renumbering, one active workout, idempotent finish, cascade delete, prefill priority, user isolation, write rate limits).
 - `npm run typecheck` runs `next typegen` first, because route handler types are generated.
 - Playwright is installed for end to end tests but not configured yet.
 - GitHub Actions: `.github/workflows/ci.yml` runs lint, typecheck, tests and build on every push and pull request, using placeholder Supabase env values.
@@ -405,6 +410,7 @@ Not added yet (Phase 5).
 
 ## 19. Changelog
 
+- 2026-10-24: Phase 4 dashboard: weekly summary with last week comparison and daily volume bars, next workout suggestion (push, pull, legs rotation), membership and weight snapshots. Moved the weight chart and start workout button to `src/components` and extracted a shared membership status component, since they are now used on several pages.
 - 2026-10-24: Phase 3 workout logging on the dummy data layer: seeded exercise library with custom exercises, workout sessions with live timer and automatic duration, fast set logging with prefill, history and session detail, workout and exercise API routes, tests. The nav is wrapped in `Suspense` because `usePathname()` is runtime data on dynamic routes.
 - 2026-10-24: Phase 2 daily basics on a swappable in-memory data layer: check-in with streak, weight tracking with trend chart, membership tracker with expiry warning, CRUD API routes, demo mode, tests.
 - 2026-10-24: Phase 1 foundation: dependencies, shadcn (radix-lyra), HUD theme, fonts, Supabase helpers, proxy, auth routes and login, app shell, robots, sitemap, initial migration, tests, CI.

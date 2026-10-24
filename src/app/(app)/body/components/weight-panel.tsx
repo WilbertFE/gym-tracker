@@ -4,7 +4,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
 import { listWeights } from "@/lib/repositories/weights";
 import { summarizeWeights } from "@/lib/weight";
-import { WeightChart } from "./weight-chart";
+import { WeightChart } from "@/components/weight-chart";
 import { WeightForm } from "./weight-form";
 import { WeightHistory } from "./weight-history";
 

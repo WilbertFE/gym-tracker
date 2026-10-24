@@ -1,24 +1,13 @@
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import { MembershipStatusLine, STATE_DOT } from "@/components/membership-status";
 import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
 import { getCurrentUserId } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
-import { membershipStatus, type MembershipState } from "@/lib/membership";
+import { membershipStatus } from "@/lib/membership";
 import { listMemberships } from "@/lib/repositories/memberships";
 import { cn } from "@/lib/utils";
 import { MembershipForm } from "./membership-form";
-
-const STATE_LABEL: Record<MembershipState, string> = {
-  active: "Active",
-  expiring: "Expiring soon",
-  expired: "Expired",
-};
-
-const STATE_DOT: Record<MembershipState, string> = {
-  active: "bg-intensity-low",
-  expiring: "bg-intensity-mid",
-  expired: "bg-intensity-high",
-};
 
 export async function MembershipPanel() {
   const userId = await getCurrentUserId();
@@ -50,10 +39,7 @@ export async function MembershipPanel() {
     <div className="flex flex-col gap-6">
       <Panel label={current.gym_name}>
         <div className="flex flex-col gap-4">
-          <p className="flex items-center gap-2 text-sm" role="status">
-            <span className={cn("size-2 rounded-full", STATE_DOT[state])} aria-hidden />
-            {STATE_LABEL[state]}
-          </p>
+          <MembershipStatusLine state={state} />
 
           <div className="grid grid-cols-2 gap-4">
             <Stat

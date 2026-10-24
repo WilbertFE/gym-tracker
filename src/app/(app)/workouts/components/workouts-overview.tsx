@@ -6,7 +6,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { listExercises } from "@/lib/repositories/exercises";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { formatDuration, sessionVolume } from "@/lib/workout";
-import { StartWorkoutButton } from "./start-workout-button";
+import { StartWorkoutButton } from "@/components/start-workout-button";
 
 export async function WorkoutsOverview() {
   const userId = await getCurrentUserId();
