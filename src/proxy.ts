@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isDemoMode } from "@/lib/demo";
 import { updateSession } from "@/lib/supabase/proxy";
 import { PROTECTED_PREFIXES, PUBLIC_API_PREFIXES } from "@/lib/site";
 
@@ -8,6 +9,15 @@ function matches(pathname: string, prefixes: readonly string[]) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Dev-only demo mode: no Supabase, everyone is the demo user.
+  if (isDemoMode()) {
+    if (pathname === "/login") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return NextResponse.next();
+  }
+
   const { response, userId } = await updateSession(request);
 
   const isApi = pathname === "/api" || pathname.startsWith("/api/");
@@ -38,6 +48,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\.(?:svg|png|jpg|jpeg|gif|webp|glb)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|glb)$).*)",
   ],
 };

@@ -5,6 +5,7 @@ import {
   CalendarBlankIcon,
   DotsThreeIcon,
   GaugeIcon,
+  IdentificationCardIcon,
   PersonSimpleIcon,
   SignOutIcon,
 } from "@phosphor-icons/react";
@@ -58,7 +59,11 @@ export function AppNav() {
                       : "border-transparent text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <Icon className="size-4" aria-hidden />
+                  {label === "More" ? (
+                    <IdentificationCardIcon className="size-4" aria-hidden />
+                  ) : (
+                    <Icon className="size-4" aria-hidden />
+                  )}
                   {label === "More" ? "Membership" : label}
                 </Link>
               </li>

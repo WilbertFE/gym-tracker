@@ -313,13 +313,17 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Area | Status |
 | --- | --- |
 | Phase 1: Foundation | Done, except applying the migration to a Supabase project (pending, needs the owner to pick or create a project) |
+| Phase 2: Daily basics | Done on dummy data (see Demo mode and Data layer below) |
 | shadcn setup | Style `radix-lyra` (boxy, sharp), neutral base, CSS variables, dark only |
 | Design tokens | HUD palette mapped to shadcn variables in `globals.css`, plus `surface`, `surface-raised`, `intensity-*` tokens |
 | Fonts | IBM Plex Sans and JetBrains Mono via `next/font`; `.tabular` utility for mono tabular numerals |
 | Auth | Email and password via Supabase; login, signup, logout API routes |
 | Route protection | `src/proxy.ts` (see below) |
 | App shell | Mobile bottom tab bar, desktop left rail |
-| Pages | Landing, login, and placeholder dashboard, workouts, body, membership, schedule |
+| Daily check-in | Dashboard: went to gym or rest day, mood, energy, sleep, streak, best streak, gym days in 7 days, 7 day strip. One entry per date, saving again updates it |
+| Weight tracking | Body page: latest, 7 day and all time change, Recharts trend line, log form, history table with delete |
+| Membership tracker | Membership page: gym, dates, price, days left, progress bar, status (active, expiring within 7 days, expired), edit and delete |
+| Pages | Landing, login, dashboard, body, membership are functional; workouts and schedule are placeholders |
 | Phases 2 to 7 | Not started |
 
 Deviations from the planned structure: authenticated pages live in the `src/app/(app)/` route group so they share one layout with the navigation. URLs are unchanged (`/dashboard`, `/workouts`, and so on). The "More" tab on mobile points to Membership.
@@ -336,7 +340,30 @@ Deviations from the planned structure: authenticated pages live in the `src/app/
 | `/api/auth/signup` | POST | `{ email, password }` | `{ ok: true, needsConfirmation }` or `{ error }` | Rate limited: 3 per minute per IP |
 | `/api/auth/logout` | POST | none | `{ ok: true }` | Clears the session cookies |
 
+| `/api/checkins` | GET | none | `{ data: Checkin[] }` newest first | |
+| `/api/checkins` | POST | `{ date, went_to_gym, mood?, energy?, sleep_hours?, notes? }` | `{ data: Checkin }` | Upsert by date. 30 writes per minute per user |
+| `/api/checkins/[id]` | DELETE | none | `{ ok: true }` or 404 | |
+| `/api/weights` | GET | none | `{ data: WeightLog[] }` newest first | |
+| `/api/weights` | POST | `{ date, weight_kg (20 to 500), notes? }` | `201 { data }` | 30 writes per minute per user |
+| `/api/weights/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
+| `/api/membership` | GET | none | `{ data: Membership[] }` newest end date first | |
+| `/api/membership` | POST | `{ gym_name, start_date, end_date, price?, notes? }` | `201 { data }` | end_date must not precede start_date |
+| `/api/membership/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
+
+All routes above require a session (401 otherwise) and validate input with zod (400 on invalid input, 429 when rate limited). Dates are `YYYY-MM-DD`; check-in and weight dates cannot be in the future.
+
 Password rules: 8 to 72 characters (`src/lib/validation/auth.ts`). The in-memory rate limiter (`src/lib/rate-limit.ts`) suits a single instance; use a shared store if scaled out.
+
+## 15.1 Demo Mode and Data Layer (temporary)
+
+Until a Supabase project is connected, the app runs on dummy data:
+
+- Set `NEXT_PUBLIC_DEMO_MODE=true` in `.env.local` (dev only; it is ignored in production builds). `proxy.ts`, `requireUser()` and `getCurrentUserId()` then treat every visitor as one demo user, so login is skipped and a banner is shown.
+- All data access goes through `src/lib/repositories/` (`checkins.ts`, `weights.ts`, `memberships.ts`). They read and write an in-memory store (`store.ts`, seeded with sample data, reset when the server restarts).
+- Migration to Supabase later: replace the bodies of the repository functions with Supabase queries (the tables already exist in the migration), delete `store.ts`, remove `NEXT_PUBLIC_DEMO_MODE`, and fill in the Supabase env vars. Function signatures, API routes, validation and UI stay unchanged.
+- Business logic is pure and tested: `src/lib/streak.ts`, `src/lib/membership.ts`, `src/lib/weight.ts`.
+
+Streak definition: consecutive days with any check-in (gym or rest day), since the habit being tracked is logging. It stays alive until the end of today if yesterday was logged.
 
 ## 16. Database Schema and Migrations
 
@@ -348,7 +375,8 @@ Status: written, not yet applied to any Supabase project.
 
 ## 17. Testing and CI
 
-- Vitest config: `vitest.config.mts`; tests in `tests/unit/` (rate limiter, proxy protection, login route).
+- Vitest config: `vitest.config.mts`; tests in `tests/unit/`: rate limiter, proxy protection, login route, streak, membership status, weight summary, and CRUD routes for check-ins, weights and membership (including validation and write rate limiting).
+- `npm run typecheck` runs `next typegen` first, because route handler types are generated.
 - Playwright is installed for end to end tests but not configured yet.
 - GitHub Actions: `.github/workflows/ci.yml` runs lint, typecheck, tests and build on every push and pull request, using placeholder Supabase env values.
 
@@ -358,4 +386,5 @@ Not added yet (Phase 5).
 
 ## 19. Changelog
 
+- 2026-10-24: Phase 2 daily basics on a swappable in-memory data layer: check-in with streak, weight tracking with trend chart, membership tracker with expiry warning, CRUD API routes, demo mode, tests.
 - 2026-10-24: Phase 1 foundation: dependencies, shadcn (radix-lyra), HUD theme, fonts, Supabase helpers, proxy, auth routes and login, app shell, robots, sitemap, initial migration, tests, CI.
