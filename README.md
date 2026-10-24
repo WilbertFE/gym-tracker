@@ -428,7 +428,7 @@ Streak definition: consecutive days with any check-in (gym or rest day), since t
 | `20261024000100_body_measurements.sql` | `body_measurements` table with range checks, one row per user per day, at least one metric per row, and RLS |
 | `20261024000000_initial_schema.sql` | All tables from section 8.2 (except `body_measurements`), `muscle_group` and `photo_pose` enums, RLS on every table, profile creation trigger on sign up, private `progress-photos` storage bucket with per-user folder policy |
 
-`supabase/setup.sql` is all migrations concatenated in order, for a one-time paste into the Supabase SQL editor. Regenerate it whenever a migration is added. Status: written and reviewed, **not yet applied** to the project in `.env.local` (the connected Supabase tooling has no access to it, so it must be run from the dashboard).
+`supabase/setup.sql` is all migrations concatenated in order, for a one-time paste into the Supabase SQL editor. Regenerate it whenever a migration is added. Status: applied to the project in `.env.local` on 2026-10-24 and verified (all tables present, RLS blocking anonymous reads, 37 built-in exercises, private photo bucket). The connected Supabase tooling has no access to that project, so migrations are run from the dashboard SQL editor.
 
 ## 17. Testing and CI
 
@@ -449,6 +449,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Verified the Supabase backend end to end against the live project (about 60 API checks plus a visual pass of the dashboard, body, progress and schedule pages). Fixed a bug found by that run: a malformed id (for example `/api/workouts/not-a-uuid`, or an unknown exercise id in a set) made Postgres throw and returned 500; the Supabase repositories now validate uuids (`isUuid`) and answer 404 or 400 like the demo backend. Confirmed the photo bucket is private: the public storage URL answers "Bucket not found" and the anon key cannot read the object.
 - 2026-10-24: Supabase backend: repositories for every table and the private photo bucket, dispatchers that choose between demo and Supabase, shared prefill logic, integrity and exercise seed migration, combined `supabase/setup.sql`. Demo mode stays available for development. Not yet exercised against a live database.
 - 2026-10-24: Phase 7 scheduling and recommendations: weekly commitments with CRUD routes, best time suggestions from commitments and attendance history, under-trained muscle recommendations with exercise suggestions. This completes the planned roadmap.
 - 2026-10-24: Phase 6 physique analysis: private progress photo upload with server side image validation, authenticated photo serving, side by side comparison with weight and measurement changes, body measurements, `body_measurements` migration. AI analysis not built.
@@ -465,6 +466,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 The code is ready. These steps are what remains, and the first and last need you.
 
+0. **Done and verified on 2026-10-24**: steps 1 to 5 below. Step 6 (cleanup of the demo code) is optional and still open.
 1. **Env** (`.env.local`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publishable key), `SUPABASE_SERVICE_ROLE_KEY` (unused so far), `NEXT_PUBLIC_SITE_URL`. See section 10.
 2. **Create the schema**: open the Supabase dashboard for the project, go to **SQL Editor**, paste the whole of `supabase/setup.sql` and run it once. It creates the tables with Row Level Security, the sign-up profile trigger, the private `progress-photos` bucket and its policy, the integrity indexes, and the built-in exercises. Check **Table Editor** shows `exercises` with 37 rows, then run the security advisor.
 3. **Turn demo mode off**: remove `NEXT_PUBLIC_DEMO_MODE=true` from `.env.local` (or set it to `false`) and restart `npm run dev`.

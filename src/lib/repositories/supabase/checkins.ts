@@ -1,7 +1,7 @@
 import "server-only";
 import type { Checkin } from "@/lib/types";
 import type { CheckinInput } from "@/lib/validation/checkin";
-import { check, fetchAll, getDb, numOrNull } from "./db";
+import { check, fetchAll, getDb, isUuid, numOrNull } from "./db";
 
 const COLUMNS = "id,user_id,date,went_to_gym,mood,energy,sleep_hours,notes";
 
@@ -49,6 +49,7 @@ export async function upsertCheckin(userId: string, input: CheckinInput): Promis
 }
 
 export async function deleteCheckin(userId: string, id: string): Promise<boolean> {
+  if (!isUuid(id)) return false;
   const db = await getDb();
   const { data, error } = await db.from("daily_checkins").delete().eq("id", id).eq("user_id", userId).select("id");
   check(error);

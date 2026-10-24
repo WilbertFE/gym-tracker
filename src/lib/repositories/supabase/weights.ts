@@ -1,7 +1,7 @@
 import "server-only";
 import type { WeightLog } from "@/lib/types";
 import type { WeightInput } from "@/lib/validation/weight";
-import { check, fetchAll, getDb, num } from "./db";
+import { check, fetchAll, getDb, isUuid, num } from "./db";
 
 const COLUMNS = "id,user_id,date,weight_kg,notes";
 
@@ -44,6 +44,7 @@ export async function updateWeight(
   id: string,
   input: WeightInput,
 ): Promise<WeightLog | null> {
+  if (!isUuid(id)) return null;
   const db = await getDb();
   const { data, error } = await db
     .from("weight_logs")
@@ -57,6 +58,7 @@ export async function updateWeight(
 }
 
 export async function deleteWeight(userId: string, id: string): Promise<boolean> {
+  if (!isUuid(id)) return false;
   const db = await getDb();
   const { data, error } = await db.from("weight_logs").delete().eq("id", id).eq("user_id", userId).select("id");
   check(error);

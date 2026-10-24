@@ -11,7 +11,7 @@ vi.mock("@/lib/repositories/supabase/checkins", () => ({
 }));
 
 import { listCheckins } from "@/lib/repositories/checkins";
-import { check, fetchAll, isForeignKeyViolation, isUniqueViolation, num, numOrNull } from "@/lib/repositories/supabase/db";
+import { check, fetchAll, isForeignKeyViolation, isUniqueViolation, isUuid, num, numOrNull } from "@/lib/repositories/supabase/db";
 
 const DEMO = "00000000-0000-4000-8000-000000000001";
 
@@ -98,6 +98,23 @@ describe("db helpers", () => {
     expect(isUniqueViolation(null)).toBe(false);
     expect(isForeignKeyViolation({ code: "23503" })).toBe(true);
     expect(isForeignKeyViolation({})).toBe(false);
+  });
+
+  it("accepts only well formed uuids so Postgres never sees a bad id", () => {
+    expect(isUuid("a03b4505-1563-4560-9563-7650a5a7c801")).toBe(true);
+    expect(isUuid("A03B4505-1563-4560-9563-7650A5A7C801")).toBe(true);
+    for (const bad of [
+      "",
+      "nope",
+      "not-a-uuid",
+      "builtin-barbell-bench-press",
+      "a03b4505156345609563 7650a5a7c801",
+      "a03b4505-1563-4560-9563-7650a5a7c80",
+      "a03b4505-1563-4560-9563-7650a5a7c801x",
+      "1; drop table exercises",
+    ]) {
+      expect(isUuid(bad)).toBe(false);
+    }
   });
 
   it("coerces numeric values that may arrive as strings", () => {

@@ -7,7 +7,7 @@ import {
 } from "@/lib/photo-file";
 import type { PhotoPose, ProgressPhoto } from "@/lib/types";
 import type { CreatePhotoResult } from "../types";
-import { check, fetchAll, getDb } from "./db";
+import { check, fetchAll, getDb, isUuid } from "./db";
 
 /** Private bucket created by the initial migration. It must never be made public. */
 const BUCKET = "progress-photos";
@@ -82,6 +82,7 @@ export async function getPhotoFile(
   userId: string,
   id: string,
 ): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  if (!isUuid(id)) return null;
   const db = await getDb();
   const { data: row, error } = await db
     .from("progress_photos")
@@ -103,6 +104,7 @@ export async function getPhotoFile(
 }
 
 export async function deletePhoto(userId: string, id: string): Promise<boolean> {
+  if (!isUuid(id)) return false;
   const db = await getDb();
   const { data: row, error } = await db
     .from("progress_photos")

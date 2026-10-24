@@ -2,7 +2,7 @@ import "server-only";
 import { toMinutes, WEEKDAY_ORDER } from "@/lib/scheduling";
 import type { AvailabilityBlock } from "@/lib/types";
 import type { AvailabilityInput } from "@/lib/validation/availability";
-import { check, fetchAll, getDb } from "./db";
+import { check, fetchAll, getDb, isUuid } from "./db";
 
 const COLUMNS = "id,user_id,weekday,start_time,end_time,label";
 
@@ -61,6 +61,7 @@ export async function updateAvailability(
   id: string,
   input: AvailabilityInput,
 ): Promise<AvailabilityBlock | null> {
+  if (!isUuid(id)) return null;
   const db = await getDb();
   const { data, error } = await db
     .from("availability_blocks")
@@ -74,6 +75,7 @@ export async function updateAvailability(
 }
 
 export async function deleteAvailability(userId: string, id: string): Promise<boolean> {
+  if (!isUuid(id)) return false;
   const db = await getDb();
   const { data, error } = await db
     .from("availability_blocks")

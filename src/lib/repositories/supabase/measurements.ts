@@ -1,7 +1,7 @@
 import "server-only";
 import type { BodyMeasurement } from "@/lib/types";
 import type { MeasurementInput } from "@/lib/validation/progress";
-import { check, fetchAll, getDb, numOrNull } from "./db";
+import { check, fetchAll, getDb, isUuid, numOrNull } from "./db";
 
 const COLUMNS = "id,user_id,date,chest_cm,waist_cm,hips_cm,arm_cm,thigh_cm,body_fat_pct";
 
@@ -60,6 +60,7 @@ export async function upsertMeasurement(
 }
 
 export async function deleteMeasurement(userId: string, id: string): Promise<boolean> {
+  if (!isUuid(id)) return false;
   const db = await getDb();
   const { data, error } = await db
     .from("body_measurements")

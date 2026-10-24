@@ -4,7 +4,7 @@ import type { WorkoutSession, WorkoutSet } from "@/lib/types";
 import type { SetInput, SetUpdateInput } from "@/lib/validation/workout";
 import { computeDurationMinutes, pickLastSets } from "@/lib/workout";
 import type { AddSetResult } from "../types";
-import { check, fetchAll, getDb, isUniqueViolation, numOrNull } from "./db";
+import { check, fetchAll, getDb, isUniqueViolation, isUuid, numOrNull } from "./db";
 
 const SESSION_COLUMNS = "id,user_id,date,started_at,ended_at,duration_minutes,notes";
 const SET_COLUMNS = "id,session_id,exercise_id,set_number,reps,weight_kg,rpe";
@@ -32,6 +32,7 @@ const toSet = (r: any): WorkoutSet => ({
 });
 
 async function findSession(userId: string, id: string): Promise<WorkoutSession | null> {
+  if (!isUuid(id)) return null;
   const db = await getDb();
   const { data, error } = await db
     .from("workout_sessions")
@@ -164,6 +165,7 @@ export async function updateSessionNotes(
   id: string,
   notes: string | null,
 ): Promise<WorkoutSession | null> {
+  if (!isUuid(id)) return null;
   const db = await getDb();
   const { data, error } = await db
     .from("workout_sessions")
@@ -178,6 +180,7 @@ export async function updateSessionNotes(
 
 /** Sets are removed by the foreign key's on delete cascade. */
 export async function deleteSession(userId: string, id: string): Promise<boolean> {
+  if (!isUuid(id)) return false;
   const db = await getDb();
   const { data, error } = await db
     .from("workout_sessions")
@@ -208,6 +211,7 @@ export async function addSet(
   input: SetInput,
 ): Promise<AddSetResult> {
   if (!(await findSession(userId, sessionId))) return { ok: false, reason: "session_not_found" };
+  if (!isUuid(input.exercise_id)) return { ok: false, reason: "exercise_not_found" };
 
   const db = await getDb();
   const { data: exercise, error: exerciseError } = await db
@@ -246,6 +250,7 @@ export async function updateSet(
   setId: string,
   input: SetUpdateInput,
 ): Promise<WorkoutSet | null> {
+  if (!isUuid(setId)) return null;
   if (!(await findSession(userId, sessionId))) return null;
 
   const db = await getDb();
@@ -262,6 +267,7 @@ export async function updateSet(
 
 /** Deletes a set and renumbers the later sets of that exercise, lowest first. */
 export async function deleteSet(userId: string, sessionId: string, setId: string): Promise<boolean> {
+  if (!isUuid(setId)) return false;
   if (!(await findSession(userId, sessionId))) return false;
 
   const db = await getDb();

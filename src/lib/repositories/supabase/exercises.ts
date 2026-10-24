@@ -2,7 +2,7 @@ import "server-only";
 import type { Exercise } from "@/lib/types";
 import type { ExerciseInput } from "@/lib/validation/workout";
 import type { DeleteExerciseResult } from "../types";
-import { check, fetchAll, getDb, isForeignKeyViolation } from "./db";
+import { check, fetchAll, getDb, isForeignKeyViolation, isUuid } from "./db";
 
 const COLUMNS = "id,user_id,name,primary_muscle,secondary_muscles,equipment";
 
@@ -53,6 +53,7 @@ export async function createExercise(userId: string, input: ExerciseInput): Prom
 
 /** Only the user's own exercises can be deleted, and only if no set uses them. */
 export async function deleteExercise(userId: string, id: string): Promise<DeleteExerciseResult> {
+  if (!isUuid(id)) return "not_found";
   const db = await getDb();
   const { data: row, error: readError } = await db
     .from("exercises")

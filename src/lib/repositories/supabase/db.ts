@@ -20,6 +20,15 @@ const FOREIGN_KEY_VIOLATION = "23503";
 export const isUniqueViolation = (e: { code?: string } | null) => e?.code === UNIQUE_VIOLATION;
 export const isForeignKeyViolation = (e: { code?: string } | null) => e?.code === FOREIGN_KEY_VIOLATION;
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Ids from URLs and request bodies are untrusted strings. Postgres throws on a
+ * malformed uuid, which would surface as a 500, so repositories check first and
+ * treat anything else as "not found".
+ */
+export const isUuid = (value: string): boolean => UUID.test(value);
+
 /** Numeric columns can arrive as numbers or strings depending on the driver. */
 export const num = (v: unknown): number => Number(v);
 export const numOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));

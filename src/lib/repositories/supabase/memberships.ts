@@ -1,7 +1,7 @@
 import "server-only";
 import type { Membership } from "@/lib/types";
 import type { MembershipInput } from "@/lib/validation/membership";
-import { check, fetchAll, getDb, numOrNull } from "./db";
+import { check, fetchAll, getDb, isUuid, numOrNull } from "./db";
 
 const COLUMNS = "id,user_id,gym_name,start_date,end_date,price,notes";
 
@@ -55,6 +55,7 @@ export async function updateMembership(
   id: string,
   input: MembershipInput,
 ): Promise<Membership | null> {
+  if (!isUuid(id)) return null;
   const db = await getDb();
   const { data, error } = await db
     .from("memberships")
@@ -68,6 +69,7 @@ export async function updateMembership(
 }
 
 export async function deleteMembership(userId: string, id: string): Promise<boolean> {
+  if (!isUuid(id)) return false;
   const db = await getDb();
   const { data, error } = await db.from("memberships").delete().eq("id", id).eq("user_id", userId).select("id");
   check(error);
