@@ -272,4 +272,18 @@ on conflict (name) where user_id is null do nothing;
 -- ===== 20261024000300_membership_location.sql =====
 -- Where the gym is: a branch name, area or address. Free text, optional.
 alter table public.memberships
-  add column location text check (location is null or char_length(location) <= 120);
+  add column if not exists location text check (location is null or char_length(location) <= 120);
+
+-- ===== 20261024000400_membership_coordinates.sql =====
+-- Exact map position of the gym, picked on a map. Both set or both empty.
+alter table public.memberships
+  add column if not exists latitude numeric(9, 6),
+  add column if not exists longitude numeric(9, 6);
+
+alter table public.memberships drop constraint if exists memberships_coordinates_check;
+alter table public.memberships
+  add constraint memberships_coordinates_check check (
+    (latitude is null) = (longitude is null)
+    and (latitude is null or latitude between -90 and 90)
+    and (longitude is null or longitude between -180 and 180)
+  );

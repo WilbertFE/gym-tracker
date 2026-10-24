@@ -40,7 +40,12 @@ export async function MembershipPanel() {
     <div className="flex flex-col gap-6">
       <Panel label={current.gym_name}>
         <div className="flex flex-col gap-4">
-          <LocationLine gymName={current.gym_name} location={current.location} />
+          <LocationLine
+            gymName={current.gym_name}
+            location={current.location}
+            latitude={current.latitude}
+            longitude={current.longitude}
+          />
           <MembershipStatusLine state={state} />
 
           <div className="grid grid-cols-2 gap-4">

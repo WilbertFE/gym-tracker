@@ -203,6 +203,8 @@ function seed(userId: string): Store {
       user_id: userId,
       gym_name: "Demo Fitness Club",
       location: "Central Branch, Main Street",
+      latitude: -6.2088,
+      longitude: 106.8456,
       start_date: iso(subDays(now, 70)),
       end_date: iso(addDays(now, 18)),
       price: 350000,

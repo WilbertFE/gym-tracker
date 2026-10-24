@@ -214,7 +214,7 @@ Create via migrations (keep SQL in `supabase/migrations/`).
 - `exercises`: `id`, `user_id` (null for built-in), `name`, `primary_muscle`, `secondary_muscles` (text array), `equipment`
 - `workout_sessions`: `id`, `user_id`, `date`, `started_at`, `ended_at`, `duration_minutes`, `notes`
 - `workout_sets`: `id`, `session_id`, `exercise_id`, `set_number`, `reps`, `weight_kg`, `rpe` (optional)
-- `memberships`: `id`, `user_id`, `gym_name`, `location` (added later, optional text up to 120 characters), `start_date`, `end_date`, `price`, `notes`
+- `memberships`: `id`, `user_id`, `gym_name`, `location` (added later, optional text up to 120 characters), `latitude` and `longitude` (optional, both set or both empty), `start_date`, `end_date`, `price`, `notes`
 - `progress_photos`: `id`, `user_id`, `date`, `storage_path`, `pose` (front, side, back)
 - `availability_blocks`: `id`, `user_id`, `weekday`, `start_time`, `end_time`, `label` (classes and other commitments)
 - `body_measurements` (added in Phase 6): `id`, `user_id`, `date` (unique per user), `chest_cm`, `waist_cm`, `hips_cm`, `arm_cm`, `thigh_cm`, `body_fat_pct` (all optional, at least one required)
@@ -328,7 +328,7 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | App shell | Mobile bottom tab bar, desktop left rail |
 | Daily check-in | Dashboard: went to gym or rest day, mood, energy, sleep, streak, best streak, gym days in 7 days, 7 day strip. One entry per date, saving again updates it |
 | Weight tracking | Body page: latest, 7 day and all time change, Recharts trend line, log form, history table with delete |
-| Membership tracker | Membership page: gym, location (optional, shown with an "Open in maps" link that searches the gym name plus the location), dates, price, days left, progress bar, status (active, expiring within 7 days, expired), edit and delete |
+| Membership tracker | Membership page: gym, location (optional address text) and a map pin (optional). Pick the place by searching, tapping the map, dragging the pin, or "Use my location"; the address text is filled in from the pin unless you typed your own. Shown with an "Open in maps" link that uses the exact pin, or the gym name plus address if there is no pin, dates, price, days left, progress bar, status (active, expiring within 7 days, expired), edit and delete |
 | Exercise library | 37 built-in exercises covering all 16 muscle groups (`src/lib/exercise-library.ts`), plus custom exercises (add, delete if unused) at `/workouts/exercises` |
 | Workout sessions | Start (only one in progress at a time), live elapsed timer, finish (duration in minutes is computed automatically, minimum 1), delete with confirmation |
 | Fast set logging | Exercise picker grouped by muscle, chips to switch between exercises already in the workout, big minus/plus steppers (1 rep, 2.5 kg), reps and weight prefilled from the last set of that exercise (this workout first, then history), inputs stay after logging so a repeat set is one tap |
@@ -368,7 +368,7 @@ Deviations from the planned structure: authenticated pages live in the `src/app/
 | `/api/weights` | POST | `{ date, weight_kg (20 to 500), notes? }` | `201 { data }` | 30 writes per minute per user |
 | `/api/weights/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
 | `/api/membership` | GET | none | `{ data: Membership[] }` newest end date first | |
-| `/api/membership` | POST | `{ gym_name, location? (up to 120 characters), start_date, end_date, price?, notes? }` | `201 { data }` | end_date must not precede start_date |
+| `/api/membership` | POST | `{ gym_name, location? (up to 120 characters), latitude? and longitude? (both or neither), start_date, end_date, price?, notes? }` | `201 { data }` | end_date must not precede start_date |
 | `/api/membership/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
 | `/api/exercises` | GET | none | `{ data: Exercise[] }` built-ins plus own, by name | |
 | `/api/exercises` | POST | `{ name, primary_muscle, secondary_muscles?, equipment? }` | `201 { data }` | Primary muscle is removed from the secondary list |
@@ -424,7 +424,8 @@ Streak definition: consecutive days with any check-in (gym or rest day), since t
 
 | Migration | Contents |
 | --- | --- |
-| `20261024000300_membership_location.sql` | Adds the optional `location` column to `memberships` (applied to a project that already ran `setup.sql` by running just this file) |
+| `20261024000400_membership_coordinates.sql` | Adds optional `latitude` and `longitude` to `memberships` with range checks and a both-or-neither rule |
+| `20261024000300_membership_location.sql` | Adds the optional `location` column to `memberships`. Both of these are safe to run twice (`if not exists`), so a project that already ran `setup.sql` just runs these two files |
 | `20261024000200_integrity_and_exercise_seed.sql` | Unique indexes the Supabase repositories rely on (one in-progress workout per user, unique set numbers per exercise, unique built-in exercise names) and the 37 built-in exercises |
 | `20261024000100_body_measurements.sql` | `body_measurements` table with range checks, one row per user per day, at least one metric per row, and RLS |
 | `20261024000000_initial_schema.sql` | All tables from section 8.2 (except `body_measurements`), `muscle_group` and `photo_pose` enums, RLS on every table, profile creation trigger on sign up, private `progress-photos` storage bucket with per-user folder policy |
@@ -438,6 +439,19 @@ Streak definition: consecutive days with any check-in (gym or rest day), since t
 - Playwright is installed for end to end tests but not configured yet.
 - GitHub Actions: `.github/workflows/ci.yml` runs lint, typecheck, tests and build on every push and pull request, using placeholder Supabase env values.
 
+## 17.1 Map Picker (Membership Location)
+
+The membership form has a map for choosing where the gym is. It uses Leaflet through react-leaflet, loaded in the browser only (`next/dynamic`, no SSR), with OpenStreetMap tiles. No API key or account is needed.
+
+- **Search**: the Search button (or Enter) calls OpenStreetMap's Nominatim `search` endpoint. Results are validated before use (`src/lib/geo.ts`). It is deliberately not search-as-you-type, which Nominatim's usage policy forbids.
+- **Pin**: tap the map, or drag the pin. The address text is looked up with Nominatim `reverse` and filled in only if the field is empty or still holds the previous map-filled text, never over text you typed. Long addresses are shortened to 120 characters at a comma.
+- **Use my location**: the browser's Geolocation API (needs permission, and HTTPS or localhost).
+- **Rate limit**: requests to Nominatim are spaced at least 1.1 seconds apart in the browser, to stay within its fair use policy (about 1 request per second, intended for light use).
+- **Privacy**: tiles, searches and reverse lookups are requested from OpenStreetMap servers by your browser, so they see your IP address and the places you look at. Nothing else from the app is sent. The required attribution is shown on the map.
+- **Accessibility**: the map is not keyboard friendly, so the same result is reachable by searching, "Use my location" or typing the address in the text field.
+- **Dark theme**: the tile layer is inverted with CSS so the map matches the interface.
+- **Marker**: a CSS dot, because Leaflet's default marker images do not survive bundling.
+
 ## 18. 3D Model Source and License
 
 There is no external 3D asset, so there is nothing to attribute. The 3D view is a procedural stand-in built in code: one scaled sphere (ellipsoid) per muscle group plus dark filler shapes, defined in `src/app/(app)/body/components/body-3d-parts.ts` and rendered with react-three-fiber in `body-3d.tsx`. It supports drag to rotate, scroll or pinch to zoom, and tap to select. It is loaded on demand (`next/dynamic`, no SSR) and the page itself stays a Server Component.
@@ -450,6 +464,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Map picker for the membership location: search a place, tap the map, drag the pin or use your current location (Leaflet and OpenStreetMap, no account or API key). Stores `latitude` and `longitude` next to the address. Needs migrations `20261024000300` and `20261024000400`.
 - 2026-10-24: Membership location: optional free text field (branch, area or address) with an "Open in maps" link, shown on the Membership page and the dashboard. Needs migration `20261024000300_membership_location.sql`.
 - 2026-10-24: Verified the Supabase backend end to end against the live project (about 60 API checks plus a visual pass of the dashboard, body, progress and schedule pages). Fixed a bug found by that run: a malformed id (for example `/api/workouts/not-a-uuid`, or an unknown exercise id in a set) made Postgres throw and returned 500; the Supabase repositories now validate uuids (`isUuid`) and answer 404 or 400 like the demo backend. Confirmed the photo bucket is private: the public storage URL answers "Bucket not found" and the anon key cannot read the object.
 - 2026-10-24: Supabase backend: repositories for every table and the private photo bucket, dispatchers that choose between demo and Supabase, shared prefill logic, integrity and exercise seed migration, combined `supabase/setup.sql`. Demo mode stays available for development. Not yet exercised against a live database.

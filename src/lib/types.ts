@@ -25,6 +25,9 @@ export type Membership = {
   gym_name: string;
   /** Branch, area or address of the gym. Free text. */
   location: string | null;
+  /** Exact position picked on the map. Both set or both null. */
+  latitude: number | null;
+  longitude: number | null;
   start_date: string;
   end_date: string;
   price: number | null;

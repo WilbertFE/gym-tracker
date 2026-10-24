@@ -96,6 +96,32 @@ describe("/api/membership", () => {
     expect((await cleared.json()).data.location).toBeNull();
   });
 
+  it("stores a pinned position, replaces it and clears it", async () => {
+    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01" };
+
+    const created = await postMembership(json({ ...base, latitude: -6.2088, longitude: 106.8456 }));
+    expect((await created.json()).data).toMatchObject({ latitude: -6.2088, longitude: 106.8456 });
+
+    const none = await postMembership(json(base));
+    expect((await none.json()).data).toMatchObject({ latitude: null, longitude: null });
+
+    const { data } = await (await postMembership(json({ ...base, latitude: 1, longitude: 2 }))).json();
+    const moved = await putMembership(json({ ...base, latitude: -7.25, longitude: 112.75 }), ctx(data.id));
+    expect((await moved.json()).data).toMatchObject({ latitude: -7.25, longitude: 112.75 });
+    const cleared = await putMembership(json({ ...base, latitude: null, longitude: null }), ctx(data.id));
+    expect((await cleared.json()).data).toMatchObject({ latitude: null, longitude: null });
+  });
+
+  it("rejects half a position and impossible coordinates", async () => {
+    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01" };
+    expect((await postMembership(json({ ...base, latitude: 10 }))).status).toBe(400);
+    expect((await postMembership(json({ ...base, longitude: 10 }))).status).toBe(400);
+    expect((await postMembership(json({ ...base, latitude: 91, longitude: 0 }))).status).toBe(400);
+    expect((await postMembership(json({ ...base, latitude: 0, longitude: 181 }))).status).toBe(400);
+    expect((await postMembership(json({ ...base, latitude: "1", longitude: "2" }))).status).toBe(400);
+    expect((await postMembership(json({ ...base, latitude: 90, longitude: -180 }))).status).toBe(201);
+  });
+
   it("rejects a location longer than 120 characters", async () => {
     const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01" };
     expect((await postMembership(json({ ...base, location: "x".repeat(120) }))).status).toBe(201);

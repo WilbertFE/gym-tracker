@@ -34,7 +34,12 @@ export async function MembershipSnapshotPanel() {
   return (
     <Panel label={current.gym_name}>
       <div className="flex flex-col gap-4">
-        <LocationLine gymName={current.gym_name} location={current.location} />
+        <LocationLine
+          gymName={current.gym_name}
+          location={current.location}
+          latitude={current.latitude}
+          longitude={current.longitude}
+        />
         <MembershipStatusLine state={state} />
         <Stat
           label={state === "expired" ? "Expired" : "Days left"}
