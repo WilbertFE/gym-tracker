@@ -83,3 +83,14 @@ export type BodyMeasurement = {
   thigh_cm: number | null;
   body_fat_pct: number | null;
 };
+
+/** A recurring weekly commitment (class, work, and so on). Times are "HH:MM". */
+export type AvailabilityBlock = {
+  id: string;
+  user_id: string;
+  /** 0 = Sunday ... 6 = Saturday, matching Date#getDay and Postgres dow. */
+  weekday: number;
+  start_time: string;
+  end_time: string;
+  label: string | null;
+};

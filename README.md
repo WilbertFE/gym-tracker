@@ -319,6 +319,7 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Phase 4: Dashboard | Done on dummy data |
 | Phase 5: Body heatmap | Done on dummy data (2D SVG map and a procedural 3D model, no licensed GLB yet) |
 | Phase 6: Physique analysis | Done on dummy data. AI based analysis is intentionally not built (optional, last) |
+| Phase 7: Scheduling and recommendations | Done on dummy data. All roadmap phases are complete; the remaining work is connecting Supabase (section 20) |
 | shadcn setup | Style `radix-lyra` (boxy, sharp), neutral base, CSS variables, dark only |
 | Design tokens | HUD palette mapped to shadcn variables in `globals.css`, plus `surface`, `surface-raised`, `intensity-*` tokens |
 | Fonts | IBM Plex Sans and JetBrains Mono via `next/font`; `.tabular` utility for mono tabular numerals |
@@ -340,7 +341,10 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Progress photos | `/body/progress`: upload JPEG, PNG or WebP (up to 5 MB, 100 per user) with a date and pose (front, side, back), gallery with pose filter and two step delete. Photos are private: no public URL, every file request is authenticated and scoped to the owner |
 | Photo comparison | Pick a pose and two dates and see the photos side by side with the time between them, the weight change and each body measurement change, using the nearest entries on or before each date (`src/lib/progress.ts`). A metric is only shown when two different entries exist |
 | Body measurements | Chest, waist, hips, arm, thigh and body fat. One entry per date (saving again replaces it), history table with the change since the previous entry for each metric |
-| Pages | Landing, login, dashboard, workouts (list, detail, library), body (heatmap, weight), body progress, membership are functional; schedule is a placeholder |
+| Weekly commitments | Schedule page: recurring classes and other commitments per weekday (Monday first), add and remove. Weekday numbers follow `Date#getDay`: 0 = Sunday ... 6 = Saturday. Times are `HH:MM` on a 24 hour clock |
+| Best time to train | Schedule page (`src/lib/scheduling.ts`): top 3 days in the next week, one best slot each. A slot must fit between 06:00 and 22:00, start at least 15 minutes from now, and stay 30 minutes clear of every commitment. Slot length is the median of your finished workouts, rounded up to 15 minutes (60 minutes with no history). Score: closeness to the times you trained on that weekday (up to 3) and on any weekday (up to 2), plus rest (+1 well rested, -1 trained the day before, -2 already trained that day) and -3 once 4 workouts are done that week. Each suggestion lists its reasons. All numbers are in the `SCHEDULING` constant |
+| Under-trained recommendations | Schedule page (`src/lib/recommendations.ts`): muscles that are untrained or light this week (same scoring as the heatmap), fewest weekly sets first, then longest since last trained. Shows how many more sets reach a moderate level and which exercises to try, favouring ones you use |
+| Pages | All pages are functional: landing, login, dashboard, workouts (list, detail, library), body (heatmap, weight), body progress, membership, schedule |
 | Phases 2 to 7 | Not started |
 
 Deviations from the planned structure: authenticated pages live in the `src/app/(app)/` route group so they share one layout with the navigation. URLs are unchanged (`/dashboard`, `/workouts`, and so on). The "More" tab on mobile points to Membership.
@@ -384,6 +388,9 @@ Deviations from the planned structure: authenticated pages live in the `src/app/
 | `/api/measurements` | GET | none | `{ data: BodyMeasurement[] }` newest first | |
 | `/api/measurements` | POST | `{ date, chest_cm?, waist_cm?, hips_cm?, arm_cm?, thigh_cm?, body_fat_pct? }` | `{ data }` | Upsert by date. At least one value required, ranges enforced |
 | `/api/measurements/[id]` | DELETE | none | `{ ok: true }` or 404 | |
+| `/api/availability` | GET | none | `{ data: AvailabilityBlock[] }` Monday first, then by start time | |
+| `/api/availability` | POST | `{ weekday (0 to 6), start_time, end_time, label? }` | `201 { data }` | Times `HH:MM`, end after start, label up to 60 characters |
+| `/api/availability/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
 
 All routes above require a session (401 otherwise) and validate input with zod (400 on invalid input, 429 when rate limited). Dates are `YYYY-MM-DD`; check-in and weight dates cannot be in the future.
 
@@ -399,6 +406,7 @@ Until a Supabase project is connected, the app runs on dummy data:
 - Business logic is pure and tested: `src/lib/streak.ts`, `src/lib/membership.ts`, `src/lib/weight.ts`, `src/lib/workout.ts` (duration, volume, set numbering, grouping, formatting).
 - Dashboard panels (`src/app/(app)/dashboard/components/`) only read through the repositories, so they need no change when Supabase is connected. Each panel fetches its own data inside its own `Suspense`; if the extra queries matter later, wrap the repository reads in React `cache`.
 - Repositories added in Phase 3: `exercises.ts` and `workouts.ts` (sessions and sets). The seeded demo history has three finished workouts.
+- Scheduling (Phase 7): `availability_blocks` already has the right shape. Postgres `time` columns return `HH:MM:SS`, so trim to `HH:MM` in the repository (and accept `HH:MM` on write). Time of day for your usual training hours is read from each workout's `started_at` in the server's timezone. That is fine on a single user local setup, but on a host running in UTC it shifts hours. Before deploying, store the user's timezone (for example on `profiles`) and convert in `suggestSlots`.
 - Photos (Phase 6): `repositories/photos.ts` keeps metadata and the bytes in memory under `<user id>/<photo id>.<ext>`, the same layout the private `progress-photos` bucket policy expects. With Supabase, upload to that bucket from the route handler (server side, after the same size and magic byte checks), keep `progress_photos` rows, and stream or sign short lived URLs in `/api/photos/[id]/file`. Never make the bucket public. The seeded demo photos are SVG placeholders, which is why `contentTypeForPath` knows `.svg`; real uploads can never be SVG.
 - Extra migration work for Phase 3: built-in exercises currently use stable slug ids (`builtin-barbell-bench-press`). With Supabase, add a seed migration inserting `BUILT_IN_EXERCISES` as rows with `user_id` null and uuid ids, and change `exercise-library.ts` and the repositories to read them from the table. `workout_sets.exercise_id` references `exercises.id`, so the repository must write real ids.
 - The unfinished workout is identified by `ended_at` being null. Add a partial unique index on `workout_sessions (user_id) where ended_at is null` in the migration to enforce one active workout in the database too.
@@ -416,7 +424,7 @@ Status: written, not yet applied to any Supabase project.
 
 ## 17. Testing and CI
 
-- Vitest config: `vitest.config.mts`; tests in `tests/unit/`: rate limiter, proxy protection, login route, streak, membership status, weight summary, workout logic, photo type detection by magic bytes, progress comparison and measurement deltas, photo upload and measurement routes (rejected disguised files, SVG, oversize, bad input, per user limit, upload rate limit, privacy headers, user isolation), muscle intensity scoring (weights, weekly range, overall normalisation, last trained, suggestions), week ranges and summaries, delta formatting, next workout suggestion, and CRUD routes for check-ins, weights, membership, exercises and workouts (validation, set numbering and renumbering, one active workout, idempotent finish, cascade delete, prefill priority, user isolation, write rate limits).
+- Vitest config: `vitest.config.mts`; tests in `tests/unit/`: rate limiter, proxy protection, login route, streak, membership status, weight summary, workout logic, slot suggestions (commitments, travel buffer, history, rest, weekly cap, duration), under-trained recommendations, availability routes, photo type detection by magic bytes, progress comparison and measurement deltas, photo upload and measurement routes (rejected disguised files, SVG, oversize, bad input, per user limit, upload rate limit, privacy headers, user isolation), muscle intensity scoring (weights, weekly range, overall normalisation, last trained, suggestions), week ranges and summaries, delta formatting, next workout suggestion, and CRUD routes for check-ins, weights, membership, exercises and workouts (validation, set numbering and renumbering, one active workout, idempotent finish, cascade delete, prefill priority, user isolation, write rate limits).
 - `npm run typecheck` runs `next typegen` first, because route handler types are generated.
 - Playwright is installed for end to end tests but not configured yet.
 - GitHub Actions: `.github/workflows/ci.yml` runs lint, typecheck, tests and build on every push and pull request, using placeholder Supabase env values.
@@ -433,9 +441,26 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Phase 7 scheduling and recommendations: weekly commitments with CRUD routes, best time suggestions from commitments and attendance history, under-trained muscle recommendations with exercise suggestions. This completes the planned roadmap.
 - 2026-10-24: Phase 6 physique analysis: private progress photo upload with server side image validation, authenticated photo serving, side by side comparison with weight and measurement changes, body measurements, `body_measurements` migration. AI analysis not built.
 - 2026-10-24: Phase 5 body heatmap: tested muscle intensity scoring, 2D SVG body map with front and back views, procedural 3D model, weekly and overall toggle, muscle detail panel and muscle list. The Body page now leads with the heatmap.
 - 2026-10-24: Phase 4 dashboard: weekly summary with last week comparison and daily volume bars, next workout suggestion (push, pull, legs rotation), membership and weight snapshots. Moved the weight chart and start workout button to `src/components` and extracted a shared membership status component, since they are now used on several pages.
 - 2026-10-24: Phase 3 workout logging on the dummy data layer: seeded exercise library with custom exercises, workout sessions with live timer and automatic duration, fast set logging with prefill, history and session detail, workout and exercise API routes, tests. The nav is wrapped in `Suspense` because `usePathname()` is runtime data on dynamic routes.
 - 2026-10-24: Phase 2 daily basics on a swappable in-memory data layer: check-in with streak, weight tracking with trend chart, membership tracker with expiry warning, CRUD API routes, demo mode, tests.
 - 2026-10-24: Phase 1 foundation: dependencies, shadcn (radix-lyra), HUD theme, fonts, Supabase helpers, proxy, auth routes and login, app shell, robots, sitemap, initial migration, tests, CI.
+
+
+---
+
+## 20. Moving from Dummy Data to Supabase
+
+The app currently runs in demo mode (`NEXT_PUBLIC_DEMO_MODE=true`, development only) on an in-memory store. Everything above the repositories is already written against real behavior, so the move is one layer deep.
+
+1. **Create or choose a Supabase project** and fill `.env.local` (section 10). Remove `NEXT_PUBLIC_DEMO_MODE`.
+2. **Apply the migrations** in `supabase/migrations/` in filename order: `20261024000000_initial_schema.sql`, then `20261024000100_body_measurements.sql`. Run the Supabase security advisor afterwards.
+3. **Seed the built-in exercises** (`BUILT_IN_EXERCISES` in `src/lib/exercise-library.ts`) as rows with `user_id` null and uuid ids. Add a partial unique index so only one workout can be in progress: `create unique index on workout_sessions (user_id) where ended_at is null`.
+4. **Replace the repository bodies** in `src/lib/repositories/` (`checkins`, `weights`, `memberships`, `exercises`, `workouts`, `photos`, `measurements`, `availability`) with queries through `createClient()` from `src/lib/supabase/server.ts`. Keep the function signatures. RLS already scopes rows to the signed in user; keep passing `userId` for clarity and for the storage path.
+5. **Photos**: upload to the private `progress-photos` bucket under `<user id>/<photo id>.<ext>` after the same size and magic byte checks, and stream or sign short lived URLs from `/api/photos/[id]/file`. Never make the bucket public.
+6. **Per notes in section 15.1**: trim `time` values to `HH:MM`, and store the user's timezone before deploying.
+7. **Delete** `src/lib/repositories/store.ts`, `src/lib/demo.ts` and the demo branches in `src/proxy.ts`, `src/lib/auth.ts` and the logout route. Update the tests that use `resetStores` and demo mode to mock the Supabase client or run against a local Supabase.
+8. **Run** `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, then sign up and walk through each page once.

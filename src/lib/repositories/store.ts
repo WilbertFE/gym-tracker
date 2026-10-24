@@ -4,6 +4,7 @@ import { DEMO_USER_ID } from "@/lib/demo";
 import { ISO_FORMAT } from "@/lib/dates";
 import { builtInId } from "@/lib/exercise-library";
 import type {
+  AvailabilityBlock,
   BodyMeasurement,
   Checkin,
   Exercise,
@@ -32,6 +33,7 @@ export type Store = {
   /** Photo bytes by storage_path. Stands in for a private Supabase Storage bucket. */
   files: Map<string, { bytes: Uint8Array; contentType: string }>;
   measurements: BodyMeasurement[];
+  availability: AvailabilityBlock[];
 };
 
 const g = globalThis as unknown as { __gymStore?: Map<string, Store> };
@@ -154,6 +156,24 @@ function seedProgress(userId: string, now: Date) {
   return { photos, files, measurements };
 }
 
+function seedAvailability(userId: string): AvailabilityBlock[] {
+  const block = (weekday: number, start_time: string, end_time: string, label: string) => ({
+    id: crypto.randomUUID(),
+    user_id: userId,
+    weekday,
+    start_time,
+    end_time,
+    label,
+  });
+  return [
+    block(1, "08:00", "12:00", "Lectures"),
+    block(2, "10:00", "16:00", "Lectures"),
+    block(3, "08:00", "14:00", "Lectures"),
+    block(4, "10:00", "16:00", "Lectures"),
+    block(5, "09:00", "12:00", "Lectures"),
+  ];
+}
+
 function seed(userId: string): Store {
   const now = new Date();
   // Today is skipped on purpose so the check-in form starts empty.
@@ -191,7 +211,18 @@ function seed(userId: string): Store {
 
   const { sessions, sets } = seedWorkouts(userId, now);
   const { photos, files, measurements } = seedProgress(userId, now);
-  return { checkins, weights, memberships, exercises: [], sessions, sets, photos, files, measurements };
+  return {
+    checkins,
+    weights,
+    memberships,
+    exercises: [],
+    sessions,
+    sets,
+    photos,
+    files,
+    measurements,
+    availability: seedAvailability(userId),
+  };
 }
 
 const empty = (): Store => ({
@@ -204,6 +235,7 @@ const empty = (): Store => ({
   photos: [],
   files: new Map(),
   measurements: [],
+  availability: [],
 });
 
 export function getStore(userId: string): Store {
