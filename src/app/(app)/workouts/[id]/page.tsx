@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
 import { buildMetadata } from "@/lib/metadata";
+import { parseMuscle } from "@/lib/muscles";
 import { getSessionWithSets } from "@/lib/repositories/workouts";
 import { SessionDetail } from "../components/session-detail";
 
@@ -42,12 +43,12 @@ async function DynamicMarker() {
   return null;
 }
 
-export default function WorkoutDetailPage({ params }: PageProps<"/workouts/[id]">) {
+export default function WorkoutDetailPage({ params, searchParams }: PageProps<"/workouts/[id]">) {
   return (
     <main className="flex flex-col gap-6">
       <PageHeader label="Training" title="Workout" description="Log sets as you go. Tap finish when you are done." />
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <WorkoutBody params={params} />
+        <WorkoutBody params={params} searchParams={searchParams} />
       </Suspense>
       <Suspense>
         <DynamicMarker />
@@ -56,7 +57,12 @@ export default function WorkoutDetailPage({ params }: PageProps<"/workouts/[id]"
   );
 }
 
-async function WorkoutBody({ params }: Pick<PageProps<"/workouts/[id]">, "params">) {
+async function WorkoutBody({
+  params,
+  searchParams,
+}: Pick<PageProps<"/workouts/[id]">, "params" | "searchParams">) {
   const { id } = await params;
-  return <SessionDetail id={id} />;
+  // `?focus=calves` opens the workout with an exercise for that muscle ready. Anything else is ignored.
+  const { focus } = await searchParams;
+  return <SessionDetail id={id} focus={parseMuscle(Array.isArray(focus) ? focus[0] : focus)} />;
 }

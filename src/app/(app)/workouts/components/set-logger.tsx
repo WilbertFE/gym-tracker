@@ -27,11 +27,19 @@ type SetLoggerProps = {
   lastSets: Record<string, { reps: number; weight_kg: number }>;
   /** Exercise ids already logged in this session, in order. */
   sessionExerciseIds: string[];
+  /** Exercise to have selected when the logger opens, for example from a muscle group focus. */
+  focusExerciseId?: string;
 };
 
-export function SetLogger({ sessionId, exercises, lastSets, sessionExerciseIds }: SetLoggerProps) {
+export function SetLogger({
+  sessionId,
+  exercises,
+  lastSets,
+  sessionExerciseIds,
+  focusExerciseId,
+}: SetLoggerProps) {
   const router = useRouter();
-  const initial = sessionExerciseIds[sessionExerciseIds.length - 1] ?? "";
+  const initial = focusExerciseId ?? sessionExerciseIds[sessionExerciseIds.length - 1] ?? "";
   const [exerciseId, setExerciseId] = useState(initial);
   const [reps, setReps] = useState(initial && lastSets[initial] ? String(lastSets[initial].reps) : "");
   const [weight, setWeight] = useState(

@@ -38,3 +38,10 @@ export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
   hamstrings: "Hamstrings",
   calves: "Calves",
 };
+
+/** Reads an untrusted value (for example a query parameter) as a muscle group, or null. */
+export function parseMuscle(value: unknown): MuscleGroup | null {
+  return typeof value === "string" && (MUSCLE_GROUPS as readonly string[]).includes(value)
+    ? (value as MuscleGroup)
+    : null;
+}

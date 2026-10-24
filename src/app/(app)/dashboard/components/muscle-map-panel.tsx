@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { BodySvg } from "@/components/body-map/body-svg";
 import { Panel } from "@/components/panel";
+import { StartWorkoutButton } from "@/components/start-workout-button";
 import { getCurrentUserId } from "@/lib/auth";
 import { coverageDelta, coverageMessage, weeklyCoverage } from "@/lib/coverage";
 import { todayISO } from "@/lib/dates";
 import { buildMuscleStats, type IntensityLevel } from "@/lib/muscle-intensity";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
+import { recommendUndertrained } from "@/lib/recommendations";
 import { listExercises } from "@/lib/repositories/exercises";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
+import { pickFocusExercise } from "@/lib/suggestion";
 import { addDaysISO } from "@/lib/week";
 
 const linkClass =
@@ -32,6 +35,15 @@ export async function MuscleMapPanel() {
 
   const coverage = weeklyCoverage(stats);
   const lastWeek = weeklyCoverage(previous);
+
+  // The most neglected group: never trained first, then the longest wait. If every group
+  // has had some work, fall back to the one with the least work this week.
+  const target =
+    coverage.untrained[0]?.muscle ?? recommendUndertrained(stats, 1)[0]?.muscle ?? null;
+  const targetExercise = target
+    ? pickFocusExercise(exercises, target, new Set(sets.map((s) => s.exercise_id)))
+    : null;
+  const hasActiveWorkout = sessions.some((s) => s.ended_at === null);
 
   const levels = Object.fromEntries(stats.map((s) => [s.muscle, s.weekly.level])) as Record<
     MuscleGroup,
@@ -96,6 +108,23 @@ export async function MuscleMapPanel() {
               </ul>
             )}
           </section>
+
+          {target && (
+            <div className="flex flex-col gap-2 border-l-2 border-primary pl-3">
+              <StartWorkoutButton
+                focus={target}
+                label={`${hasActiveWorkout ? "Continue workout" : "Start workout"}: ${MUSCLE_LABELS[target]}`}
+              />
+              <p className="text-xs text-muted-foreground">
+                {targetExercise
+                  ? `${targetExercise.name} will be ready to log.`
+                  : "Opens your workout."}{" "}
+                {coverage.untrained.length > 0
+                  ? "Your most neglected group this week."
+                  : "The lightest group this week."}
+              </p>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-x-5">
             <Link href="/schedule" className={linkClass}>

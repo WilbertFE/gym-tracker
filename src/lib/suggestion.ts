@@ -101,3 +101,18 @@ export function suggestNextWorkout(input: {
 
   return { focus, daysSince, reason, exercises: picked };
 }
+
+/**
+ * The exercise to have ready when a workout is started for one muscle group:
+ * one the user has done before if there is one, otherwise the first in the
+ * library for that muscle. Null if no exercise targets it.
+ */
+export function pickFocusExercise(
+  exercises: Exercise[],
+  muscle: MuscleGroup,
+  usedExerciseIds: Iterable<string>,
+): Exercise | null {
+  const used = new Set(usedExerciseIds);
+  const candidates = exercises.filter((e) => e.primary_muscle === muscle);
+  return candidates.find((e) => used.has(e.id)) ?? candidates[0] ?? null;
+}

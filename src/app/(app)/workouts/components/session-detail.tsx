@@ -6,12 +6,14 @@ import { Stat } from "@/components/stat";
 import { getCurrentUserId } from "@/lib/auth";
 import { listExercises } from "@/lib/repositories/exercises";
 import { getSessionWithSets, lastSetsByExercise } from "@/lib/repositories/workouts";
+import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
+import { pickFocusExercise } from "@/lib/suggestion";
 import { formatDuration, groupSetsByExercise, sessionVolume } from "@/lib/workout";
 import { SessionActions } from "./session-actions";
 import { SetList } from "./set-list";
 import { SetLogger } from "./set-logger";
 
-export async function SessionDetail({ id }: { id: string }) {
+export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGroup | null }) {
   const userId = await getCurrentUserId();
   const found = await getSessionWithSets(userId, id);
   if (!found) notFound();
@@ -24,6 +26,7 @@ export async function SessionDetail({ id }: { id: string }) {
   ]);
 
   const groups = groupSetsByExercise(sets, exercises);
+  const focusExercise = focus ? pickFocusExercise(exercises, focus, Object.keys(lastSets)) : null;
   const volume = Math.round(sessionVolume(sets));
 
   return (
@@ -49,11 +52,17 @@ export async function SessionDetail({ id }: { id: string }) {
 
       {active && (
         <Panel label="Log a set">
+          {focus && focusExercise && (
+            <p className="mb-4 border-l-2 border-primary pl-3 text-sm text-muted-foreground">
+              Focus: {MUSCLE_LABELS[focus]}. {focusExercise.name} is ready below. Pick another exercise any time.
+            </p>
+          )}
           <SetLogger
             sessionId={id}
             exercises={exercises}
             lastSets={lastSets}
             sessionExerciseIds={groups.map((g) => g.exercise_id)}
+            focusExerciseId={focusExercise?.id}
           />
         </Panel>
       )}
