@@ -1,7 +1,7 @@
 import "server-only";
 import type { CheckinInput } from "@/lib/validation/checkin";
 import type { Checkin } from "@/lib/types";
-import { getStore } from "./store";
+import { getStore, removeLogPhotosFor } from "./store";
 
 export async function listCheckins(userId: string): Promise<Checkin[]> {
   return [...getStore(userId).checkins].sort((a, b) => b.date.localeCompare(a.date));
@@ -29,5 +29,7 @@ export async function deleteCheckin(userId: string, id: string): Promise<boolean
   const store = getStore(userId);
   const before = store.checkins.length;
   store.checkins = store.checkins.filter((c) => c.id !== id);
-  return store.checkins.length < before;
+  const deleted = store.checkins.length < before;
+  if (deleted) removeLogPhotosFor(store, "checkin", id);
+  return deleted;
 }

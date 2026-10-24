@@ -1,7 +1,7 @@
 import "server-only";
 import type { WeightInput } from "@/lib/validation/weight";
 import type { WeightLog } from "@/lib/types";
-import { getStore } from "./store";
+import { getStore, removeLogPhotosFor } from "./store";
 
 export async function listWeights(userId: string): Promise<WeightLog[]> {
   return [...getStore(userId).weights].sort((a, b) => b.date.localeCompare(a.date));
@@ -41,5 +41,7 @@ export async function deleteWeight(userId: string, id: string): Promise<boolean>
   const store = getStore(userId);
   const before = store.weights.length;
   store.weights = store.weights.filter((w) => w.id !== id);
-  return store.weights.length < before;
+  const deleted = store.weights.length < before;
+  if (deleted) removeLogPhotosFor(store, "weight", id);
+  return deleted;
 }

@@ -99,3 +99,15 @@ export type AvailabilityBlock = {
   end_time: string;
   label: string | null;
 };
+
+export type LogPhotoKind = "checkin" | "weight";
+
+/** A photo attached to a daily check-in or a weigh-in. Exactly one of the two ids is set. */
+export type LogPhoto = {
+  id: string;
+  user_id: string;
+  checkin_id: string | null;
+  weight_id: string | null;
+  storage_path: string;
+  created_at: string;
+};

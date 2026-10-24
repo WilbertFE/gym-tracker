@@ -4,6 +4,12 @@ export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 /** Photos a single user may keep. Guards storage use. */
 export const MAX_PHOTOS_PER_USER = 100;
 
+/** Photos on one check-in or one weigh-in. */
+export const MAX_LOG_PHOTOS_PER_ENTRY = 4;
+
+/** Check-in and weigh-in photos a single user may keep in total. */
+export const MAX_LOG_PHOTOS_PER_USER = 500;
+
 export const PHOTO_EXTENSIONS = {
   "image/jpeg": "jpg",
   "image/png": "png",

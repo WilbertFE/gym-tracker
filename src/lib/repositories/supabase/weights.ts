@@ -2,6 +2,7 @@ import "server-only";
 import type { WeightLog } from "@/lib/types";
 import type { WeightInput } from "@/lib/validation/weight";
 import { check, fetchAll, getDb, isUuid, num } from "./db";
+import { listEntryFilePaths, removeStoredFiles } from "./logPhotos";
 
 const COLUMNS = "id,user_id,date,weight_kg,notes";
 
@@ -60,7 +61,11 @@ export async function updateWeight(
 export async function deleteWeight(userId: string, id: string): Promise<boolean> {
   if (!isUuid(id)) return false;
   const db = await getDb();
+  // Photo rows go with the weigh-in (on delete cascade). Their files do not, so collect them first.
+  const files = await listEntryFilePaths(userId, "weight", id);
   const { data, error } = await db.from("weight_logs").delete().eq("id", id).eq("user_id", userId).select("id");
   check(error);
-  return (data?.length ?? 0) > 0;
+  if ((data?.length ?? 0) === 0) return false;
+  await removeStoredFiles(files);
+  return true;
 }

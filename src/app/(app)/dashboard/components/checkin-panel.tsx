@@ -1,9 +1,12 @@
 import { format, parseISO, subDays } from "date-fns";
+import Link from "next/link";
+import { EntryPhotos } from "@/components/entry-photos";
 import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
 import { getCurrentUserId } from "@/lib/auth";
 import { ISO_FORMAT, todayISO } from "@/lib/dates";
 import { listCheckins } from "@/lib/repositories/checkins";
+import { listLogPhotos } from "@/lib/repositories/logPhotos";
 import { computeStreak } from "@/lib/streak";
 import { cn } from "@/lib/utils";
 import { CheckinForm } from "./checkin-form";
@@ -18,6 +21,9 @@ export async function CheckinPanel() {
     today,
   );
   const todays = checkins.find((c) => c.date === today) ?? null;
+  const todaysPhotos = todays
+    ? await listLogPhotos(userId, { kind: "checkin", entryId: todays.id })
+    : [];
 
   const week = Array.from({ length: 7 }, (_, i) => {
     const date = format(subDays(parseISO(today), 6 - i), ISO_FORMAT);
@@ -71,6 +77,22 @@ export async function CheckinPanel() {
         </div>
 
         <CheckinForm today={today} existing={todays} />
+      </div>
+
+      <div className="mt-6 flex flex-col gap-3 border-t pt-6">
+        {todays ? (
+          <EntryPhotos kind="checkin" entryId={todays.id} photos={todaysPhotos} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Check in first, then add photos from the gym.
+          </p>
+        )}
+        <Link
+          href="/dashboard/diary"
+          className="inline-flex min-h-11 items-center self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Open gym diary
+        </Link>
       </div>
     </Panel>
   );

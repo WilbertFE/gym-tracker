@@ -217,6 +217,7 @@ Create via migrations (keep SQL in `supabase/migrations/`).
 - `memberships`: `id`, `user_id`, `gym_name`, `location` (added later, optional text up to 120 characters), `latitude` and `longitude` (optional, both set or both empty), `start_date`, `end_date`, `price`, `notes`
 - `progress_photos`: `id`, `user_id`, `date`, `storage_path`, `pose` (front, side, back)
 - `availability_blocks`: `id`, `user_id`, `weekday`, `start_time`, `end_time`, `label` (classes and other commitments)
+- `log_photos` (added later): `id`, `user_id`, `checkin_id` or `weight_id` (exactly one, deleted with its entry), `storage_path`, `created_at`. Photos on daily check-ins and weigh-ins; files go in the same private bucket under `<user id>/log/`
 - `body_measurements` (added in Phase 6): `id`, `user_id`, `date` (unique per user), `chest_cm`, `waist_cm`, `hips_cm`, `arm_cm`, `thigh_cm`, `body_fat_pct` (all optional, at least one required)
 
 Progress photos go in a **private** Storage bucket with RLS. Never expose public URLs.
@@ -327,6 +328,8 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Route protection | `src/proxy.ts` (see below) |
 | App shell | Mobile bottom tab bar, desktop left rail |
 | Daily check-in | Dashboard: went to gym or rest day, mood, energy, sleep, streak, best streak, gym days in 7 days, 7 day strip. One entry per date, saving again updates it |
+| Check-in and weigh-in photos | Up to 4 photos per daily check-in (dashboard) and per weigh-in (Body page, the camera icon on each history row). "Take photo" opens the camera on a phone and "Choose photos" picks from the gallery. Photos are shrunk to 1600 px and re-encoded as JPEG in the browser before upload, which also removes the location and device data a phone writes into photos. Add a photo to today's check-in after saving it. Deleting a check-in or weigh-in deletes its photos and files. Private, same rules as progress photos |
+| Gym diary | `/dashboard/diary`: all check-in and weigh-in photos grouped by day, newest first, with that day's check-in and weight. Linked from the check-in panel |
 | Weight tracking | Body page: latest, 7 day and all time change, Recharts trend line, log form, history table with delete |
 | Membership tracker | Membership page: gym, location (optional address text) and a map pin (optional). Pick the place by searching, tapping the map, dragging the pin, or "Use my location"; the address text is filled in from the pin unless you typed your own. Shown with an "Open in maps" link that uses the exact pin, or the gym name plus address if there is no pin, dates, price, days left, progress bar, status (active, expiring within 7 days, expired), edit and delete |
 | Exercise library | 37 built-in exercises covering all 16 muscle groups (`src/lib/exercise-library.ts`), plus custom exercises (add, delete if unused) at `/workouts/exercises` |
@@ -391,6 +394,10 @@ Deviations from the planned structure: authenticated pages live in the `src/app/
 | `/api/availability` | GET | none | `{ data: AvailabilityBlock[] }` Monday first, then by start time | |
 | `/api/availability` | POST | `{ weekday (0 to 6), start_time, end_time, label? }` | `201 { data }` | Times `HH:MM`, end after start, label up to 60 characters |
 | `/api/availability/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
+| `/api/log-photos` | GET | optional query `kind` (`checkin` or `weight`) and `entry_id` | `{ data: LogPhoto[] }` metadata only, newest first | |
+| `/api/log-photos` | POST | multipart: `file`, `kind`, `entry_id` | `201 { data }`, 400 not a JPEG, PNG or WebP (magic bytes, SVG rejected), 404 unknown entry, 409 more than 4 on the entry, 413 over 5 MB | 10 uploads per minute per user |
+| `/api/log-photos/[id]` | DELETE | none | `{ ok: true }` or 404 | Removes the row and the file |
+| `/api/log-photos/[id]/file` | GET | none | The image bytes, or 404 | Authenticated, same private headers as progress photos |
 
 All routes above require a session (401 otherwise) and validate input with zod (400 on invalid input, 429 when rate limited). Dates are `YYYY-MM-DD`; check-in and weight dates cannot be in the future.
 
@@ -414,6 +421,7 @@ Demo mode details:
 - Dashboard panels (`src/app/(app)/dashboard/components/`) only read through the repositories, so they need no change when Supabase is connected. Each panel fetches its own data inside its own `Suspense`; if the extra queries matter later, wrap the repository reads in React `cache`.
 - Repositories added in Phase 3: `exercises.ts` and `workouts.ts` (sessions and sets). The seeded demo history has three finished workouts.
 - Scheduling (Phase 7): `availability_blocks` already has the right shape. Postgres `time` columns return `HH:MM:SS`, so trim to `HH:MM` in the repository (and accept `HH:MM` on write). Time of day for your usual training hours is read from each workout's `started_at` in the server's timezone. That is fine on a single user local setup, but on a host running in UTC it shifts hours. Before deploying, store the user's timezone (for example on `profiles`) and convert in `suggestSlots`.
+- Check-in and weigh-in photos: `repositories/supabase/logPhotos.ts` uploads to `<user id>/log/<id>.<ext>` in the private bucket. Deleting a check-in or weigh-in first collects its file paths, because the rows cascade but storage objects do not, then removes the files after the entry is gone. Direct API uploads are not stripped of metadata (only the browser path is), because that needs an image library on the server.
 - Photos (Phase 6): `repositories/photos.ts` keeps metadata and the bytes in memory under `<user id>/<photo id>.<ext>`, the same layout the private `progress-photos` bucket policy expects. With Supabase, upload to that bucket from the route handler (server side, after the same size and magic byte checks), keep `progress_photos` rows, and stream or sign short lived URLs in `/api/photos/[id]/file`. Never make the bucket public. The seeded demo photos are SVG placeholders, which is why `contentTypeForPath` knows `.svg`; real uploads can never be SVG.
 - Extra migration work for Phase 3: built-in exercises currently use stable slug ids (`builtin-barbell-bench-press`). With Supabase, add a seed migration inserting `BUILT_IN_EXERCISES` as rows with `user_id` null and uuid ids, and change `exercise-library.ts` and the repositories to read them from the table. `workout_sets.exercise_id` references `exercises.id`, so the repository must write real ids.
 - The unfinished workout is identified by `ended_at` being null. Add a partial unique index on `workout_sessions (user_id) where ended_at is null` in the migration to enforce one active workout in the database too.
@@ -424,6 +432,7 @@ Streak definition: consecutive days with any check-in (gym or rest day), since t
 
 | Migration | Contents |
 | --- | --- |
+| `20261024000500_log_photos.sql` | `log_photos` table for check-in and weigh-in photos, with indexes and row level security that also checks the entry belongs to the same user |
 | `20261024000400_membership_coordinates.sql` | Adds optional `latitude` and `longitude` to `memberships` with range checks and a both-or-neither rule |
 | `20261024000300_membership_location.sql` | Adds the optional `location` column to `memberships`. Both of these are safe to run twice (`if not exists`), so a project that already ran `setup.sql` just runs these two files |
 | `20261024000200_integrity_and_exercise_seed.sql` | Unique indexes the Supabase repositories rely on (one in-progress workout per user, unique set numbers per exercise, unique built-in exercise names) and the 37 built-in exercises |
@@ -465,6 +474,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Photos on daily check-ins and weigh-ins (up to 4 each), shrunk and stripped of metadata in the browser, plus a gym diary page. Needs migration `20261024000500_log_photos.sql`. Deleting a check-in or weigh-in also deletes the stored files.
 - 2026-10-24: Verified the map picker against the live project (search, pin, address autofill, save, persisted coordinates). Fixed the map capturing the mouse wheel and touch drags, and added the Leaflet tile seam fix.
 - 2026-10-24: Map picker for the membership location: search a place, tap the map, drag the pin or use your current location (Leaflet and OpenStreetMap, no account or API key). Stores `latitude` and `longitude` next to the address. Needs migrations `20261024000300` and `20261024000400`.
 - 2026-10-24: Membership location: optional free text field (branch, area or address) with an "Open in maps" link, shown on the Membership page and the dashboard. Needs migration `20261024000300_membership_location.sql`.

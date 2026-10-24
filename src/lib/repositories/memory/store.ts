@@ -8,6 +8,8 @@ import type {
   BodyMeasurement,
   Checkin,
   Exercise,
+  LogPhoto,
+  LogPhotoKind,
   Membership,
   PhotoPose,
   ProgressPhoto,
@@ -34,6 +36,8 @@ export type Store = {
   files: Map<string, { bytes: Uint8Array; contentType: string }>;
   measurements: BodyMeasurement[];
   availability: AvailabilityBlock[];
+  /** Photos on check-ins and weigh-ins. Their bytes live in `files` too. */
+  logPhotos: LogPhoto[];
 };
 
 const g = globalThis as unknown as { __gymStore?: Map<string, Store> };
@@ -174,6 +178,44 @@ function seedAvailability(userId: string): AvailabilityBlock[] {
   ];
 }
 
+/** One placeholder photo on a past check-in and one on the latest weigh-in. */
+function seedLogPhotos(
+  userId: string,
+  checkins: Checkin[],
+  weights: WeightLog[],
+  files: Store["files"],
+): LogPhoto[] {
+  const make = (label: string, entry: { checkin_id?: string; weight_id?: string }): LogPhoto => {
+    const id = crypto.randomUUID();
+    const storage_path = `${userId}/log/${id}.svg`;
+    const svg =
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300"><rect width="300" height="300" fill="#171a1f"/>` +
+      `<text x="150" y="140" fill="#8a8f98" font-family="monospace" font-size="14" text-anchor="middle">DEMO PLACEHOLDER</text>` +
+      `<text x="150" y="170" fill="#22d3ee" font-family="monospace" font-size="18" text-anchor="middle">${label}</text></svg>`;
+    files.set(storage_path, { bytes: new TextEncoder().encode(svg), contentType: "image/svg+xml" });
+    return {
+      id,
+      user_id: userId,
+      checkin_id: entry.checkin_id ?? null,
+      weight_id: entry.weight_id ?? null,
+      storage_path,
+      created_at: new Date().toISOString(),
+    };
+  };
+  const photos: LogPhoto[] = [];
+  if (checkins[1]) photos.push(make("GYM SELFIE", { checkin_id: checkins[1].id }));
+  const latest = weights[weights.length - 1];
+  if (latest) photos.push(make("SCALE", { weight_id: latest.id }));
+  return photos;
+}
+
+/** Removes the photos (rows and files) attached to one check-in or weigh-in. */
+export function removeLogPhotosFor(store: Store, kind: LogPhotoKind, entryId: string) {
+  const owned = (p: LogPhoto) => (kind === "checkin" ? p.checkin_id : p.weight_id) === entryId;
+  for (const p of store.logPhotos.filter(owned)) store.files.delete(p.storage_path);
+  store.logPhotos = store.logPhotos.filter((p) => !owned(p));
+}
+
 function seed(userId: string): Store {
   const now = new Date();
   // Today is skipped on purpose so the check-in form starts empty.
@@ -225,6 +267,7 @@ function seed(userId: string): Store {
     files,
     measurements,
     availability: seedAvailability(userId),
+    logPhotos: seedLogPhotos(userId, checkins, weights, files),
   };
 }
 
@@ -239,6 +282,7 @@ const empty = (): Store => ({
   files: new Map(),
   measurements: [],
   availability: [],
+  logPhotos: [],
 });
 
 export function getStore(userId: string): Store {

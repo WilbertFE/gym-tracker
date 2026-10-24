@@ -2,7 +2,9 @@ import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
 import { getCurrentUserId } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
+import { listLogPhotos } from "@/lib/repositories/logPhotos";
 import { listWeights } from "@/lib/repositories/weights";
+import type { LogPhoto } from "@/lib/types";
 import { summarizeWeights } from "@/lib/weight";
 import { WeightChart } from "@/components/weight-chart";
 import { WeightForm } from "./weight-form";
@@ -13,7 +15,14 @@ const signed = (n: number | null) =>
 
 export async function WeightPanel() {
   const userId = await getCurrentUserId();
-  const logs = await listWeights(userId);
+  const [logs, logPhotos] = await Promise.all([
+    listWeights(userId),
+    listLogPhotos(userId, { kind: "weight" }),
+  ]);
+  const photosByWeight: Record<string, LogPhoto[]> = {};
+  for (const photo of logPhotos) {
+    if (photo.weight_id) (photosByWeight[photo.weight_id] ??= []).push(photo);
+  }
   const summary = summarizeWeights(logs);
   const ascending = [...logs].reverse();
 
@@ -37,7 +46,7 @@ export async function WeightPanel() {
         )}
 
         <WeightForm today={todayISO()} />
-        <WeightHistory logs={logs} />
+        <WeightHistory logs={logs} photosByWeight={photosByWeight} />
       </div>
     </Panel>
   );

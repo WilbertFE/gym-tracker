@@ -2,6 +2,7 @@ import "server-only";
 import type { Checkin } from "@/lib/types";
 import type { CheckinInput } from "@/lib/validation/checkin";
 import { check, fetchAll, getDb, isUuid, numOrNull } from "./db";
+import { listEntryFilePaths, removeStoredFiles } from "./logPhotos";
 
 const COLUMNS = "id,user_id,date,went_to_gym,mood,energy,sleep_hours,notes";
 
@@ -51,7 +52,11 @@ export async function upsertCheckin(userId: string, input: CheckinInput): Promis
 export async function deleteCheckin(userId: string, id: string): Promise<boolean> {
   if (!isUuid(id)) return false;
   const db = await getDb();
+  // Photo rows go with the check-in (on delete cascade). Their files do not, so collect them first.
+  const files = await listEntryFilePaths(userId, "checkin", id);
   const { data, error } = await db.from("daily_checkins").delete().eq("id", id).eq("user_id", userId).select("id");
   check(error);
-  return (data?.length ?? 0) > 0;
+  if ((data?.length ?? 0) === 0) return false;
+  await removeStoredFiles(files);
+  return true;
 }
