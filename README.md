@@ -1,36 +1,361 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GymTrack (working name)
 
-## Getting Started
+A personal gym tracking and automation app. It records workouts, body weight, daily check-ins, and membership status, then turns that data into insights: a 3D body heatmap showing which muscles have been trained, scheduling suggestions, and training recommendations.
 
-First, run the development server:
+This README is the source of truth for building the app. Agents must read it, and `CLAUDE.md`, before writing any code. Keep this file updated whenever something is created, updated, or deleted (see "Documentation Rule" at the bottom).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 1. Product Context
+
+The owner is a university student who goes to the gym 3 to 4 times a week and has a busy, changing schedule. Problems to solve:
+
+- Hard to track progress: body weight, which exercises were done on a given day, and workout duration.
+- Hard to analyze physique changes over time.
+- Easy to forget daily check-ins and the date the gym membership ends.
+- Hard to find the best time slot to train around classes and other commitments.
+- Unsure whether the current routine is good and which muscle groups are neglected.
+
+The app is single-user first (the owner), but must still use real authentication.
+
+---
+
+## 2. Core Features
+
+1. **Daily check-in**: quick log of whether the user went to the gym, plus mood, energy, and sleep (optional). Maintains a streak.
+2. **Body weight tracking**: log weight with date, show trend line.
+3. **Workout logging**: sessions with exercises, sets, reps, weight, and duration. Fast input is critical because it is used mid-workout on a phone.
+4. **Membership tracker**: start date, end date, price, and a reminder when it is about to expire.
+5. **3D body heatmap**: a 3D human body model where each muscle group is colored by training intensity (see section 7). Two views: weekly and overall (all time).
+6. **Physique analysis**: progress photos stored privately, side by side comparison over time. AI analysis is a later phase.
+7. **Smart scheduling**: suggest the best gym time based on the user's class schedule and past attendance.
+8. **Training recommendations**: show which muscle groups are under-trained and suggest exercises.
+
+---
+
+## 3. Tech Stack
+
+| Area | Choice |
+| --- | --- |
+| Framework | Next.js (App Router, `src/` directory, TypeScript) |
+| Styling | Tailwind CSS only |
+| Components | shadcn/ui |
+| Database and auth | Supabase (Postgres, Auth, Storage) |
+| 3D | three.js via `@react-three/fiber` and `@react-three/drei` |
+| Charts | Recharts (or shadcn chart components) |
+| Forms and validation | `react-hook-form` and `zod` |
+| Unit and integration tests | Vitest and Testing Library |
+| End to end tests | Playwright |
+| CI | GitHub Actions |
+
+IMPORTANT: this Next.js version has breaking changes. Before writing code, read the relevant guides in `node_modules/next/dist/docs/`. Do not rely on memory for APIs, conventions, or file structure.
+
+---
+
+## 4. Project Structure
+
+```
+src/
+  proxy.ts                  # route protection (auth middleware), see section 8
+  app/
+    layout.tsx
+    page.tsx                # landing or redirect
+    robots.ts
+    sitemap.ts
+    (auth)/login/           # public auth pages
+    dashboard/              # protected
+      components/
+    workouts/               # protected
+      components/
+    body/                   # protected, 3D heatmap and physique
+      components/
+    membership/             # protected
+      components/
+    schedule/               # protected
+      components/
+    api/                    # all CRUD API routes live here
+      checkins/
+      weights/
+      workouts/
+      exercises/
+      membership/
+  components/               # reusable components only
+    ui/                     # shadcn components
+  lib/
+    supabase/               # client, server, and admin helpers
+    muscle-intensity.ts     # heatmap scoring logic
+    utils.ts
+tests/                      # unit and e2e tests
+.github/workflows/ci.yml    # automated tests
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Rules (from `CLAUDE.md`): reusable components go in `src/components`, page specific ones go in `src/app/{page}/components`, helpers go in `src/lib`, every CRUD operation gets an API route under `src/app/api`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 5. Step 0: Project Setup (do this first)
 
-## Learn More
+Run these steps in order. Do not skip the shadcn step.
 
-To learn more about Next.js, take a look at the following resources:
+1. Create the app (if it does not exist yet): TypeScript yes, ESLint yes, Tailwind yes, `src/` directory **yes**, App Router yes.
+2. Read `node_modules/next/dist/docs/` for anything you are unsure about, especially middleware and `proxy.ts` placement when using `src/`.
+3. Install shadcn **before building any UI** (see section 5.1).
+4. Install dependencies: `@supabase/supabase-js`, `@supabase/ssr`, `zod`, `react-hook-form`, `@hookform/resolvers`, `recharts`, `three`, `@react-three/fiber`, `@react-three/drei`, `date-fns`.
+5. Install dev dependencies: `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `jsdom`, `@playwright/test`.
+6. Configure fonts, global theme tokens, and dark mode (section 6).
+7. Set up Supabase (section 8), `proxy.ts`, and the first migration.
+8. Add `.github/workflows/ci.yml` running lint, type check, unit tests, and build on every push and pull request.
+9. Create `.env.local` with the variables listed in section 10. Never commit it. Do not create or commit `.env.example`.
+10. Commit following the Git policy in `CLAUDE.md`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 5.1 shadcn setup (style and preset)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The owner cannot choose a style, so the agent must choose one that fits the Dark Technical HUD look.
 
-## Deploy on Vercel
+1. Check the current shadcn docs at https://ui.shadcn.com/ (and `npx shadcn@latest init --help`) to see which styles and presets are available today. Do not assume names from memory.
+2. Pick the **sharpest, most boxy, most compact** option available. If a preset named **Lyra** exists (boxy, sharp, pairs well with monospace), use it. Otherwise use `new-york` and force `--radius: 0.125rem` or smaller.
+3. Base color: **neutral** (or zinc). Enable CSS variables. Dark mode is the default and only theme for now.
+4. After init, override the generated tokens in `globals.css` with the HUD palette in section 6 so shadcn components inherit the right look.
+5. Add components as needed with `npx shadcn@latest add <component>`. Start with: `button`, `card`, `input`, `label`, `form`, `select`, `tabs`, `dialog`, `sheet`, `table`, `badge`, `progress`, `separator`, `skeleton`, `sonner`, `calendar`, `chart`.
+6. Do not hand-write components that shadcn already provides. Do not duplicate reusable components.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 6. Design System: Dark Technical HUD
+
+The look is a dark body scanner or athlete analytics dashboard, with Swiss style typography: strict grid, clear hierarchy, lots of whitespace, almost no decoration. Read and follow the `frontend-design` skill whenever UI changes.
+
+### 6.1 Principles
+
+- The **3D body model is the hero** of the app. Everything else is calm and neutral so the heatmap colors stand out.
+- Green, yellow, and red are **reserved for muscle intensity and status**. Never use them for decoration or branding.
+- Data first: numbers are large, labels are small and uppercase, units are muted.
+- Sharp corners and thin borders. No heavy shadows, no glassmorphism, no purple or blue gradients, no emoji icons.
+- Mobile first. The app is used between sets, so tap targets are at least 44px and logging a set takes as few taps as possible.
+
+### 6.2 Color tokens
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `background` | `#0A0B0D` | page background |
+| `surface` | `#111317` | cards, panels |
+| `surface-raised` | `#171A1F` | hover, dialogs |
+| `border` | `#23262D` | 1px borders |
+| `foreground` | `#E6E8EB` | main text |
+| `muted` | `#8A8F98` | secondary text, units |
+| `accent` | `#22D3EE` | single UI accent (focus, primary action, active nav) |
+| `intensity-none` | `#2A2E36` | untrained muscle |
+| `intensity-low` | `#22C55E` | heatmap green |
+| `intensity-mid` | `#EAB308` | heatmap yellow |
+| `intensity-high` | `#EF4444` | heatmap red |
+
+Map these onto shadcn's CSS variables (`--background`, `--card`, `--border`, `--primary`, and so on) in `globals.css`. The accent must stay distinct from the three intensity colors.
+
+### 6.3 Typography
+
+- Sans: **IBM Plex Sans** (UI text and headings).
+- Mono: **JetBrains Mono** (all numbers, timers, units, and small uppercase labels), with tabular numerals enabled.
+- Load both with `next/font`. Do not use Inter, Roboto, or system default stacks.
+- Type scale: big stat numbers 40 to 64px mono, section labels 11 to 12px uppercase with letter spacing, body 14 to 16px.
+
+### 6.4 Layout and components
+
+- 12 column grid on desktop, single column on mobile, consistent 4px spacing scale.
+- Cards: 1px border, `surface` background, radius `2px`, small uppercase label at top left, optional status dot at top right.
+- Optional HUD details, used sparingly: thin corner brackets on the body model panel, subtle grid background behind the model, a faint scanline overlay on the hero panel only.
+- Navigation: bottom tab bar on mobile (Dashboard, Workouts, Body, Schedule, More), left rail on desktop.
+- Motion: short (150 to 250ms), functional only (state changes, heatmap color transitions). Respect `prefers-reduced-motion`.
+
+---
+
+## 7. 3D Body Heatmap
+
+### 7.1 Muscle groups
+
+Use a fixed list so data, UI, and model stay in sync:
+
+`chest`, `front_delts`, `side_delts`, `rear_delts`, `biceps`, `triceps`, `forearms`, `abs`, `obliques`, `traps`, `lats`, `lower_back`, `glutes`, `quads`, `hamstrings`, `calves`.
+
+Each exercise in the database maps to a primary muscle group and optional secondary groups.
+
+### 7.2 Intensity scoring
+
+Implement in `src/lib/muscle-intensity.ts` as a pure, unit tested function.
+
+- Score per muscle = weighted sets in the period (primary sets count 1.0, secondary sets count 0.5).
+- Two periods: **weekly** (current week, Monday to Sunday) and **overall** (all time, normalized against the user's own history).
+- Map the score to a level: `none` (0), `low` (green), `mid` (yellow), `high` (red). Put thresholds in one constants object so they are easy to tune. Starting point for weekly: 1 to 5 weighted sets low, 6 to 12 mid, 13 or more high.
+- Open question for the owner: whether red should mean "heavily trained, needs rest" or "dangerously overtrained". Default to the first meaning and keep the mapping configurable.
+
+### 7.3 Model
+
+- Use a GLB human body model where each muscle group is a separate mesh or has its own material, so colors can be set per group. Prefer a license friendly asset (CC0 or CC-BY with attribution recorded in this README).
+- If no suitable model is available yet, **build a 2D SVG body map first** with the same muscle group ids and the same scoring and color logic. The 3D model replaces the view later without changing the data layer.
+- Load the 3D canvas lazily and keep it a client component. The page file itself stays a Server Component.
+- Controls: rotate, zoom, tap a muscle to see its weekly sets, last trained date, and suggested exercises. Toggle between Weekly and Overall.
+
+---
+
+## 8. Database and Auth (Supabase)
+
+### 8.1 Auth
+
+- Use Supabase Auth (email and password to start).
+- Protect every authenticated route in `src/proxy.ts`: `/dashboard`, `/workouts`, `/body`, `/membership`, `/schedule`, and all `/api` routes except public ones. Unauthenticated users are redirected to `/login`.
+- Enable Row Level Security on every table. Policy: a user can only read and write rows where `user_id = auth.uid()`.
+
+### 8.2 Initial tables
+
+Create via migrations (keep SQL in `supabase/migrations/`).
+
+- `profiles`: `id` (uuid, references auth.users), `display_name`, `height_cm`, `goal`, `created_at`
+- `daily_checkins`: `id`, `user_id`, `date` (unique per user), `went_to_gym` (bool), `mood`, `energy`, `sleep_hours`, `notes`
+- `weight_logs`: `id`, `user_id`, `date`, `weight_kg`, `notes`
+- `exercises`: `id`, `user_id` (null for built-in), `name`, `primary_muscle`, `secondary_muscles` (text array), `equipment`
+- `workout_sessions`: `id`, `user_id`, `date`, `started_at`, `ended_at`, `duration_minutes`, `notes`
+- `workout_sets`: `id`, `session_id`, `exercise_id`, `set_number`, `reps`, `weight_kg`, `rpe` (optional)
+- `memberships`: `id`, `user_id`, `gym_name`, `start_date`, `end_date`, `price`, `notes`
+- `progress_photos`: `id`, `user_id`, `date`, `storage_path`, `pose` (front, side, back)
+- `availability_blocks`: `id`, `user_id`, `weekday`, `start_time`, `end_time`, `label` (classes and other commitments)
+
+Progress photos go in a **private** Storage bucket with RLS. Never expose public URLs.
+
+---
+
+## 9. Build Roadmap
+
+Work phase by phase. Finish, test, document, and commit each phase before starting the next.
+
+**Phase 1: Foundation**
+Setup (section 5), design tokens, app shell (nav, layout), login, `proxy.ts`, first migration, CI.
+
+**Phase 2: Daily basics**
+Daily check-in with streak, weight logging with trend chart, membership tracker with expiry warning. API routes and tests for each.
+
+**Phase 3: Workout logging**
+Exercise library (seeded), start and finish a session, add sets quickly, auto duration, history list, session detail.
+
+**Phase 4: Dashboard**
+Weekly summary (sessions, total time, volume), weight trend, streak, membership status, next suggested workout.
+
+**Phase 5: Body heatmap**
+Muscle intensity logic with tests, 2D SVG map, then 3D model, weekly and overall toggle, muscle detail panel.
+
+**Phase 6: Physique analysis**
+Private progress photo upload, side by side comparison, measurement entries. AI based analysis is optional and comes last.
+
+**Phase 7: Smart scheduling and recommendations**
+Weekly availability blocks, best time suggestions from availability and attendance history, under-trained muscle recommendations.
+
+---
+
+## 10. Environment Variables
+
+Create `.env.local` (never commit). Variable names:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or the publishable key name used by the current Supabase dashboard)
+- `SUPABASE_SERVICE_ROLE_KEY` (server only, never exposed to the client)
+- `NEXT_PUBLIC_SITE_URL` (single source for the absolute base URL, used by `metadataBase`, canonical URLs, robots, and sitemap)
+
+Do not create or commit `.env.example`.
+
+---
+
+## 11. Engineering Rules (summary of CLAUDE.md)
+
+- Pages and layouts are Server Components. Push `"use client"` down to small interactive components.
+- Every page exports typed `metadata` (or `generateMetadata` handling not-found), has an absolute canonical URL, one `<h1>`, semantic HTML, and image `alt` text. Authenticated app pages should use `robots: { index: false }` and be disallowed in `robots.ts`.
+- Every CRUD operation has an API route in `src/app/api`. Validate input with zod.
+- Add delay (debounce, throttle, or rate limiting) to actions that can be spammed, such as logging endpoints, uploads, and auth.
+- Add tests for every crucial feature (scoring logic, API routes, auth protection, session logging). They must run in GitHub Actions.
+- Never use the em dash character anywhere: code, comments, UI text, or docs. Use a comma, period, colon, or restructure the sentence.
+- Commit after each completed task with a conventional commit message. Ensure build, lint, and tests pass first. Do not commit secrets or temporary files.
+
+---
+
+## 12. Documentation Rule
+
+This README must always describe the current state of the app in detail. Whenever you create, update, or delete a feature, route, table, component, env variable, or dependency, update the relevant section in the same commit.
+
+As the app grows, add these sections below and keep them current:
+
+- Setup and run instructions (install, dev, test, build)
+- Implemented features and their status
+- API reference (route, method, input, output)
+- Database schema and migration history
+- Testing and CI overview
+- 3D model source and license attribution
+- Changelog
+---
+
+# Current State (kept up to date)
+
+## 13. Setup and Run
+
+Requirements: Node 22+, a Supabase project.
+
+```bash
+npm install --legacy-peer-deps   # optional peers of @hookform/resolvers conflict, safe to ignore
+npm run dev                      # http://localhost:3000
+npm run lint
+npm run typecheck
+npm test                         # Vitest unit tests
+npm run build
+```
+
+Note for Windows: if the project path contains parentheses, run npm scripts from PowerShell, because `cmd.exe` fails to launch `node`.
+
+Create `.env.local` with the variables in section 10 (never commit it). Apply `supabase/migrations/*.sql` to your Supabase project (SQL editor or `supabase db push`). In Supabase Auth settings, decide whether email confirmation is required; the login form handles both.
+
+## 14. Implemented Features and Status
+
+| Area | Status |
+| --- | --- |
+| Phase 1: Foundation | Done, except applying the migration to a Supabase project (pending, needs the owner to pick or create a project) |
+| shadcn setup | Style `radix-lyra` (boxy, sharp), neutral base, CSS variables, dark only |
+| Design tokens | HUD palette mapped to shadcn variables in `globals.css`, plus `surface`, `surface-raised`, `intensity-*` tokens |
+| Fonts | IBM Plex Sans and JetBrains Mono via `next/font`; `.tabular` utility for mono tabular numerals |
+| Auth | Email and password via Supabase; login, signup, logout API routes |
+| Route protection | `src/proxy.ts` (see below) |
+| App shell | Mobile bottom tab bar, desktop left rail |
+| Pages | Landing, login, and placeholder dashboard, workouts, body, membership, schedule |
+| Phases 2 to 7 | Not started |
+
+Deviations from the planned structure: authenticated pages live in the `src/app/(app)/` route group so they share one layout with the navigation. URLs are unchanged (`/dashboard`, `/workouts`, and so on). The "More" tab on mobile points to Membership.
+
+### Route protection
+
+`src/proxy.ts` refreshes the Supabase session on every matched request. Anonymous users are redirected to `/login` for `/dashboard`, `/workouts`, `/body`, `/membership`, `/schedule`. Anonymous calls to `/api/*` get `401` JSON, except `/api/auth/*`. Signed in users visiting `/login` are sent to `/dashboard`. The check is optimistic; API routes re-verify the user with `requireUser()` in `src/lib/auth.ts`. Protected prefixes live in `src/lib/site.ts`.
+
+## 15. API Reference
+
+| Route | Method | Input | Output | Notes |
+| --- | --- | --- | --- | --- |
+| `/api/auth/login` | POST | `{ email, password }` | `{ ok: true }` or `{ error }` (400, 401, 429) | Rate limited: 5 per minute per IP |
+| `/api/auth/signup` | POST | `{ email, password }` | `{ ok: true, needsConfirmation }` or `{ error }` | Rate limited: 3 per minute per IP |
+| `/api/auth/logout` | POST | none | `{ ok: true }` | Clears the session cookies |
+
+Password rules: 8 to 72 characters (`src/lib/validation/auth.ts`). The in-memory rate limiter (`src/lib/rate-limit.ts`) suits a single instance; use a shared store if scaled out.
+
+## 16. Database Schema and Migrations
+
+| Migration | Contents |
+| --- | --- |
+| `20261024000000_initial_schema.sql` | All tables from section 8.2, `muscle_group` and `photo_pose` enums, RLS on every table, profile creation trigger on sign up, private `progress-photos` storage bucket with per-user folder policy |
+
+Status: written, not yet applied to any Supabase project.
+
+## 17. Testing and CI
+
+- Vitest config: `vitest.config.mts`; tests in `tests/unit/` (rate limiter, proxy protection, login route).
+- Playwright is installed for end to end tests but not configured yet.
+- GitHub Actions: `.github/workflows/ci.yml` runs lint, typecheck, tests and build on every push and pull request, using placeholder Supabase env values.
+
+## 18. 3D Model Source and License
+
+Not added yet (Phase 5).
+
+## 19. Changelog
+
+- 2026-10-24: Phase 1 foundation: dependencies, shadcn (radix-lyra), HUD theme, fonts, Supabase helpers, proxy, auth routes and login, app shell, robots, sitemap, initial migration, tests, CI.
