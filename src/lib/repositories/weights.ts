@@ -1,45 +1,22 @@
+/**
+ * Public entry point for weights data. Picks the in-memory demo backend or the
+ * Supabase backend per call, and TypeScript checks that both match.
+ */
 import "server-only";
-import type { WeightInput } from "@/lib/validation/weight";
-import type { WeightLog } from "@/lib/types";
-import { getStore } from "./store";
+import { isDemoMode } from "@/lib/demo";
+import * as memory from "./memory/weights";
+import * as supabase from "./supabase/weights";
 
-export async function listWeights(userId: string): Promise<WeightLog[]> {
-  return [...getStore(userId).weights].sort((a, b) => b.date.localeCompare(a.date));
-}
+const impl = () => (isDemoMode() ? memory : supabase);
 
-export async function createWeight(userId: string, input: WeightInput): Promise<WeightLog> {
-  const row: WeightLog = {
-    id: crypto.randomUUID(),
-    user_id: userId,
-    date: input.date,
-    weight_kg: input.weight_kg,
-    notes: input.notes ?? null,
-  };
-  getStore(userId).weights.push(row);
-  return row;
-}
+export const listWeights = (...args: Parameters<typeof memory.listWeights>): ReturnType<typeof memory.listWeights> =>
+  impl().listWeights(...args);
 
-export async function updateWeight(
-  userId: string,
-  id: string,
-  input: WeightInput,
-): Promise<WeightLog | null> {
-  const store = getStore(userId);
-  const idx = store.weights.findIndex((w) => w.id === id);
-  if (idx === -1) return null;
-  const row: WeightLog = {
-    ...store.weights[idx],
-    date: input.date,
-    weight_kg: input.weight_kg,
-    notes: input.notes ?? null,
-  };
-  store.weights[idx] = row;
-  return row;
-}
+export const createWeight = (...args: Parameters<typeof memory.createWeight>): ReturnType<typeof memory.createWeight> =>
+  impl().createWeight(...args);
 
-export async function deleteWeight(userId: string, id: string): Promise<boolean> {
-  const store = getStore(userId);
-  const before = store.weights.length;
-  store.weights = store.weights.filter((w) => w.id !== id);
-  return store.weights.length < before;
-}
+export const updateWeight = (...args: Parameters<typeof memory.updateWeight>): ReturnType<typeof memory.updateWeight> =>
+  impl().updateWeight(...args);
+
+export const deleteWeight = (...args: Parameters<typeof memory.deleteWeight>): ReturnType<typeof memory.deleteWeight> =>
+  impl().deleteWeight(...args);

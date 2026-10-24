@@ -396,13 +396,20 @@ All routes above require a session (401 otherwise) and validate input with zod (
 
 Password rules: 8 to 72 characters (`src/lib/validation/auth.ts`). The in-memory rate limiter (`src/lib/rate-limit.ts`) suits a single instance; use a shared store if scaled out.
 
-## 15.1 Demo Mode and Data Layer (temporary)
+## 15.1 Demo Mode and Data Layer
 
-Until a Supabase project is connected, the app runs on dummy data:
+The app has two interchangeable data backends. All pages and API routes call the repositories in `src/lib/repositories/`; each file there is a thin dispatcher that picks a backend per call, and TypeScript checks that both have identical signatures.
+
+- `memory/`: the in-memory dummy store (demo mode).
+- `supabase/`: the real Postgres and Storage implementation, using the signed in user's session so Row Level Security applies. `supabase/db.ts` has the shared helpers (error checking, paging past Supabase's 1000 row response cap).
+- `types.ts`: result types shared by both.
+- Demo mode is on only when `NEXT_PUBLIC_DEMO_MODE=true` **and** the build is not production. Otherwise Supabase is used.
+
+Demo mode details:
 
 - Set `NEXT_PUBLIC_DEMO_MODE=true` in `.env.local` (dev only; it is ignored in production builds). `proxy.ts`, `requireUser()` and `getCurrentUserId()` then treat every visitor as one demo user, so login is skipped and a banner is shown.
 - All data access goes through `src/lib/repositories/` (`checkins.ts`, `weights.ts`, `memberships.ts`). They read and write an in-memory store (`store.ts`, seeded with sample data, reset when the server restarts).
-- Migration to Supabase later: replace the bodies of the repository functions with Supabase queries (the tables already exist in the migration), delete `store.ts`, remove `NEXT_PUBLIC_DEMO_MODE`, and fill in the Supabase env vars. Function signatures, API routes, validation and UI stay unchanged.
+- To use Supabase instead, follow section 20.
 - Business logic is pure and tested: `src/lib/streak.ts`, `src/lib/membership.ts`, `src/lib/weight.ts`, `src/lib/workout.ts` (duration, volume, set numbering, grouping, formatting).
 - Dashboard panels (`src/app/(app)/dashboard/components/`) only read through the repositories, so they need no change when Supabase is connected. Each panel fetches its own data inside its own `Suspense`; if the extra queries matter later, wrap the repository reads in React `cache`.
 - Repositories added in Phase 3: `exercises.ts` and `workouts.ts` (sessions and sets). The seeded demo history has three finished workouts.
@@ -417,14 +424,15 @@ Streak definition: consecutive days with any check-in (gym or rest day), since t
 
 | Migration | Contents |
 | --- | --- |
+| `20261024000200_integrity_and_exercise_seed.sql` | Unique indexes the Supabase repositories rely on (one in-progress workout per user, unique set numbers per exercise, unique built-in exercise names) and the 37 built-in exercises |
 | `20261024000100_body_measurements.sql` | `body_measurements` table with range checks, one row per user per day, at least one metric per row, and RLS |
 | `20261024000000_initial_schema.sql` | All tables from section 8.2 (except `body_measurements`), `muscle_group` and `photo_pose` enums, RLS on every table, profile creation trigger on sign up, private `progress-photos` storage bucket with per-user folder policy |
 
-Status: written, not yet applied to any Supabase project.
+`supabase/setup.sql` is all migrations concatenated in order, for a one-time paste into the Supabase SQL editor. Regenerate it whenever a migration is added. Status: written and reviewed, **not yet applied** to the project in `.env.local` (the connected Supabase tooling has no access to it, so it must be run from the dashboard).
 
 ## 17. Testing and CI
 
-- Vitest config: `vitest.config.mts`; tests in `tests/unit/`: rate limiter, proxy protection, login route, streak, membership status, weight summary, workout logic, slot suggestions (commitments, travel buffer, history, rest, weekly cap, duration), under-trained recommendations, availability routes, photo type detection by magic bytes, progress comparison and measurement deltas, photo upload and measurement routes (rejected disguised files, SVG, oversize, bad input, per user limit, upload rate limit, privacy headers, user isolation), muscle intensity scoring (weights, weekly range, overall normalisation, last trained, suggestions), week ranges and summaries, delta formatting, next workout suggestion, and CRUD routes for check-ins, weights, membership, exercises and workouts (validation, set numbering and renumbering, one active workout, idempotent finish, cascade delete, prefill priority, user isolation, write rate limits).
+- Vitest config: `vitest.config.mts`; tests in `tests/unit/`: rate limiter, proxy protection, login route, streak, membership status, weight summary, backend selection (demo versus Supabase, never demo in production), Supabase paging and error helpers, prefill rule shared by both backends, workout logic, slot suggestions (commitments, travel buffer, history, rest, weekly cap, duration), under-trained recommendations, availability routes, photo type detection by magic bytes, progress comparison and measurement deltas, photo upload and measurement routes (rejected disguised files, SVG, oversize, bad input, per user limit, upload rate limit, privacy headers, user isolation), muscle intensity scoring (weights, weekly range, overall normalisation, last trained, suggestions), week ranges and summaries, delta formatting, next workout suggestion, and CRUD routes for check-ins, weights, membership, exercises and workouts (validation, set numbering and renumbering, one active workout, idempotent finish, cascade delete, prefill priority, user isolation, write rate limits).
 - `npm run typecheck` runs `next typegen` first, because route handler types are generated.
 - Playwright is installed for end to end tests but not configured yet.
 - GitHub Actions: `.github/workflows/ci.yml` runs lint, typecheck, tests and build on every push and pull request, using placeholder Supabase env values.
@@ -441,6 +449,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Supabase backend: repositories for every table and the private photo bucket, dispatchers that choose between demo and Supabase, shared prefill logic, integrity and exercise seed migration, combined `supabase/setup.sql`. Demo mode stays available for development. Not yet exercised against a live database.
 - 2026-10-24: Phase 7 scheduling and recommendations: weekly commitments with CRUD routes, best time suggestions from commitments and attendance history, under-trained muscle recommendations with exercise suggestions. This completes the planned roadmap.
 - 2026-10-24: Phase 6 physique analysis: private progress photo upload with server side image validation, authenticated photo serving, side by side comparison with weight and measurement changes, body measurements, `body_measurements` migration. AI analysis not built.
 - 2026-10-24: Phase 5 body heatmap: tested muscle intensity scoring, 2D SVG body map with front and back views, procedural 3D model, weekly and overall toggle, muscle detail panel and muscle list. The Body page now leads with the heatmap.
@@ -452,15 +461,19 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ---
 
-## 20. Moving from Dummy Data to Supabase
+## 20. Switching to Supabase
 
-The app currently runs in demo mode (`NEXT_PUBLIC_DEMO_MODE=true`, development only) on an in-memory store. Everything above the repositories is already written against real behavior, so the move is one layer deep.
+The code is ready. These steps are what remains, and the first and last need you.
 
-1. **Create or choose a Supabase project** and fill `.env.local` (section 10). Remove `NEXT_PUBLIC_DEMO_MODE`.
-2. **Apply the migrations** in `supabase/migrations/` in filename order: `20261024000000_initial_schema.sql`, then `20261024000100_body_measurements.sql`. Run the Supabase security advisor afterwards.
-3. **Seed the built-in exercises** (`BUILT_IN_EXERCISES` in `src/lib/exercise-library.ts`) as rows with `user_id` null and uuid ids. Add a partial unique index so only one workout can be in progress: `create unique index on workout_sessions (user_id) where ended_at is null`.
-4. **Replace the repository bodies** in `src/lib/repositories/` (`checkins`, `weights`, `memberships`, `exercises`, `workouts`, `photos`, `measurements`, `availability`) with queries through `createClient()` from `src/lib/supabase/server.ts`. Keep the function signatures. RLS already scopes rows to the signed in user; keep passing `userId` for clarity and for the storage path.
-5. **Photos**: upload to the private `progress-photos` bucket under `<user id>/<photo id>.<ext>` after the same size and magic byte checks, and stream or sign short lived URLs from `/api/photos/[id]/file`. Never make the bucket public.
-6. **Per notes in section 15.1**: trim `time` values to `HH:MM`, and store the user's timezone before deploying.
-7. **Delete** `src/lib/repositories/store.ts`, `src/lib/demo.ts` and the demo branches in `src/proxy.ts`, `src/lib/auth.ts` and the logout route. Update the tests that use `resetStores` and demo mode to mock the Supabase client or run against a local Supabase.
-8. **Run** `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, then sign up and walk through each page once.
+1. **Env** (`.env.local`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publishable key), `SUPABASE_SERVICE_ROLE_KEY` (unused so far), `NEXT_PUBLIC_SITE_URL`. See section 10.
+2. **Create the schema**: open the Supabase dashboard for the project, go to **SQL Editor**, paste the whole of `supabase/setup.sql` and run it once. It creates the tables with Row Level Security, the sign-up profile trigger, the private `progress-photos` bucket and its policy, the integrity indexes, and the built-in exercises. Check **Table Editor** shows `exercises` with 37 rows, then run the security advisor.
+3. **Turn demo mode off**: remove `NEXT_PUBLIC_DEMO_MODE=true` from `.env.local` (or set it to `false`) and restart `npm run dev`.
+4. **Auth settings** (dashboard, Authentication): under Providers, Email, decide whether "Confirm email" is required. Under URL Configuration, set the Site URL to `http://localhost:3000` (and your real domain when deployed).
+5. **Smoke test**: open the app, it redirects to `/login`. Create an account, sign in, then try: a check-in, a weight, a membership, start and finish a workout with a few sets, an exercise of your own, a progress photo, a measurement, and a commitment on the Schedule page. Reload each page to confirm the data persisted. New accounts start empty, because the demo sample data lives only in the in-memory store.
+6. **Cleanup once happy**: delete `src/lib/repositories/memory/`, `src/lib/demo.ts`, the demo branches in `src/proxy.ts`, `src/lib/auth.ts` and the logout route, and the dispatcher indirection. Move the tests that rely on demo mode to a Supabase test project or mock the client.
+
+Known follow-ups for production:
+
+- **Timezone**: usual training hours are read from each workout's `started_at` in the server's timezone. Store the user's timezone (for example on `profiles`) and convert in `suggestSlots` before deploying to a UTC host.
+- **Rate limiting** is in memory and per instance; use a shared store if you scale out.
+- **Backups and limits**: photos are capped at 5 MB each and 100 per user.

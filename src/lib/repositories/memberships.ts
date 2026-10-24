@@ -1,55 +1,22 @@
+/**
+ * Public entry point for memberships data. Picks the in-memory demo backend or the
+ * Supabase backend per call, and TypeScript checks that both match.
+ */
 import "server-only";
-import type { MembershipInput } from "@/lib/validation/membership";
-import type { Membership } from "@/lib/types";
-import { getStore } from "./store";
+import { isDemoMode } from "@/lib/demo";
+import * as memory from "./memory/memberships";
+import * as supabase from "./supabase/memberships";
 
-/** Newest membership first (by end date). */
-export async function listMemberships(userId: string): Promise<Membership[]> {
-  return [...getStore(userId).memberships].sort((a, b) =>
-    b.end_date.localeCompare(a.end_date),
-  );
-}
+const impl = () => (isDemoMode() ? memory : supabase);
 
-export async function createMembership(
-  userId: string,
-  input: MembershipInput,
-): Promise<Membership> {
-  const row: Membership = {
-    id: crypto.randomUUID(),
-    user_id: userId,
-    gym_name: input.gym_name,
-    start_date: input.start_date,
-    end_date: input.end_date,
-    price: input.price ?? null,
-    notes: input.notes ?? null,
-  };
-  getStore(userId).memberships.push(row);
-  return row;
-}
+export const listMemberships = (...args: Parameters<typeof memory.listMemberships>): ReturnType<typeof memory.listMemberships> =>
+  impl().listMemberships(...args);
 
-export async function updateMembership(
-  userId: string,
-  id: string,
-  input: MembershipInput,
-): Promise<Membership | null> {
-  const store = getStore(userId);
-  const idx = store.memberships.findIndex((m) => m.id === id);
-  if (idx === -1) return null;
-  const row: Membership = {
-    ...store.memberships[idx],
-    gym_name: input.gym_name,
-    start_date: input.start_date,
-    end_date: input.end_date,
-    price: input.price ?? null,
-    notes: input.notes ?? null,
-  };
-  store.memberships[idx] = row;
-  return row;
-}
+export const createMembership = (...args: Parameters<typeof memory.createMembership>): ReturnType<typeof memory.createMembership> =>
+  impl().createMembership(...args);
 
-export async function deleteMembership(userId: string, id: string): Promise<boolean> {
-  const store = getStore(userId);
-  const before = store.memberships.length;
-  store.memberships = store.memberships.filter((m) => m.id !== id);
-  return store.memberships.length < before;
-}
+export const updateMembership = (...args: Parameters<typeof memory.updateMembership>): ReturnType<typeof memory.updateMembership> =>
+  impl().updateMembership(...args);
+
+export const deleteMembership = (...args: Parameters<typeof memory.deleteMembership>): ReturnType<typeof memory.deleteMembership> =>
+  impl().deleteMembership(...args);

@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MAX_PHOTO_BYTES, MAX_PHOTOS_PER_USER } from "@/lib/photo-file";
 import { resetRateLimits } from "@/lib/rate-limit";
-import { resetStores } from "@/lib/repositories/store";
+import { resetStores } from "@/lib/repositories/memory/store";
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 

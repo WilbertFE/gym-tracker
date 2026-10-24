@@ -1,4 +1,4 @@
-import type { Exercise, WorkoutSet } from "@/lib/types";
+import type { Exercise, WorkoutSession, WorkoutSet } from "@/lib/types";
 
 /** Whole minutes between start and end, at least 1 so a finished workout is never 0. */
 export function computeDurationMinutes(startedAt: string, endedAt: string): number {
@@ -65,4 +65,28 @@ export function formatElapsed(totalSeconds: number): string {
   const mm = String(m).padStart(2, "0");
   const ss = String(sec).padStart(2, "0");
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+/**
+ * Most recent reps and weight per exercise, used to prefill the set logger. A
+ * set from the current session beats any earlier session; otherwise the newest
+ * session wins, and within a session the highest set number.
+ */
+export function pickLastSets(
+  sets: WorkoutSet[],
+  sessions: Pick<WorkoutSession, "id" | "started_at">[],
+  currentSessionId: string,
+): Record<string, { reps: number; weight_kg: number }> {
+  const startedAt = new Map(sessions.map((s) => [s.id, s.started_at]));
+  const rank = (s: WorkoutSet) =>
+    `${s.session_id === currentSessionId ? "9" : "0"}|${startedAt.get(s.session_id) ?? ""}|${String(s.set_number).padStart(4, "0")}`;
+
+  const best = new Map<string, WorkoutSet>();
+  for (const s of sets) {
+    const cur = best.get(s.exercise_id);
+    if (!cur || rank(s) > rank(cur)) best.set(s.exercise_id, s);
+  }
+  return Object.fromEntries(
+    [...best].map(([id, s]) => [id, { reps: s.reps, weight_kg: s.weight_kg }]),
+  );
 }

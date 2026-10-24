@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { builtInId } from "@/lib/exercise-library";
 import { resetRateLimits } from "@/lib/rate-limit";
-import { resetStores } from "@/lib/repositories/store";
+import { resetStores } from "@/lib/repositories/memory/store";
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 

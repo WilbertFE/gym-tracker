@@ -1,37 +1,21 @@
+/**
+ * Public entry point for exercises data. Picks the in-memory demo backend or the
+ * Supabase backend per call, and TypeScript checks that both match.
+ */
 import "server-only";
-import { BUILT_IN_EXERCISES } from "@/lib/exercise-library";
-import type { Exercise } from "@/lib/types";
-import type { ExerciseInput } from "@/lib/validation/workout";
-import { getStore } from "./store";
+import { isDemoMode } from "@/lib/demo";
+import * as memory from "./memory/exercises";
+import * as supabase from "./supabase/exercises";
 
-/** Built-in exercises plus the user's own, sorted by name. */
-export async function listExercises(userId: string): Promise<Exercise[]> {
-  return [...BUILT_IN_EXERCISES, ...getStore(userId).exercises].sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
-}
+export type { DeleteExerciseResult } from "./types";
 
-export async function createExercise(userId: string, input: ExerciseInput): Promise<Exercise> {
-  const row: Exercise = {
-    id: crypto.randomUUID(),
-    user_id: userId,
-    name: input.name,
-    primary_muscle: input.primary_muscle,
-    secondary_muscles: input.secondary_muscles.filter((m) => m !== input.primary_muscle),
-    equipment: input.equipment || null,
-  };
-  getStore(userId).exercises.push(row);
-  return row;
-}
+const impl = () => (isDemoMode() ? memory : supabase);
 
-export type DeleteExerciseResult = "deleted" | "built_in" | "not_found" | "in_use";
+export const listExercises = (...args: Parameters<typeof memory.listExercises>): ReturnType<typeof memory.listExercises> =>
+  impl().listExercises(...args);
 
-/** Only the user's own exercises can be deleted, and only if no set uses them. */
-export async function deleteExercise(userId: string, id: string): Promise<DeleteExerciseResult> {
-  if (BUILT_IN_EXERCISES.some((e) => e.id === id)) return "built_in";
-  const store = getStore(userId);
-  if (!store.exercises.some((e) => e.id === id)) return "not_found";
-  if (store.sets.some((s) => s.exercise_id === id)) return "in_use";
-  store.exercises = store.exercises.filter((e) => e.id !== id);
-  return "deleted";
-}
+export const createExercise = (...args: Parameters<typeof memory.createExercise>): ReturnType<typeof memory.createExercise> =>
+  impl().createExercise(...args);
+
+export const deleteExercise = (...args: Parameters<typeof memory.deleteExercise>): ReturnType<typeof memory.deleteExercise> =>
+  impl().deleteExercise(...args);
