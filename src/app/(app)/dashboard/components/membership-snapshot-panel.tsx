@@ -1,5 +1,6 @@
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
+import { LocationLine } from "@/components/location-line";
 import { MembershipStatusLine } from "@/components/membership-status";
 import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
@@ -33,6 +34,7 @@ export async function MembershipSnapshotPanel() {
   return (
     <Panel label={current.gym_name}>
       <div className="flex flex-col gap-4">
+        <LocationLine gymName={current.gym_name} location={current.location} />
         <MembershipStatusLine state={state} />
         <Stat
           label={state === "expired" ? "Expired" : "Days left"}

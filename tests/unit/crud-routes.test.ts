@@ -77,6 +77,32 @@ describe("/api/weights", () => {
 });
 
 describe("/api/membership", () => {
+  it("stores an optional location, trims it, and allows clearing it", async () => {
+    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01" };
+
+    const withLocation = await postMembership(json({ ...base, location: "  Central Branch, Main St  " }));
+    expect((await withLocation.json()).data.location).toBe("Central Branch, Main St");
+
+    const without = await postMembership(json(base));
+    expect((await without.json()).data.location).toBeNull();
+
+    const blank = await postMembership(json({ ...base, location: "   " }));
+    expect((await blank.json()).data.location).toBeNull();
+
+    const { data } = await (await postMembership(json({ ...base, location: "Old place" }))).json();
+    const updated = await putMembership(json({ ...base, location: "New place" }), ctx(data.id));
+    expect((await updated.json()).data.location).toBe("New place");
+    const cleared = await putMembership(json({ ...base, location: null }), ctx(data.id));
+    expect((await cleared.json()).data.location).toBeNull();
+  });
+
+  it("rejects a location longer than 120 characters", async () => {
+    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01" };
+    expect((await postMembership(json({ ...base, location: "x".repeat(120) }))).status).toBe(201);
+    expect((await postMembership(json({ ...base, location: "x".repeat(121) }))).status).toBe(400);
+    expect((await postMembership(json({ ...base, location: 12345 }))).status).toBe(400);
+  });
+
   it("rejects an end date before the start date", async () => {
     const res = await postMembership(
       json({ gym_name: "Gym", start_date: "2026-10-10", end_date: "2026-10-01" }),

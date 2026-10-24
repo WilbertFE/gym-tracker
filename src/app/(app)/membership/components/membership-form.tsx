@@ -30,6 +30,7 @@ export function MembershipForm({ today, existing }: MembershipFormProps) {
     resolver: zodResolver(membershipSchema),
     defaultValues: {
       gym_name: existing?.gym_name ?? "",
+      location: existing?.location ?? "",
       start_date: existing?.start_date ?? today,
       end_date: existing?.end_date ?? "",
       price: existing?.price ?? null,
@@ -38,7 +39,7 @@ export function MembershipForm({ today, existing }: MembershipFormProps) {
   });
 
   async function onSubmit(values: MembershipInput) {
-    const payload = { ...values, notes: values.notes || null };
+    const payload = { ...values, location: values.location || null, notes: values.notes || null };
     const result = existing
       ? await apiRequest(`/api/membership/${existing.id}`, "PUT", payload)
       : await apiRequest("/api/membership", "POST", payload);
@@ -70,6 +71,20 @@ export function MembershipForm({ today, existing }: MembershipFormProps) {
         <Label htmlFor="gym_name" className={labelClass}>Gym name</Label>
         <Input id="gym_name" className="h-11" aria-invalid={!!errors.gym_name} {...register("gym_name")} />
         {errors.gym_name && <p className="text-xs text-destructive">{errors.gym_name.message}</p>}
+      </div>
+
+      <div className="flex flex-col gap-2 sm:col-span-2">
+        <Label htmlFor="location" className={labelClass}>Location (optional)</Label>
+        <Input
+          id="location"
+          className="h-11"
+          placeholder="Branch, area or address"
+          maxLength={120}
+          autoComplete="street-address"
+          aria-invalid={!!errors.location}
+          {...register("location")}
+        />
+        {errors.location && <p className="text-xs text-destructive">{errors.location.message}</p>}
       </div>
 
       <div className="flex flex-col gap-2">

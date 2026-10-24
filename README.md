@@ -214,7 +214,7 @@ Create via migrations (keep SQL in `supabase/migrations/`).
 - `exercises`: `id`, `user_id` (null for built-in), `name`, `primary_muscle`, `secondary_muscles` (text array), `equipment`
 - `workout_sessions`: `id`, `user_id`, `date`, `started_at`, `ended_at`, `duration_minutes`, `notes`
 - `workout_sets`: `id`, `session_id`, `exercise_id`, `set_number`, `reps`, `weight_kg`, `rpe` (optional)
-- `memberships`: `id`, `user_id`, `gym_name`, `start_date`, `end_date`, `price`, `notes`
+- `memberships`: `id`, `user_id`, `gym_name`, `location` (added later, optional text up to 120 characters), `start_date`, `end_date`, `price`, `notes`
 - `progress_photos`: `id`, `user_id`, `date`, `storage_path`, `pose` (front, side, back)
 - `availability_blocks`: `id`, `user_id`, `weekday`, `start_time`, `end_time`, `label` (classes and other commitments)
 - `body_measurements` (added in Phase 6): `id`, `user_id`, `date` (unique per user), `chest_cm`, `waist_cm`, `hips_cm`, `arm_cm`, `thigh_cm`, `body_fat_pct` (all optional, at least one required)
@@ -328,7 +328,7 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | App shell | Mobile bottom tab bar, desktop left rail |
 | Daily check-in | Dashboard: went to gym or rest day, mood, energy, sleep, streak, best streak, gym days in 7 days, 7 day strip. One entry per date, saving again updates it |
 | Weight tracking | Body page: latest, 7 day and all time change, Recharts trend line, log form, history table with delete |
-| Membership tracker | Membership page: gym, dates, price, days left, progress bar, status (active, expiring within 7 days, expired), edit and delete |
+| Membership tracker | Membership page: gym, location (optional, shown with an "Open in maps" link that searches the gym name plus the location), dates, price, days left, progress bar, status (active, expiring within 7 days, expired), edit and delete |
 | Exercise library | 37 built-in exercises covering all 16 muscle groups (`src/lib/exercise-library.ts`), plus custom exercises (add, delete if unused) at `/workouts/exercises` |
 | Workout sessions | Start (only one in progress at a time), live elapsed timer, finish (duration in minutes is computed automatically, minimum 1), delete with confirmation |
 | Fast set logging | Exercise picker grouped by muscle, chips to switch between exercises already in the workout, big minus/plus steppers (1 rep, 2.5 kg), reps and weight prefilled from the last set of that exercise (this workout first, then history), inputs stay after logging so a repeat set is one tap |
@@ -368,7 +368,7 @@ Deviations from the planned structure: authenticated pages live in the `src/app/
 | `/api/weights` | POST | `{ date, weight_kg (20 to 500), notes? }` | `201 { data }` | 30 writes per minute per user |
 | `/api/weights/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
 | `/api/membership` | GET | none | `{ data: Membership[] }` newest end date first | |
-| `/api/membership` | POST | `{ gym_name, start_date, end_date, price?, notes? }` | `201 { data }` | end_date must not precede start_date |
+| `/api/membership` | POST | `{ gym_name, location? (up to 120 characters), start_date, end_date, price?, notes? }` | `201 { data }` | end_date must not precede start_date |
 | `/api/membership/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
 | `/api/exercises` | GET | none | `{ data: Exercise[] }` built-ins plus own, by name | |
 | `/api/exercises` | POST | `{ name, primary_muscle, secondary_muscles?, equipment? }` | `201 { data }` | Primary muscle is removed from the secondary list |
@@ -424,6 +424,7 @@ Streak definition: consecutive days with any check-in (gym or rest day), since t
 
 | Migration | Contents |
 | --- | --- |
+| `20261024000300_membership_location.sql` | Adds the optional `location` column to `memberships` (applied to a project that already ran `setup.sql` by running just this file) |
 | `20261024000200_integrity_and_exercise_seed.sql` | Unique indexes the Supabase repositories rely on (one in-progress workout per user, unique set numbers per exercise, unique built-in exercise names) and the 37 built-in exercises |
 | `20261024000100_body_measurements.sql` | `body_measurements` table with range checks, one row per user per day, at least one metric per row, and RLS |
 | `20261024000000_initial_schema.sql` | All tables from section 8.2 (except `body_measurements`), `muscle_group` and `photo_pose` enums, RLS on every table, profile creation trigger on sign up, private `progress-photos` storage bucket with per-user folder policy |
@@ -449,6 +450,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Membership location: optional free text field (branch, area or address) with an "Open in maps" link, shown on the Membership page and the dashboard. Needs migration `20261024000300_membership_location.sql`.
 - 2026-10-24: Verified the Supabase backend end to end against the live project (about 60 API checks plus a visual pass of the dashboard, body, progress and schedule pages). Fixed a bug found by that run: a malformed id (for example `/api/workouts/not-a-uuid`, or an unknown exercise id in a set) made Postgres throw and returned 500; the Supabase repositories now validate uuids (`isUuid`) and answer 404 or 400 like the demo backend. Confirmed the photo bucket is private: the public storage URL answers "Bucket not found" and the anon key cannot read the object.
 - 2026-10-24: Supabase backend: repositories for every table and the private photo bucket, dispatchers that choose between demo and Supabase, shared prefill logic, integrity and exercise seed migration, combined `supabase/setup.sql`. Demo mode stays available for development. Not yet exercised against a live database.
 - 2026-10-24: Phase 7 scheduling and recommendations: weekly commitments with CRUD routes, best time suggestions from commitments and attendance history, under-trained muscle recommendations with exercise suggestions. This completes the planned roadmap.

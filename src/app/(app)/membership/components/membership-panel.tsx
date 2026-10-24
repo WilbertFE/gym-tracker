@@ -1,4 +1,5 @@
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import { LocationLine } from "@/components/location-line";
 import { MembershipStatusLine, STATE_DOT } from "@/components/membership-status";
 import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
@@ -39,6 +40,7 @@ export async function MembershipPanel() {
     <div className="flex flex-col gap-6">
       <Panel label={current.gym_name}>
         <div className="flex flex-col gap-4">
+          <LocationLine gymName={current.gym_name} location={current.location} />
           <MembershipStatusLine state={state} />
 
           <div className="grid grid-cols-2 gap-4">

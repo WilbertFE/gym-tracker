@@ -4,6 +4,7 @@ import { isoDate, optionalNotes } from "./common";
 export const membershipSchema = z
   .object({
     gym_name: z.string().trim().min(1, "Required").max(100),
+    location: z.string().trim().max(120).nullish(),
     start_date: isoDate,
     end_date: isoDate,
     price: z.number().min(0).max(1_000_000_000).nullish(),

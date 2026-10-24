@@ -18,6 +18,7 @@ export async function createMembership(
     id: crypto.randomUUID(),
     user_id: userId,
     gym_name: input.gym_name,
+    location: input.location || null,
     start_date: input.start_date,
     end_date: input.end_date,
     price: input.price ?? null,
@@ -38,6 +39,7 @@ export async function updateMembership(
   const row: Membership = {
     ...store.memberships[idx],
     gym_name: input.gym_name,
+    location: input.location || null,
     start_date: input.start_date,
     end_date: input.end_date,
     price: input.price ?? null,

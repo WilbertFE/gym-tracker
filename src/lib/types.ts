@@ -23,6 +23,8 @@ export type Membership = {
   id: string;
   user_id: string;
   gym_name: string;
+  /** Branch, area or address of the gym. Free text. */
+  location: string | null;
   start_date: string;
   end_date: string;
   price: number | null;
