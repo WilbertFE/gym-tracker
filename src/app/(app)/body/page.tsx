@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,6 +28,14 @@ export default function BodyPage() {
       <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
         <WeightPanel />
       </Suspense>
+      <nav aria-label="Physique tools">
+        <Link
+          href="/body/progress"
+          className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Progress photos and measurements
+        </Link>
+      </nav>
     </main>
   );
 }

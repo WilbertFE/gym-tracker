@@ -4,9 +4,12 @@ import { DEMO_USER_ID } from "@/lib/demo";
 import { ISO_FORMAT } from "@/lib/dates";
 import { builtInId } from "@/lib/exercise-library";
 import type {
+  BodyMeasurement,
   Checkin,
   Exercise,
   Membership,
+  PhotoPose,
+  ProgressPhoto,
   WeightLog,
   WorkoutSession,
   WorkoutSet,
@@ -25,6 +28,10 @@ export type Store = {
   exercises: Exercise[];
   sessions: WorkoutSession[];
   sets: WorkoutSet[];
+  photos: ProgressPhoto[];
+  /** Photo bytes by storage_path. Stands in for a private Supabase Storage bucket. */
+  files: Map<string, { bytes: Uint8Array; contentType: string }>;
+  measurements: BodyMeasurement[];
 };
 
 const g = globalThis as unknown as { __gymStore?: Map<string, Store> };
@@ -90,6 +97,63 @@ function seedWorkouts(userId: string, now: Date) {
   return { sessions, sets };
 }
 
+const POSE_LABEL: Record<PhotoPose, string> = { front: "FRONT", side: "SIDE", back: "BACK" };
+
+/** A labelled placeholder so the comparison view works without real photos. */
+function placeholderSvg(pose: PhotoPose, date: string, build: number): Uint8Array {
+  const w = 60 + build * 6;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400">` +
+    `<rect width="300" height="400" fill="#171a1f"/>` +
+    `<circle cx="150" cy="90" r="30" fill="#2a2e36"/>` +
+    `<rect x="${150 - w / 2}" y="130" width="${w}" height="150" rx="14" fill="#2a2e36"/>` +
+    `<rect x="${150 - w / 2 + 8}" y="285" width="${w / 2 - 12}" height="95" fill="#2a2e36"/>` +
+    `<rect x="${150 + 4}" y="285" width="${w / 2 - 12}" height="95" fill="#2a2e36"/>` +
+    `<text x="150" y="30" fill="#8a8f98" font-family="monospace" font-size="14" text-anchor="middle">DEMO PLACEHOLDER</text>` +
+    `<text x="150" y="388" fill="#22d3ee" font-family="monospace" font-size="16" text-anchor="middle">${POSE_LABEL[pose]} ${date}</text>` +
+    `</svg>`;
+  return new TextEncoder().encode(svg);
+}
+
+function seedProgress(userId: string, now: Date) {
+  const photos: ProgressPhoto[] = [];
+  const files: Store["files"] = new Map();
+  const add = (daysAgo: number, pose: PhotoPose, build: number) => {
+    const date = iso(subDays(now, daysAgo));
+    const id = crypto.randomUUID();
+    const path = `${userId}/${id}.svg`;
+    photos.push({ id, user_id: userId, date, storage_path: path, pose });
+    files.set(path, { bytes: placeholderSvg(pose, date, build), contentType: "image/svg+xml" });
+  };
+  add(84, "front", 3);
+  add(84, "side", 3);
+  add(42, "front", 2);
+  add(7, "front", 1);
+  add(7, "side", 1);
+
+  const row = (
+    daysAgo: number,
+    m: Partial<Omit<BodyMeasurement, "id" | "user_id" | "date">>,
+  ): BodyMeasurement => ({
+    id: crypto.randomUUID(),
+    user_id: userId,
+    date: iso(subDays(now, daysAgo)),
+    chest_cm: null,
+    waist_cm: null,
+    hips_cm: null,
+    arm_cm: null,
+    thigh_cm: null,
+    body_fat_pct: null,
+    ...m,
+  });
+  const measurements = [
+    row(84, { chest_cm: 98, waist_cm: 84, hips_cm: 96, arm_cm: 33, thigh_cm: 56, body_fat_pct: 19 }),
+    row(42, { chest_cm: 99.5, waist_cm: 82.5, arm_cm: 34, body_fat_pct: 17.5 }),
+    row(7, { chest_cm: 101, waist_cm: 81, hips_cm: 95.5, arm_cm: 35, thigh_cm: 57.5, body_fat_pct: 16 }),
+  ];
+  return { photos, files, measurements };
+}
+
 function seed(userId: string): Store {
   const now = new Date();
   // Today is skipped on purpose so the check-in form starts empty.
@@ -126,7 +190,8 @@ function seed(userId: string): Store {
   ];
 
   const { sessions, sets } = seedWorkouts(userId, now);
-  return { checkins, weights, memberships, exercises: [], sessions, sets };
+  const { photos, files, measurements } = seedProgress(userId, now);
+  return { checkins, weights, memberships, exercises: [], sessions, sets, photos, files, measurements };
 }
 
 const empty = (): Store => ({
@@ -136,6 +201,9 @@ const empty = (): Store => ({
   exercises: [],
   sessions: [],
   sets: [],
+  photos: [],
+  files: new Map(),
+  measurements: [],
 });
 
 export function getStore(userId: string): Store {

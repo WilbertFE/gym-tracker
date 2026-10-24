@@ -59,3 +59,27 @@ export type WorkoutSet = {
   weight_kg: number;
   rpe: number | null;
 };
+
+export type PhotoPose = "front" | "side" | "back";
+
+/** Mirrors the progress_photos table. The file itself lives in private storage. */
+export type ProgressPhoto = {
+  id: string;
+  user_id: string;
+  date: string;
+  storage_path: string;
+  pose: PhotoPose;
+};
+
+/** Mirrors the body_measurements table (second migration). */
+export type BodyMeasurement = {
+  id: string;
+  user_id: string;
+  date: string;
+  chest_cm: number | null;
+  waist_cm: number | null;
+  hips_cm: number | null;
+  arm_cm: number | null;
+  thigh_cm: number | null;
+  body_fat_pct: number | null;
+};
