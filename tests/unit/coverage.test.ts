@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { coverageDelta, coverageMessage, weeklyCoverage } from "@/lib/coverage";
+import { coverageDelta, coverageMessage, weeklyCoverage, workedMuscles } from "@/lib/coverage";
 import { BUILT_IN_EXERCISES, builtInId } from "@/lib/exercise-library";
-import { buildMuscleStats, weeklyLevel, type MuscleStat } from "@/lib/muscle-intensity";
+import { buildMuscleStats, formatScore, weeklyLevel, type MuscleStat } from "@/lib/muscle-intensity";
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/muscles";
 import type { WorkoutSession, WorkoutSet } from "@/lib/types";
 
@@ -94,6 +94,63 @@ describe("weeklyCoverage", () => {
     const lastWeek = weeklyCoverage(buildMuscleStats({ ...input, today: "2026-10-17" }));
     expect(thisWeek.trained).toBe(0);
     expect(lastWeek.trained).toBe(2); // biceps, plus forearms as a secondary
+  });
+});
+
+describe("workedMuscles", () => {
+  it("lists what a workout trained, most sets first", () => {
+    const stats = buildMuscleStats({
+      sessions: [session("2026-10-24")],
+      sets: [...setsOf("Barbell Bench Press", 4), ...setsOf("Tricep Pushdown", 2)],
+      exercises: BUILT_IN_EXERCISES,
+      today: "2026-10-24",
+    });
+    // Bench: chest 4, front delts 2, triceps 2. Pushdown: triceps 2. Triceps total 4.
+    expect(workedMuscles(stats)).toEqual([
+      { muscle: "chest", sets: 4 },
+      { muscle: "triceps", sets: 4 },
+      { muscle: "front_delts", sets: 2 },
+    ]);
+  });
+
+  it("is empty before any set is logged", () => {
+    const stats = buildMuscleStats({
+      sessions: [session("2026-10-24")],
+      sets: [],
+      exercises: BUILT_IN_EXERCISES,
+      today: "2026-10-24",
+    });
+    expect(workedMuscles(stats)).toEqual([]);
+  });
+
+  it("counts only the given workout, not the rest of the week", () => {
+    const other: WorkoutSession = { ...session("2026-10-21"), id: "other" };
+    const otherSets = setsOf("Barbell Curl", 6).map((s) => ({ ...s, id: `o-${s.id}`, session_id: "other" }));
+    const mine = buildMuscleStats({
+      sessions: [session("2026-10-24")],
+      sets: setsOf("Lateral Raise", 3),
+      exercises: BUILT_IN_EXERCISES,
+      today: "2026-10-24",
+    });
+    const week = buildMuscleStats({
+      sessions: [session("2026-10-24"), other],
+      sets: [...setsOf("Lateral Raise", 3), ...otherSets],
+      exercises: BUILT_IN_EXERCISES,
+      today: "2026-10-24",
+    });
+    expect(workedMuscles(mine).map((w) => w.muscle)).toEqual(["side_delts"]);
+    expect(workedMuscles(mine).map((w) => w.muscle)).not.toContain("biceps");
+    // The week view includes both, so the coverage is larger than the workout alone.
+    expect(weeklyCoverage(week).trained).toBeGreaterThan(weeklyCoverage(mine).trained);
+  });
+});
+
+describe("formatScore", () => {
+  it("drops the decimal point on whole numbers", () => {
+    expect(formatScore(4)).toBe("4");
+    expect(formatScore(0)).toBe("0");
+    expect(formatScore(2.5)).toBe("2.5");
+    expect(formatScore(3.25)).toBe("3.3");
   });
 });
 

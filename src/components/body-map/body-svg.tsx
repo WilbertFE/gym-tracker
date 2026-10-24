@@ -19,6 +19,8 @@ type BodySvgProps = {
   levels: Record<MuscleGroup, IntensityLevel>;
   scores: Record<MuscleGroup, number>;
   selected?: MuscleGroup | null;
+  /** Muscles to outline in the accent color, for example the ones a workout has worked. */
+  highlight?: ReadonlySet<MuscleGroup>;
   /**
    * When set, every muscle is a button. When left out the map is display only:
    * the muscles are not focusable and the caller must give a text alternative.
@@ -34,6 +36,7 @@ export function BodySvg({
   levels,
   scores,
   selected = null,
+  highlight,
   onSelect,
   className = "h-[26rem]",
 }: BodySvgProps) {
@@ -62,7 +65,7 @@ export function BodySvg({
       </g>
 
       {shapes.map(({ muscle, d }) => {
-        const isSelected = selected === muscle;
+        const isSelected = selected === muscle || (highlight?.has(muscle) ?? false);
         const level = levels[muscle];
         const label = `${MUSCLE_LABELS[muscle]}, ${INTENSITY_CONFIG.labels[level]}, ${scores[muscle]} weighted sets`;
         const pathClass = cn(

@@ -46,3 +46,16 @@ export function coverageDelta(current: number, previous: number): string {
   if (diff === 0) return "Same as last week";
   return `${diff > 0 ? "+" : ""}${diff} vs last week`;
 }
+
+export type WorkedMuscle = { muscle: MuscleGroup; sets: number };
+
+/**
+ * Muscles that got work, most sets first. Pass the stats of one workout to see
+ * what it trained. Counts are weighted: primary sets 1, secondary sets 0.5.
+ */
+export function workedMuscles(stats: MuscleStat[]): WorkedMuscle[] {
+  return stats
+    .filter((s) => s.overall.score > 0)
+    .map((s) => ({ muscle: s.muscle, sets: s.overall.score }))
+    .sort((a, b) => b.sets - a.sets || MUSCLE_GROUPS.indexOf(a.muscle) - MUSCLE_GROUPS.indexOf(b.muscle));
+}

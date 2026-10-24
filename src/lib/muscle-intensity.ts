@@ -185,3 +185,6 @@ export function buildMuscleStats(input: {
     };
   });
 }
+
+/** "7" or "7.5": whole numbers without a decimal point. */
+export const formatScore = (n: number): string => (Number.isInteger(n) ? String(n) : n.toFixed(1));

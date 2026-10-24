@@ -1,4 +1,4 @@
-import { INTENSITY_CONFIG, type MuscleStat, type Period } from "@/lib/muscle-intensity";
+import { formatScore, INTENSITY_CONFIG, type MuscleStat, type Period } from "@/lib/muscle-intensity";
 import { MUSCLE_LABELS } from "@/lib/muscles";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +9,6 @@ export const LEVEL_DOT = {
   high: "bg-intensity-high",
 } as const;
 
-export const formatScore = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 function lastTrainedText(days: number | null) {
   if (days === null) return "Never";

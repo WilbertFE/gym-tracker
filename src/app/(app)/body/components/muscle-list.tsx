@@ -1,9 +1,9 @@
 "use client";
 
-import { INTENSITY_CONFIG, type MuscleStat, type Period } from "@/lib/muscle-intensity";
+import { formatScore, INTENSITY_CONFIG, type MuscleStat, type Period } from "@/lib/muscle-intensity";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
 import { cn } from "@/lib/utils";
-import { formatScore, LEVEL_DOT } from "./muscle-detail";
+import { LEVEL_DOT } from "./muscle-detail";
 
 type MuscleListProps = {
   stats: MuscleStat[];

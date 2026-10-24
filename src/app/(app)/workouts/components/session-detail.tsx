@@ -1,8 +1,10 @@
 import { format, parseISO } from "date-fns";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ElapsedTimer } from "@/components/elapsed-timer";
 import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
 import { listExercises } from "@/lib/repositories/exercises";
 import { getSessionWithSets, lastSetsByExercise } from "@/lib/repositories/workouts";
@@ -12,6 +14,7 @@ import { formatDuration, groupSetsByExercise, sessionVolume } from "@/lib/workou
 import { SessionActions } from "./session-actions";
 import { SetList } from "./set-list";
 import { SetLogger } from "./set-logger";
+import { WorkoutMuscleMap } from "./workout-muscle-map";
 
 export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGroup | null }) {
   const userId = await getCurrentUserId();
@@ -58,6 +61,8 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
             </p>
           )}
           <SetLogger
+            // Remount when the focus changes so the picked exercise is selected.
+            key={focusExercise?.id ?? "none"}
             sessionId={id}
             exercises={exercises}
             lastSets={lastSets}
@@ -66,6 +71,10 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
           />
         </Panel>
       )}
+
+      <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+        <WorkoutMuscleMap userId={userId} session={session} sets={sets} exercises={exercises} active={active} />
+      </Suspense>
 
       <Panel label="Logged sets">
         <SetList sessionId={id} groups={groups} editable={active} />

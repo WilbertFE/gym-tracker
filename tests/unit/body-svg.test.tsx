@@ -31,6 +31,31 @@ describe("BodySvg display mode (no onSelect)", () => {
   });
 });
 
+describe("BodySvg highlight", () => {
+  const plain = renderToStaticMarkup(<BodySvg view="front" levels={levels} scores={scores} />);
+  const outlined = renderToStaticMarkup(
+    <BodySvg view="front" levels={levels} scores={scores} highlight={new Set<MuscleGroup>(["chest", "abs"])} />,
+  );
+  const count = (html: string) => (html.match(/stroke-primary/g) ?? []).length;
+
+  it("outlines only the highlighted muscles, both halves of each", () => {
+    expect(count(plain)).toBe(0);
+    expect(count(outlined)).toBe(4); // chest and abs, left and right
+  });
+
+  it("does not change the fill colors or make the map interactive", () => {
+    expect(outlined).not.toContain('role="button"');
+    expect(outlined.match(/fill-intensity-none/g)?.length).toBe(plain.match(/fill-intensity-none/g)?.length);
+  });
+
+  it("ignores highlighted muscles that are not on this side", () => {
+    const back = renderToStaticMarkup(
+      <BodySvg view="front" levels={levels} scores={scores} highlight={new Set<MuscleGroup>(["lats"])} />,
+    );
+    expect(count(back)).toBe(0);
+  });
+});
+
 describe("BodySvg interactive mode", () => {
   const html = renderToStaticMarkup(
     <BodySvg view="back" levels={levels} scores={scores} selected="lats" onSelect={vi.fn()} />,
