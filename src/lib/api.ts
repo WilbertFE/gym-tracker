@@ -10,12 +10,19 @@ export type Guard =
   | { userId: null; error: NextResponse };
 
 /** Authenticates the caller and, for writes, applies a per-user rate limit. */
-export async function guard(scope: string, opts: { write: boolean }): Promise<Guard> {
+export async function guard(
+  scope: string,
+  opts: { write: boolean; limit?: number },
+): Promise<Guard> {
   const auth = await requireUser();
   if (auth.error) return { userId: null, error: auth.error };
 
   if (opts.write) {
-    const limit = rateLimit(`${scope}:${auth.user.id}`, MUTATIONS_PER_MINUTE, 60_000);
+    const limit = rateLimit(
+      `${scope}:${auth.user.id}`,
+      opts.limit ?? MUTATIONS_PER_MINUTE,
+      60_000,
+    );
     if (!limit.ok) {
       return {
         userId: null,

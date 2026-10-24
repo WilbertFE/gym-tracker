@@ -1,10 +1,14 @@
+import { Suspense } from "react";
 import { AppNav } from "@/components/app-nav";
 import { isDemoMode } from "@/lib/demo";
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex-1">
-      <AppNav />
+      {/* usePathname() is runtime data on dynamic routes, so the nav streams in. */}
+      <Suspense fallback={null}>
+        <AppNav />
+      </Suspense>
       <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 md:ml-56 md:pb-8">
         {isDemoMode() && (
           <p

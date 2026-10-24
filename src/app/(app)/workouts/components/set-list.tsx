@@ -1,0 +1,82 @@
+"use client";
+
+import { TrashIcon } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { apiRequest } from "@/lib/api-client";
+import { MUSCLE_LABELS } from "@/lib/muscles";
+import type { ExerciseGroup } from "@/lib/workout";
+
+type SetListProps = {
+  sessionId: string;
+  groups: ExerciseGroup[];
+  editable: boolean;
+};
+
+export function SetList({ sessionId, groups, editable }: SetListProps) {
+  const router = useRouter();
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function remove(setId: string) {
+    if (busyId) return;
+    setBusyId(setId);
+    const result = await apiRequest(`/api/workouts/${sessionId}/sets/${setId}`, "DELETE");
+    setBusyId(null);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    router.refresh();
+  }
+
+  if (groups.length === 0) {
+    return <p className="text-sm text-muted-foreground">No sets logged yet.</p>;
+  }
+
+  return (
+    <ul className="flex flex-col gap-6">
+      {groups.map((group) => (
+        <li key={group.exercise_id}>
+          <h3 className="mb-2 flex items-baseline justify-between gap-2 text-sm font-medium">
+            {group.exercise?.name ?? "Unknown exercise"}
+            {group.exercise && (
+              <span className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">
+                {MUSCLE_LABELS[group.exercise.primary_muscle]}
+              </span>
+            )}
+          </h3>
+          <ol className="flex flex-col divide-y border">
+            {group.sets.map((set) => (
+              <li key={set.id} className="flex min-h-11 items-center justify-between gap-3 px-3">
+                <span className="tabular w-8 text-xs text-muted-foreground">{set.set_number}</span>
+                <span className="tabular flex-1 text-sm">
+                  {set.reps} <span className="text-muted-foreground">reps</span>
+                  {"  "}
+                  {set.weight_kg > 0 ? (
+                    <>
+                      {set.weight_kg} <span className="text-muted-foreground">kg</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">bodyweight</span>
+                  )}
+                </span>
+                {editable && (
+                  <button
+                    type="button"
+                    onClick={() => remove(set.id)}
+                    disabled={busyId === set.id}
+                    aria-label={`Delete set ${set.set_number} of ${group.exercise?.name ?? "exercise"}`}
+                    className="flex size-11 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-50"
+                  >
+                    <TrashIcon className="size-4" aria-hidden />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ol>
+        </li>
+      ))}
+    </ul>
+  );
+}
