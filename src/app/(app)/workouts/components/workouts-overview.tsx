@@ -6,6 +6,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { listExercises } from "@/lib/repositories/exercises";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { formatDuration, sessionVolume } from "@/lib/workout";
+import { GATE_MESSAGES, getWorkoutGate } from "@/lib/workout-gate";
 import { StartWorkoutButton } from "@/components/start-workout-button";
 
 export async function WorkoutsOverview() {
@@ -16,6 +17,7 @@ export async function WorkoutsOverview() {
     listExercises(userId),
   ]);
 
+  const gate = await getWorkoutGate(userId);
   const active = sessions.find((s) => s.ended_at === null) ?? null;
   const finished = sessions.filter((s) => s.ended_at !== null);
 
@@ -44,7 +46,7 @@ export async function WorkoutsOverview() {
             <p className="text-sm text-muted-foreground">
               No workout in progress. Duration is tracked automatically.
             </p>
-            <StartWorkoutButton />
+            <StartWorkoutButton blockedMessage={gate.reason ? GATE_MESSAGES[gate.reason] : undefined} />
           </div>
         </Panel>
       )}

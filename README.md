@@ -333,6 +333,7 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Weight tracking | Body page: latest, 7 day and all time change, Recharts trend line, log form, history table with delete |
 | Membership tracker | Membership page: gym, location (optional address text) and a map pin (optional). Pick the place by searching, tapping the map, dragging the pin, or "Use my location"; the address text is filled in from the pin unless you typed your own. Shown with an "Open in maps" link that uses the exact pin, or the gym name plus address if there is no pin, dates, price, days left, progress bar, status (active, expiring within 7 days, expired), edit and delete |
 | Exercise library | 37 built-in exercises covering all 16 muscle groups (`src/lib/exercise-library.ts`), plus custom exercises (add, delete if unused) at `/workouts/exercises` |
+| Gym check-in required to start | A new workout can only be started when today's daily check-in says you went to the gym. With no check-in, or with today marked as a rest day, every start button (Workouts page, dashboard Next workout, dashboard muscle map) is turned off and says why, with a "Go to the check-in" link, and the server refuses too (`POST /api/workouts` answers 403 with code `checkin_required` and reason `no_checkin` or `rest_day`). A workout that is already in progress can always be continued, even if the check-in changes afterwards. Changing the check-in back to "Yes" re-enables starting. Rule in `src/lib/workout-gate.ts` |
 | Workout sessions | Start (only one in progress at a time), live elapsed timer, finish (duration in minutes is computed automatically, minimum 1), delete with confirmation |
 | Fast set logging | Exercise picker grouped by muscle, chips to switch between exercises already in the workout, big minus/plus steppers (1 rep, 2.5 kg), reps and weight prefilled from the last set of that exercise (this workout first, then history), inputs stay after logging so a repeat set is one tap |
 | Live muscle map during a workout | The workout page has a Muscle map panel under the set logger that shows just the body: front and back figures, colored by the week's total (this workout included), with the muscles this workout has worked outlined in the accent color. It updates after every logged set. A screen reader gets a text list of what was worked and what is still untrained this week. Finished workouts show the same figures as "Muscles trained" (`src/app/(app)/workouts/components/workout-muscle-map.tsx`). The detailed version with counts and a list of untrained groups is on the dashboard |
@@ -379,7 +380,7 @@ Deviations from the planned structure: authenticated pages live in the `src/app/
 | `/api/exercises` | POST | `{ name, primary_muscle, secondary_muscles?, equipment? }` | `201 { data }` | Primary muscle is removed from the secondary list |
 | `/api/exercises/[id]` | DELETE | none | `{ ok: true }`, 403 built-in, 409 used in a workout, 404 missing | |
 | `/api/workouts` | GET | none | `{ data: WorkoutSession[] }` newest first | |
-| `/api/workouts` | POST | optional `{ notes? }` | `201 { data, already_active: false }`, or `200 { data, already_active: true }` | Returns the in-progress workout instead of creating a second |
+| `/api/workouts` | POST | optional `{ notes? }` | `201 { data, already_active: false }`, `200 { data, already_active: true }`, or `403 { error, code: "checkin_required", reason }` | Returns the in-progress workout instead of creating a second. A new workout needs today's check-in to say you went to the gym |
 | `/api/workouts/[id]` | GET | none | `{ data: { session, sets } }` or 404 | |
 | `/api/workouts/[id]` | PUT | `{ notes? }` | `{ data }` | |
 | `/api/workouts/[id]` | DELETE | none | `{ ok: true }` | Deletes its sets too |
@@ -476,6 +477,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Starting a workout now requires today's check-in to say you went to the gym. Enforced by the API and shown in the interface (disabled start buttons with the reason and a link to the check-in). Continuing a workout already in progress is always allowed. Added `getCheckinByDate` to the check-in repositories.
 - 2026-10-24: Live muscle map on the workout page, kept visual only (front and back body, this workout's muscles outlined). `formatScore` moved to `src/lib/muscle-intensity.ts`; the body map gained a `highlight` option.
 - 2026-10-24: One-tap start workout for the most neglected muscle group from the dashboard muscle map. The workout page accepts `?focus=<muscle group>` and opens with a matching exercise selected.
 - 2026-10-24: Dashboard muscle map for motivation: weekly muscle coverage with a comparison to last week and the list of groups not trained yet. The body map component moved to `src/components/body-map/` and gained a display-only mode (no buttons, a title tooltip per muscle).

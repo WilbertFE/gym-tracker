@@ -43,9 +43,12 @@ export default function DashboardPage() {
         </Suspense>
       </div>
 
-      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <CheckinPanel />
-      </Suspense>
+      {/* Anchor target for the "Go to the check-in" links on the start workout buttons. */}
+      <div id="daily-checkin" className="scroll-mt-6">
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <CheckinPanel />
+        </Suspense>
+      </div>
 
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
         <WeightSnapshotPanel />

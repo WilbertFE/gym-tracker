@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { builtInId } from "@/lib/exercise-library";
 import { resetRateLimits } from "@/lib/rate-limit";
@@ -5,6 +6,7 @@ import { resetStores } from "@/lib/repositories/memory/store";
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 
+import { POST as postCheckin } from "@/app/api/checkins/route";
 import { DELETE as deleteExercise } from "@/app/api/exercises/[id]/route";
 import { GET as getExercises, POST as postExercise } from "@/app/api/exercises/route";
 import { POST as finish } from "@/app/api/workouts/[id]/finish/route";
@@ -39,6 +41,10 @@ beforeEach(async () => {
   resetStores();
   resetRateLimits();
   // The seeded demo history includes only finished workouts, so none is active.
+  // Starting a workout needs today's check-in to say you went to the gym.
+  const today = format(new Date(), "yyyy-MM-dd");
+  await postCheckin(json({ date: today, went_to_gym: true }));
+  resetRateLimits();
 });
 
 describe("starting a workout", () => {

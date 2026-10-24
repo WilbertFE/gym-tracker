@@ -33,3 +33,7 @@ export async function deleteCheckin(userId: string, id: string): Promise<boolean
   if (deleted) removeLogPhotosFor(store, "checkin", id);
   return deleted;
 }
+
+export async function getCheckinByDate(userId: string, date: string): Promise<Checkin | null> {
+  return getStore(userId).checkins.find((c) => c.date === date) ?? null;
+}

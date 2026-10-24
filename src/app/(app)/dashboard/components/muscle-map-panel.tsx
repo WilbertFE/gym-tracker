@@ -12,6 +12,7 @@ import { listExercises } from "@/lib/repositories/exercises";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { pickFocusExercise } from "@/lib/suggestion";
 import { addDaysISO } from "@/lib/week";
+import { GATE_MESSAGES, getWorkoutGate } from "@/lib/workout-gate";
 
 const linkClass =
   "inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline";
@@ -44,6 +45,7 @@ export async function MuscleMapPanel() {
     ? pickFocusExercise(exercises, target, new Set(sets.map((s) => s.exercise_id)))
     : null;
   const hasActiveWorkout = sessions.some((s) => s.ended_at === null);
+  const gate = await getWorkoutGate(userId);
 
   const levels = Object.fromEntries(stats.map((s) => [s.muscle, s.weekly.level])) as Record<
     MuscleGroup,
@@ -114,6 +116,7 @@ export async function MuscleMapPanel() {
               <StartWorkoutButton
                 focus={target}
                 label={`${hasActiveWorkout ? "Continue workout" : "Start workout"}: ${MUSCLE_LABELS[target]}`}
+                blockedMessage={gate.reason ? GATE_MESSAGES[gate.reason] : undefined}
               />
               <p className="text-xs text-muted-foreground">
                 {targetExercise

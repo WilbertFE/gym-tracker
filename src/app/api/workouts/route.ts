@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { badRequest, guard } from "@/lib/api";
 import { listSessions, startSession } from "@/lib/repositories/workouts";
+import { GATE_MESSAGES, getWorkoutGate } from "@/lib/workout-gate";
 import { startSessionSchema } from "@/lib/validation/workout";
 
 export async function GET() {
@@ -11,7 +12,8 @@ export async function GET() {
 
 /**
  * Starts a workout. Only one can be in progress: if one is already active it
- * is returned with 200 instead of creating a second.
+ * is returned with 200 instead of creating a second. Starting a new one needs
+ * today's check-in to say you went to the gym, otherwise 403 `checkin_required`.
  */
 export async function POST(request: Request) {
   const g = await guard("workouts", { write: true });
@@ -29,6 +31,16 @@ export async function POST(request: Request) {
   }
   const parsed = startSessionSchema.safeParse(body);
   if (!parsed.success) return badRequest();
+
+  // A new workout needs today's check-in to say you went to the gym.
+  // Continuing one that is already in progress is always allowed.
+  const gate = await getWorkoutGate(g.userId);
+  if (!gate.allowed && gate.reason) {
+    return NextResponse.json(
+      { error: GATE_MESSAGES[gate.reason], code: "checkin_required", reason: gate.reason },
+      { status: 403 },
+    );
+  }
 
   const { session, created } = await startSession(g.userId, parsed.data.notes ?? null);
   return NextResponse.json(

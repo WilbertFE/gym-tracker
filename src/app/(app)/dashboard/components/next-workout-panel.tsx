@@ -8,6 +8,7 @@ import { MUSCLE_LABELS } from "@/lib/muscles";
 import { listExercises } from "@/lib/repositories/exercises";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { FOCUS_LABELS, suggestNextWorkout } from "@/lib/suggestion";
+import { GATE_MESSAGES, getWorkoutGate } from "@/lib/workout-gate";
 
 export async function NextWorkoutPanel() {
   const userId = await getCurrentUserId();
@@ -17,6 +18,7 @@ export async function NextWorkoutPanel() {
     listExercises(userId),
   ]);
 
+  const gate = await getWorkoutGate(userId);
   const active = sessions.find((s) => s.ended_at === null);
   if (active) {
     return (
@@ -55,7 +57,7 @@ export async function NextWorkoutPanel() {
           ))}
         </ul>
 
-        <StartWorkoutButton />
+        <StartWorkoutButton blockedMessage={gate.reason ? GATE_MESSAGES[gate.reason] : undefined} />
       </div>
     </Panel>
   );

@@ -17,3 +17,7 @@ export const upsertCheckin = (...args: Parameters<typeof memory.upsertCheckin>):
 
 export const deleteCheckin = (...args: Parameters<typeof memory.deleteCheckin>): ReturnType<typeof memory.deleteCheckin> =>
   impl().deleteCheckin(...args);
+
+export const getCheckinByDate = (
+  ...args: Parameters<typeof memory.getCheckinByDate>
+): ReturnType<typeof memory.getCheckinByDate> => impl().getCheckinByDate(...args);

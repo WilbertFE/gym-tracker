@@ -60,3 +60,15 @@ export async function deleteCheckin(userId: string, id: string): Promise<boolean
   await removeStoredFiles(files);
   return true;
 }
+
+export async function getCheckinByDate(userId: string, date: string): Promise<Checkin | null> {
+  const db = await getDb();
+  const { data, error } = await db
+    .from("daily_checkins")
+    .select(COLUMNS)
+    .eq("user_id", userId)
+    .eq("date", date)
+    .maybeSingle();
+  check(error);
+  return data ? toCheckin(data) : null;
+}
