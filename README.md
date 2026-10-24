@@ -316,6 +316,7 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Phase 2: Daily basics | Done on dummy data (see Demo mode and Data layer below) |
 | Phase 3: Workout logging | Done on dummy data |
 | Phase 4: Dashboard | Done on dummy data |
+| Phase 5: Body heatmap | Done on dummy data (2D SVG map and a procedural 3D model, no licensed GLB yet) |
 | shadcn setup | Style `radix-lyra` (boxy, sharp), neutral base, CSS variables, dark only |
 | Design tokens | HUD palette mapped to shadcn variables in `globals.css`, plus `surface`, `surface-raised`, `intensity-*` tokens |
 | Fonts | IBM Plex Sans and JetBrains Mono via `next/font`; `.tabular` utility for mono tabular numerals |
@@ -332,6 +333,8 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Weekly summary | Dashboard: workouts, total time and total volume for the current Monday to Sunday week, each compared with last week, plus a volume bar per day (`src/lib/week.ts`) |
 | Next workout suggestion | Dashboard: suggests push, pull or legs, whichever has waited longest (never trained counts as longest, ties go push, pull, legs), with up to 5 exercises (at most 2 per muscle), favouring the ones used most. Shows a resume link and timer instead while a workout is in progress (`src/lib/suggestion.ts`) |
 | Dashboard snapshots | Check-in and streak, weight trend (last 12 entries), membership status with days left |
+| Muscle intensity scoring | `src/lib/muscle-intensity.ts`: weighted sets per muscle (primary 1.0, secondary 0.5) for the current Monday to Sunday week and for all time. Thresholds, labels and hint text live in one `INTENSITY_CONFIG` object. Weekly: 1 to 5 light (green), 6 to 12 moderate (yellow), 13 or more heavy (red). Overall: relative to the user's most trained muscle (up to 33% light, up to 66% moderate, above heavy) |
+| Body heatmap | Body page: Weekly and Overall toggle, Front, Back and 3D views, legend, tap a muscle (or choose it from the list of all 16) to see weekly sets, all time sets, days since last trained, top exercises for the period and suggested exercises |
 | Pages | Landing, login, dashboard, workouts (list, detail, library), body, membership are functional; schedule is a placeholder |
 | Phases 2 to 7 | Not started |
 
@@ -399,17 +402,24 @@ Status: written, not yet applied to any Supabase project.
 
 ## 17. Testing and CI
 
-- Vitest config: `vitest.config.mts`; tests in `tests/unit/`: rate limiter, proxy protection, login route, streak, membership status, weight summary, workout logic, week ranges and summaries, delta formatting, next workout suggestion, and CRUD routes for check-ins, weights, membership, exercises and workouts (validation, set numbering and renumbering, one active workout, idempotent finish, cascade delete, prefill priority, user isolation, write rate limits).
+- Vitest config: `vitest.config.mts`; tests in `tests/unit/`: rate limiter, proxy protection, login route, streak, membership status, weight summary, workout logic, muscle intensity scoring (weights, weekly range, overall normalisation, last trained, suggestions), week ranges and summaries, delta formatting, next workout suggestion, and CRUD routes for check-ins, weights, membership, exercises and workouts (validation, set numbering and renumbering, one active workout, idempotent finish, cascade delete, prefill priority, user isolation, write rate limits).
 - `npm run typecheck` runs `next typegen` first, because route handler types are generated.
 - Playwright is installed for end to end tests but not configured yet.
 - GitHub Actions: `.github/workflows/ci.yml` runs lint, typecheck, tests and build on every push and pull request, using placeholder Supabase env values.
 
 ## 18. 3D Model Source and License
 
-Not added yet (Phase 5).
+There is no external 3D asset, so there is nothing to attribute. The 3D view is a procedural stand-in built in code: one scaled sphere (ellipsoid) per muscle group plus dark filler shapes, defined in `src/app/(app)/body/components/body-3d-parts.ts` and rendered with react-three-fiber in `body-3d.tsx`. It supports drag to rotate, scroll or pinch to zoom, and tap to select. It is loaded on demand (`next/dynamic`, no SSR) and the page itself stays a Server Component.
+
+The 2D map shapes (`body-shapes.ts`) are hand-drawn paths, also original to this project.
+
+To upgrade to a realistic model: add a CC0 or CC-BY GLB with one mesh or material per muscle group (ids from `src/lib/muscles.ts`), record the source, author and license here, and replace `body-3d.tsx`. The scoring, data and detail panel do not change.
+
+Red meaning: defaults to "heavily trained, needs rest" (open question in section 7.2). To change it, edit `labels.high` and `hints.high` in `INTENSITY_CONFIG`.
 
 ## 19. Changelog
 
+- 2026-10-24: Phase 5 body heatmap: tested muscle intensity scoring, 2D SVG body map with front and back views, procedural 3D model, weekly and overall toggle, muscle detail panel and muscle list. The Body page now leads with the heatmap.
 - 2026-10-24: Phase 4 dashboard: weekly summary with last week comparison and daily volume bars, next workout suggestion (push, pull, legs rotation), membership and weight snapshots. Moved the weight chart and start workout button to `src/components` and extracted a shared membership status component, since they are now used on several pages.
 - 2026-10-24: Phase 3 workout logging on the dummy data layer: seeded exercise library with custom exercises, workout sessions with live timer and automatic duration, fast set logging with prefill, history and session detail, workout and exercise API routes, tests. The nav is wrapped in `Suspense` because `usePathname()` is runtime data on dynamic routes.
 - 2026-10-24: Phase 2 daily basics on a swappable in-memory data layer: check-in with streak, weight tracking with trend chart, membership tracker with expiry warning, CRUD API routes, demo mode, tests.
