@@ -2,7 +2,7 @@
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 
 export type MapPoint = { latitude: number; longitude: number };
@@ -47,7 +47,18 @@ function FlyTo({ focus }: { focus: MapPoint | null }) {
  * tile.openstreetmap.org, and the required attribution stays visible.
  * The tile layer is inverted so the map matches the dark interface.
  */
-export default function LocationMap({ value, focus, onPick }: LocationMapProps) {
+export default function LocationMap(props: LocationMapProps) {
+  // Next.js hides a page you leave (React Activity) instead of unmounting it, then re-runs its
+  // effects when you come back. Leaflet destroys its map when effects clean up, so a map that
+  // was hidden is dead and crashes on return. Bumping the key whenever this component is
+  // hidden throws the old map away and builds a fresh one when it is shown again.
+  const [instance, setInstance] = useState(0);
+  useLayoutEffect(() => () => setInstance((n) => n + 1), []);
+
+  return <LocationMapView key={instance} {...props} />;
+}
+
+function LocationMapView({ value, focus, onPick }: LocationMapProps) {
   return (
     <MapContainer
       center={value ? [value.latitude, value.longitude] : [20, 0]}

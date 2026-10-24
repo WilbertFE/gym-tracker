@@ -463,6 +463,7 @@ The membership form has a map for choosing where the gym is. It uses Leaflet thr
 - **Scrolling**: mouse wheel zoom is off so the page scrolls normally over the map, and on touch devices one-finger dragging does not pan it. Zoom with the + and - buttons, double click, or pinch.
 - **Accessibility**: the map is not keyboard friendly, so the same result is reachable by searching, "Use my location" or typing the address in the text field.
 - **Dark theme**: the tile layer is inverted with CSS so the map matches the interface.
+- **Navigating away and back**: with Cache Components, Next.js hides a page you leave (React Activity) and re-runs its effects when you return, but Leaflet destroys its map when effects clean up. A map left as it was crashed the page with "Cannot read properties of undefined (reading 'appendChild')" when you came back through the sidebar, though a fresh load worked. `LocationMap` therefore bumps a `key` in a layout effect cleanup, which throws the old map away and builds a new one when the page is shown again (the pattern from `node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md`). Any new widget that owns a DOM instance (maps, charts with imperative setup, players) needs the same care. Test it by going Dashboard, then Membership, through the sidebar and with Back and Forward, not only by loading the page directly.
 - **Marker**: a CSS dot, because Leaflet's default marker images do not survive bundling.
 
 ## 18. 3D Model Source and License
@@ -477,6 +478,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Fixed a crash on the Membership page when arriving by in-app navigation (sidebar, Back, Forward). The map is rebuilt when the page is shown again. Verified on the dev server and on the production build.
 - 2026-10-24: Starting a workout now requires today's check-in to say you went to the gym. Enforced by the API and shown in the interface (disabled start buttons with the reason and a link to the check-in). Continuing a workout already in progress is always allowed. Added `getCheckinByDate` to the check-in repositories.
 - 2026-10-24: Live muscle map on the workout page, kept visual only (front and back body, this workout's muscles outlined). `formatScore` moved to `src/lib/muscle-intensity.ts`; the body map gained a `highlight` option.
 - 2026-10-24: One-tap start workout for the most neglected muscle group from the dashboard muscle map. The workout page accepts `?focus=<muscle group>` and opens with a matching exercise selected.
