@@ -18,21 +18,39 @@ type BodySvgProps = {
   view: BodyView;
   levels: Record<MuscleGroup, IntensityLevel>;
   scores: Record<MuscleGroup, number>;
-  selected: MuscleGroup | null;
-  onSelect: (muscle: MuscleGroup) => void;
+  selected?: MuscleGroup | null;
+  /**
+   * When set, every muscle is a button. When left out the map is display only:
+   * the muscles are not focusable and the caller must give a text alternative.
+   */
+  onSelect?: (muscle: MuscleGroup) => void;
+  /** Sizing classes. Defaults to the large map used on the Body page. */
+  className?: string;
 };
 
 /** 2D body map. Colors transition when the period changes; selection gets an accent outline. */
-export function BodySvg({ view, levels, scores, selected, onSelect }: BodySvgProps) {
+export function BodySvg({
+  view,
+  levels,
+  scores,
+  selected = null,
+  onSelect,
+  className = "h-[26rem]",
+}: BodySvgProps) {
   const shapes = SHAPES_BY_VIEW[view];
   const { head, neck, hands, feet } = BODY_DECOR;
+  const interactive = onSelect !== undefined;
 
   return (
     <svg
       viewBox="0 0 200 410"
-      role="group"
-      aria-label={`Body muscle map, ${view} view`}
-      className="mx-auto h-[26rem] w-auto max-w-full touch-manipulation select-none"
+      role={interactive ? "group" : "img"}
+      aria-label={
+        interactive
+          ? `Body muscle map, ${view} view`
+          : `Body muscle map, ${view} view. The list next to it names each muscle and its level.`
+      }
+      className={cn("mx-auto w-auto max-w-full touch-manipulation select-none", className)}
     >
       <g className="fill-intensity-none" aria-hidden>
         <circle cx={head.cx} cy={head.cy} r={head.r} />
@@ -52,6 +70,18 @@ export function BodySvg({ view, levels, scores, selected, onSelect }: BodySvgPro
           "stroke-background transition-[fill] duration-200",
           isSelected && "stroke-primary",
         );
+        const strokeWidth = isSelected ? 2 : 1;
+
+        if (!interactive) {
+          return (
+            <g key={muscle}>
+              <title>{label}</title>
+              <path d={d} className={pathClass} strokeWidth={strokeWidth} />
+              <path d={d} transform={MIRROR} className={pathClass} strokeWidth={strokeWidth} />
+            </g>
+          );
+        }
+
         return (
           <g
             key={muscle}
@@ -68,8 +98,8 @@ export function BodySvg({ view, levels, scores, selected, onSelect }: BodySvgPro
               }
             }}
           >
-            <path d={d} className={pathClass} strokeWidth={isSelected ? 2 : 1} />
-            <path d={d} transform={MIRROR} className={pathClass} strokeWidth={isSelected ? 2 : 1} />
+            <path d={d} className={pathClass} strokeWidth={strokeWidth} />
+            <path d={d} transform={MIRROR} className={pathClass} strokeWidth={strokeWidth} />
           </g>
         );
       })}

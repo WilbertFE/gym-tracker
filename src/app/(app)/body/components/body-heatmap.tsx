@@ -11,8 +11,8 @@ import {
   type Period,
 } from "@/lib/muscle-intensity";
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/muscles";
-import { BodySvg } from "./body-svg";
-import { viewFor, type BodyView } from "./body-shapes";
+import { BodySvg } from "@/components/body-map/body-svg";
+import { viewFor, type BodyView } from "@/components/body-map/body-shapes";
 import { LEVEL_DOT, MuscleDetail } from "./muscle-detail";
 import { MuscleList } from "./muscle-list";
 import { cn } from "@/lib/utils";
