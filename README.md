@@ -474,6 +474,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-24: Verified check-in and weigh-in photos against the live project: uploads, the 4 per entry limit, validation, private serving, deleting one photo, cascade when a weigh-in is deleted (stored files removed too), the diary, and the browser resize (a 4000x3000 JPEG with an embedded GPS marker was stored as 1600x1200 with the marker gone). The upload limit of 10 per minute applies to rejected uploads as well.
 - 2026-10-24: Photos on daily check-ins and weigh-ins (up to 4 each), shrunk and stripped of metadata in the browser, plus a gym diary page. Needs migration `20261024000500_log_photos.sql`. Deleting a check-in or weigh-in also deletes the stored files.
 - 2026-10-24: Verified the map picker against the live project (search, pin, address autofill, save, persisted coordinates). Fixed the map capturing the mouse wheel and touch drags, and added the Leaflet tile seam fix.
 - 2026-10-24: Map picker for the membership location: search a place, tap the map, drag the pin or use your current location (Leaflet and OpenStreetMap, no account or API key). Stores `latitude` and `longitude` next to the address. Needs migrations `20261024000300` and `20261024000400`.
