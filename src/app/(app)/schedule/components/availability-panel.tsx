@@ -2,7 +2,6 @@ import { Panel } from "@/components/panel";
 import { getCurrentUserId } from "@/lib/auth";
 import { listAvailability } from "@/lib/repositories/availability";
 import { AvailabilityForm } from "./availability-form";
-import { AvailabilityList } from "./availability-list";
 import { WeekCalendar } from "./week-calendar";
 
 export async function AvailabilityPanel() {
@@ -19,9 +18,6 @@ export async function AvailabilityPanel() {
           </p>
           <WeekCalendar blocks={blocks} />
         </div>
-      </Panel>
-      <Panel label="All commitments">
-        <AvailabilityList blocks={blocks} />
       </Panel>
       <Panel label="Add with exact times">
         <AvailabilityForm />
