@@ -5,14 +5,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
 import { CheckinPanel } from "./components/checkin-panel";
 import { MembershipSnapshotPanel } from "./components/membership-snapshot-panel";
-import { MuscleMapPanel } from "./components/muscle-map-panel";
 import { NextWorkoutPanel } from "./components/next-workout-panel";
 import { WeekPanel } from "./components/week-panel";
 import { WeightSnapshotPanel } from "./components/weight-snapshot-panel";
 
 export const metadata: Metadata = buildMetadata({
   title: "Dashboard",
-  description: "Weekly summary, muscle map, streak, weight trend, membership status and your next workout.",
+  description: "Weekly summary, streak, weight trend, membership status and your next workout.",
   path: "/dashboard",
   keywords: ["gym tracker", "dashboard", "weekly summary", "check-in streak"],
 });
@@ -28,10 +27,6 @@ export default function DashboardPage() {
 
       <Suspense fallback={<Skeleton className="h-64 w-full" />}>
         <WeekPanel />
-      </Suspense>
-
-      <Suspense fallback={<Skeleton className="h-80 w-full" />}>
-        <MuscleMapPanel />
       </Suspense>
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
