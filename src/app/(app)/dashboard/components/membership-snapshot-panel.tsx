@@ -1,6 +1,5 @@
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
-import { LocationLine } from "@/components/location-line";
 import { MembershipStatusLine } from "@/components/membership-status";
 import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
@@ -12,6 +11,7 @@ import { listMemberships } from "@/lib/repositories/memberships";
 const linkClass =
   "inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline";
 
+/** Small on purpose: days left and a link. The full details and map live on the Membership page. */
 export async function MembershipSnapshotPanel() {
   const userId = await getCurrentUserId();
   const [current] = await listMemberships(userId);
@@ -33,20 +33,14 @@ export async function MembershipSnapshotPanel() {
 
   return (
     <Panel label={current.gym_name}>
-      <div className="flex flex-col gap-4">
-        <LocationLine
-          gymName={current.gym_name}
-          location={current.location}
-          latitude={current.latitude}
-          longitude={current.longitude}
-        />
-        <MembershipStatusLine state={state} />
+      <div className="flex flex-col gap-3">
         <Stat
           label={state === "expired" ? "Expired" : "Days left"}
           value={Math.abs(daysLeft)}
           unit={state === "expired" ? "d ago" : "d"}
           hint={`Ends ${format(parseISO(current.end_date), "d MMM yyyy")}`}
         />
+        {state !== "active" && <MembershipStatusLine state={state} />}
         <Link href="/membership" className={linkClass}>
           {state === "active" ? "View membership" : "Update membership"}
         </Link>

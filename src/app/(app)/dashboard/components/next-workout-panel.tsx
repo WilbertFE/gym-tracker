@@ -39,7 +39,7 @@ export async function NextWorkoutPanel() {
   const suggestion = suggestNextWorkout({ sessions, sets, exercises, today: todayISO() });
 
   return (
-    <Panel label="Next workout">
+    <Panel label="2. Start training">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <p className="text-3xl font-semibold">{FOCUS_LABELS[suggestion.focus]}</p>

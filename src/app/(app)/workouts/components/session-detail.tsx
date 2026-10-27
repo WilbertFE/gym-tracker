@@ -49,7 +49,7 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
           )}
           <Stat label="Sets" value={sets.length} />
           <Stat label="Exercises" value={groups.length} />
-          <Stat label="Volume" value={volume.toLocaleString("en-US")} unit="kg" />
+          <Stat label="Volume" value={volume.toLocaleString("en-US")} unit="kg" hint="Weight x reps, all sets" />
         </div>
       </Panel>
 

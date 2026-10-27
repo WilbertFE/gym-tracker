@@ -77,6 +77,7 @@ export function ExerciseForm() {
 
       <div className="flex flex-col gap-2 sm:col-span-2">
         <span className={labelClass}>Primary muscle</span>
+        <span className="text-xs text-muted-foreground">The muscle this exercise mainly works. It colors the body map.</span>
         <Select value={primary} onValueChange={(v) => setPrimary(v as MuscleGroup)}>
           <SelectTrigger className="h-11 w-full" aria-label="Primary muscle">
             <SelectValue placeholder="Choose a muscle group" />

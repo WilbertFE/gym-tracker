@@ -163,7 +163,7 @@ Map these onto shadcn's CSS variables (`--background`, `--card`, `--border`, `--
 - 12 column grid on desktop, single column on mobile, consistent 4px spacing scale.
 - Cards: 1px border, `surface` background, radius `2px`, small uppercase label at top left, optional status dot at top right.
 - Optional HUD details, used sparingly: thin corner brackets on the body model panel, subtle grid background behind the model, a faint scanline overlay on the hero panel only.
-- Navigation: bottom tab bar on mobile (Dashboard, Workouts, Body, Schedule, More), left rail on desktop.
+- Navigation: bottom tab bar on mobile (Dashboard, Workouts, Body, Schedule, Membership), left rail on desktop.
 - Motion: short (150 to 250ms), functional only (state changes, heatmap color transitions). Respect `prefers-reduced-motion`.
 
 ---
@@ -327,10 +327,11 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Auth | Email and password via Supabase; login, signup, logout API routes |
 | Route protection | `src/proxy.ts` (see below) |
 | App shell | Mobile bottom tab bar, desktop left rail |
-| Daily check-in | Dashboard: went to gym or rest day, mood, energy, sleep, streak, best streak, gym days in 7 days, 7 day strip. One entry per date, saving again updates it |
+| Daily check-in | Dashboard, first card ("1. Check in"): went to gym or rest day, streak with gym days in the last 7 days, 7 day strip. Mood, energy and sleep are optional and folded away under "Add mood, energy and sleep (optional)" (open by default when today already has them). One entry per date, saving again updates it |
 | Check-in and weigh-in photos | Up to 4 photos per daily check-in (dashboard) and per weigh-in (Body page, the camera icon on each history row). "Take photo" opens the camera on a phone and "Choose photos" picks from the gallery. Photos are shrunk to 1600 px and re-encoded as JPEG in the browser before upload, which also removes the location and device data a phone writes into photos. Add a photo to today's check-in after saving it. Deleting a check-in or weigh-in deletes its photos and files. Private, same rules as progress photos |
 | Gym diary | `/dashboard/diary`: all check-in and weigh-in photos grouped by day, newest first, with that day's check-in and weight. Linked from the check-in panel |
-| Weight tracking | Body page: latest, 7 day and all time change, Recharts trend line, log form, history table with delete |
+| Body page tabs | The Body page shows one view at a time with tabs: Muscles (heatmap) and Weight. A link below leads to progress photos and measurements |
+| Weight tracking | Body page, Weight tab: latest, 7 day and all time change, Recharts trend line, log form, history table with delete |
 | Membership tracker | Membership page: gym, location (optional address text) and a map pin (optional). Pick the place by searching, tapping the map, dragging the pin, or "Use my location"; the address text is filled in from the pin unless you typed your own. Shown with an "Open in maps" link that uses the exact pin, or the gym name plus address if there is no pin, dates, price, days left, progress bar, status (active, expiring within 7 days, expired), edit and delete |
 | Exercise library | 37 built-in exercises covering all 16 muscle groups (`src/lib/exercise-library.ts`), plus custom exercises (add, delete if unused) at `/workouts/exercises` |
 | Gym check-in required to start | A new workout can only be started when today's daily check-in says you went to the gym. With no check-in, or with today marked as a rest day, every start button (Workouts page, dashboard Next workout) is turned off and says why, with a "Go to the check-in" link, and the server refuses too (`POST /api/workouts` answers 403 with code `checkin_required` and reason `no_checkin` or `rest_day`). A workout that is already in progress can always be continued, even if the check-in changes afterwards. Changing the check-in back to "Yes" re-enables starting. Rule in `src/lib/workout-gate.ts` |
@@ -338,9 +339,9 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Fast set logging | Exercise picker grouped by muscle, chips to switch between exercises already in the workout, big minus/plus steppers (1 rep, 2.5 kg), reps and weight prefilled from the last set of that exercise (this workout first, then history), inputs stay after logging so a repeat set is one tap |
 | Live muscle map during a workout | The workout page has a Muscle map panel under the set logger that shows just the body: front and back figures, colored by the week's total (this workout included), with the muscles this workout has worked outlined in the accent color. It updates after every logged set. A screen reader gets a text list of what was worked and what is still untrained this week. Finished workouts show the same figures as "Muscles trained" (`src/app/(app)/workouts/components/workout-muscle-map.tsx`). The dashboard no longer has a muscle map panel |
 | Workout history | List of finished workouts with duration, set count and volume; detail page with sets grouped by exercise |
-| Weekly summary | Dashboard: workouts, total time and total volume for the current Monday to Sunday week, each compared with last week, plus a volume bar per day (`src/lib/week.ts`) |
+| Weekly summary | Dashboard: workouts (compared with last week) and total volume for the current Monday to Sunday week, plus a volume bar per day (`src/lib/week.ts`). Volume has a hint: weight x reps, all sets |
 | Next workout suggestion | Dashboard: suggests push, pull or legs, whichever has waited longest (never trained counts as longest, ties go push, pull, legs), with up to 5 exercises (at most 2 per muscle), favouring the ones used most. Shows a resume link and timer instead while a workout is in progress (`src/lib/suggestion.ts`) |
-| Dashboard snapshots | Check-in and streak, weight trend (last 12 entries), membership status with days left |
+| Dashboard layout | Built around one question, what to do today: "1. Check in" and "2. Start training" sit side by side at the top (check-in first, because it unlocks starting). Below them, once at least one workout exists: the weekly summary and two small cards, body weight (latest and 7 day change, link to the Body page) and membership (days left, link to the Membership page). A new account with no workouts sees a short Welcome guide and just the two top cards (`dashboard/components/dashboard-content.tsx`) |
 | Muscle intensity scoring | `src/lib/muscle-intensity.ts`: weighted sets per muscle (primary 1.0, secondary 0.5) for the current Monday to Sunday week and for all time. Thresholds, labels and hint text live in one `INTENSITY_CONFIG` object. Weekly: 1 to 5 light (green), 6 to 12 moderate (yellow), 13 or more heavy (red). Overall: relative to the user's most trained muscle (up to 33% light, up to 66% moderate, above heavy) |
 | Body heatmap | Body page: Weekly and Overall toggle, Front, Back and 3D views, legend, tap a muscle (or choose it from the list of all 16) to see weekly sets, all time sets, days since last trained, top exercises for the period and suggested exercises |
 | Progress photos | `/body/progress`: upload JPEG, PNG or WebP (up to 5 MB, 100 per user) with a date and pose (front, side, back), gallery with pose filter and two step delete. Photos are private: no public URL, every file request is authenticated and scoped to the owner |
@@ -352,7 +353,7 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Pages | All pages are functional: landing, login, dashboard, workouts (list, detail, library), body (heatmap, weight), body progress, membership, schedule |
 | Phases 2 to 7 | Not started |
 
-Deviations from the planned structure: authenticated pages live in the `src/app/(app)/` route group so they share one layout with the navigation. URLs are unchanged (`/dashboard`, `/workouts`, and so on). The "More" tab on mobile points to Membership.
+Deviations from the planned structure: authenticated pages live in the `src/app/(app)/` route group so they share one layout with the navigation. URLs are unchanged (`/dashboard`, `/workouts`, and so on). The fifth tab is called Membership on mobile and desktop.
 
 ### Route protection
 
@@ -477,6 +478,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-27: Simplified the app. Dashboard is now "1. Check in" and "2. Start training" first, with a lighter weekly summary and small weight and membership cards below, and a Welcome guide for new accounts. Optional check-in fields are folded away. The mobile tab "More" is now "Membership". The Body page uses Muscles and Weight tabs. Added plain-language hints for volume and primary muscle.
 - 2026-10-27: Removed two Schedule page panels that were confusing: "Under-trained this week" and the "All commitments" list (the weekly calendar already shows every commitment). `recommendUndertrained` stays in the code, unused by the interface.
 - 2026-10-27: Schedule page: commitments can be added by dragging across a weekly calendar, like Google Calendar, instead of only typing times. The typed form and the list remain.
 - 2026-10-27: Removed the "Muscle map, this week" panel from the dashboard (for now). `?focus=<muscle group>` on `/workouts/[id]` still works, and `coverage.ts` is still used by the workout page muscle map, but nothing links with `focus` any more and `coverageMessage` and `coverageDelta` are only covered by tests.

@@ -84,30 +84,37 @@ export function CheckinForm({ today, existing }: CheckinFormProps) {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <ScaleSelect label="Mood" value={mood} onChange={setMood} />
-        <ScaleSelect label="Energy" value={energy} onChange={setEnergy} />
-      </div>
+      <details open={Boolean(existing?.mood || existing?.energy || existing?.sleep_hours)} className="group">
+        <summary className="flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground hover:text-foreground">
+          Add mood, energy and sleep (optional)
+        </summary>
+        <div className="flex flex-col gap-4 pb-2 pt-2">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ScaleSelect label="Mood" value={mood} onChange={setMood} />
+          <ScaleSelect label="Energy" value={energy} onChange={setEnergy} />
+        </div>
 
-      <div className="flex flex-col gap-2 sm:max-w-40">
-        <Label
-          htmlFor="sleep"
-          className="text-[11px] uppercase tracking-widest text-muted-foreground"
-        >
-          Sleep (hours)
-        </Label>
-        <Input
-          id="sleep"
-          type="number"
-          inputMode="decimal"
-          step="0.5"
-          min="0"
-          max="24"
-          className="tabular h-11"
-          value={sleep}
-          onChange={(e) => setSleep(e.target.value)}
-        />
-      </div>
+        <div className="flex flex-col gap-2 sm:max-w-40">
+          <Label
+            htmlFor="sleep"
+            className="text-[11px] uppercase tracking-widest text-muted-foreground"
+          >
+            Sleep (hours)
+          </Label>
+          <Input
+            id="sleep"
+            type="number"
+            inputMode="decimal"
+            step="0.5"
+            min="0"
+            max="24"
+            className="tabular h-11"
+            value={sleep}
+            onChange={(e) => setSleep(e.target.value)}
+          />
+        </div>
+        </div>
+      </details>
 
       <Button type="submit" className="h-11" disabled={submitting}>
         {submitting ? "Saving" : existing ? "Update check-in" : "Check in"}

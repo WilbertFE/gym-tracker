@@ -7,12 +7,9 @@ import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import {
   addDaysISO,
   formatDelta,
-  formatKgDelta,
-  formatMinutesDelta,
   summarizeWeek,
   weekRange,
 } from "@/lib/week";
-import { formatDuration } from "@/lib/workout";
 import { cn } from "@/lib/utils";
 
 export async function WeekPanel() {
@@ -30,23 +27,13 @@ export async function WeekPanel() {
   return (
     <Panel label={label}>
       <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <Stat
             label="Workouts"
             value={current.sessions}
             hint={`${formatDelta(current.sessions - previous.sessions)} vs last week`}
           />
-          <Stat
-            label="Time"
-            value={current.minutes > 0 ? formatDuration(current.minutes) : "0m"}
-            hint={`${formatMinutesDelta(current.minutes - previous.minutes)} vs last week`}
-          />
-          <Stat
-            label="Volume"
-            value={Math.round(current.volume).toLocaleString("en-US")}
-            unit="kg"
-            hint={`${formatKgDelta(current.volume - previous.volume)} vs last week`}
-          />
+          <Stat label="Volume" value={Math.round(current.volume).toLocaleString("en-US")} unit="kg" hint="Weight x reps, all sets" />
         </div>
 
         <ul className="grid grid-cols-7 gap-1" aria-label="Volume per day this week">

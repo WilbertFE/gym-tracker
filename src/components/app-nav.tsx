@@ -3,7 +3,6 @@
 import {
   BarbellIcon,
   CalendarBlankIcon,
-  DotsThreeIcon,
   GaugeIcon,
   IdentificationCardIcon,
   PersonSimpleIcon,
@@ -18,7 +17,7 @@ const NAV_ITEMS = [
   { href: "/workouts", label: "Workouts", icon: BarbellIcon },
   { href: "/body", label: "Body", icon: PersonSimpleIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarBlankIcon },
-  { href: "/membership", label: "More", icon: DotsThreeIcon },
+  { href: "/membership", label: "Membership", icon: IdentificationCardIcon },
 ] as const;
 
 function useSignOut() {
@@ -59,12 +58,8 @@ export function AppNav() {
                       : "border-transparent text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {label === "More" ? (
-                    <IdentificationCardIcon className="size-4" aria-hidden />
-                  ) : (
-                    <Icon className="size-4" aria-hidden />
-                  )}
-                  {label === "More" ? "Membership" : label}
+                  <Icon className="size-4" aria-hidden />
+                  {label}
                 </Link>
               </li>
             );

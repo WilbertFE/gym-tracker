@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
+import { BodyTabs } from "./components/body-tabs";
 import { HeatmapPanel } from "./components/heatmap-panel";
 import { WeightPanel } from "./components/weight-panel";
 
@@ -20,14 +21,20 @@ export default function BodyPage() {
       <PageHeader
         label="Body"
         title="Body"
-        description="See which muscles you have trained, then track your weight. Progress photos come later."
+        description="See which muscles you have trained, or log your weight."
       />
-      <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
-        <HeatmapPanel />
-      </Suspense>
-      <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
-        <WeightPanel />
-      </Suspense>
+      <BodyTabs
+        muscles={
+          <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
+            <HeatmapPanel />
+          </Suspense>
+        }
+        weight={
+          <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
+            <WeightPanel />
+          </Suspense>
+        }
+      />
       <nav aria-label="Physique tools">
         <Link
           href="/body/progress"

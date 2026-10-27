@@ -32,67 +32,51 @@ export async function CheckinPanel() {
   const gymDays = week.filter((d) => d.checkin?.went_to_gym).length;
 
   return (
-    <Panel label="Daily check-in">
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-3 gap-4">
-            <Stat label="Streak" value={streak.current} unit="d" />
-            <Stat label="Best" value={streak.longest} unit="d" />
-            <Stat label="Gym, 7d" value={gymDays} unit="x" />
-          </div>
-
-          <div>
-            <p className="mb-2 text-[11px] uppercase tracking-widest text-muted-foreground">
-              Last 7 days
-            </p>
-            <ul className="grid grid-cols-7 gap-1">
-              {week.map(({ date, checkin }) => {
-                const state = checkin
-                  ? checkin.went_to_gym
-                    ? "gym"
-                    : "rest"
-                  : "none";
-                const label = `${format(parseISO(date), "EEEE d MMM")}: ${
-                  state === "gym" ? "went to the gym" : state === "rest" ? "rest day" : "no check-in"
-                }`;
-                return (
-                  <li key={date} className="flex flex-col items-center gap-1">
-                    <span
-                      role="img"
-                      aria-label={label}
-                      className={cn(
-                        "h-8 w-full border",
-                        state === "gym" && "border-primary bg-primary",
-                        state === "rest" && "border-primary bg-transparent",
-                      )}
-                    />
-                    <span className="tabular text-[10px] uppercase text-muted-foreground">
-                      {format(parseISO(date), "EEEEE")}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+    <Panel label="1. Check in">
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
+          <Stat label="Streak" value={streak.current} unit="d" hint={`Went to the gym ${gymDays}x in the last 7 days`} />
+          <ul className="grid grid-cols-7 gap-1" aria-label="Last 7 days">
+            {week.map(({ date, checkin }) => {
+              const state = checkin ? (checkin.went_to_gym ? "gym" : "rest") : "none";
+              const label = `${format(parseISO(date), "EEEE d MMM")}: ${
+                state === "gym" ? "went to the gym" : state === "rest" ? "rest day" : "no check-in"
+              }`;
+              return (
+                <li key={date} className="flex flex-col items-center gap-1">
+                  <span
+                    role="img"
+                    aria-label={label}
+                    className={cn(
+                      "h-6 w-full border",
+                      state === "gym" && "border-primary bg-primary",
+                      state === "rest" && "border-primary bg-transparent",
+                    )}
+                  />
+                  <span className="tabular text-[10px] uppercase text-muted-foreground">
+                    {format(parseISO(date), "EEEEE")}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
         <CheckinForm today={today} existing={todays} />
-      </div>
 
-      <div className="mt-6 flex flex-col gap-3 border-t pt-6">
-        {todays ? (
-          <EntryPhotos kind="checkin" entryId={todays.id} photos={todaysPhotos} />
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Check in first, then add photos from the gym.
-          </p>
-        )}
-        <Link
-          href="/dashboard/diary"
-          className="inline-flex min-h-11 items-center self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Open gym diary
-        </Link>
+        <div className="flex flex-col gap-3 border-t pt-4">
+          {todays ? (
+            <EntryPhotos kind="checkin" entryId={todays.id} photos={todaysPhotos} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Check in first, then add photos from the gym.</p>
+          )}
+          <Link
+            href="/dashboard/diary"
+            className="inline-flex min-h-11 items-center self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Open gym diary
+          </Link>
+        </div>
       </div>
     </Panel>
   );
