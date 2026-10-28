@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { LevelUpScreen } from "@/components/level-up-screen";
 import { RankBadge } from "@/components/rank-badge";
 import { cn } from "@/lib/utils";
 import { LEVEL_COOKIE, parseLevelCookie, writeCookie } from "@/lib/feature-prefs";
-import { diffXp, levelsGained, mergeGains, XP_CHECK_EVENT, type XpGain, type XpSnapshot } from "@/lib/xp-diff";
-import { xpPopupsEnabled } from "@/lib/xp-popup-pref";
+import { diffXp, isBigMoment, levelsGained, mergeGains, XP_CHECK_EVENT, type XpGain, type XpSnapshot } from "@/lib/xp-diff";
+import { unlockedBetween } from "@/lib/unlocks";
+import { levelUpScreenEnabled, xpPopupsEnabled } from "@/lib/xp-popup-pref";
 
 const SNAPSHOT_KEY = "gymtrack:xp-snapshot";
 /** Waits this long after an action so a burst of actions (several sets) becomes one check. */
@@ -109,6 +111,10 @@ export function XpWatcher() {
   }, []);
 
   if (!shown) return null;
+
+  // A few levels at once, a new rank or something unlocking is a moment worth a screen of its own.
+  const unlocked = unlockedBetween(shown.gain.from.level, shown.gain.to.level);
+  if (isBigMoment(shown.gain, unlocked.length) && levelUpScreenEnabled()) return <LevelUpScreen key={shown.id} gain={shown.gain} unlocked={unlocked} onClose={close} />;
   return <XpToast key={shown.id} gain={shown.gain} onClose={close} />;
 }
 

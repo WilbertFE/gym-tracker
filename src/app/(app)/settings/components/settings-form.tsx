@@ -18,7 +18,7 @@ import { SHOW_ALL_COOKIE, writeCookie } from "@/lib/feature-prefs";
 import { CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currency";
 import type { UserSettings } from "@/lib/types";
 import { UNIT_LABELS, WEIGHT_UNITS, type WeightUnit } from "@/lib/units";
-import { setXpPopupsEnabled, xpPopupsEnabled } from "@/lib/xp-popup-pref";
+import { levelUpScreenEnabled, setLevelUpScreenEnabled, setXpPopupsEnabled, xpPopupsEnabled } from "@/lib/xp-popup-pref";
 
 const labelClass = "text-[11px] uppercase tracking-widest text-muted-foreground";
 const NO_COUNTRY = "none";
@@ -39,6 +39,7 @@ export function SettingsForm({ initial, showAll }: { initial: UserSettings; show
   const [everything, setEverything] = useState(showAll);
   // Kept on this device, not in the account, and read after load so the server and browser agree.
   const popups = useSyncExternalStore(subscribePref, xpPopupsEnabled, () => true);
+  const levelScreen = useSyncExternalStore(subscribePref, levelUpScreenEnabled, () => true);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -145,6 +146,18 @@ export function SettingsForm({ initial, showAll }: { initial: UserSettings; show
         <p className="text-xs text-muted-foreground">
           Applies on this device only and takes effect straight away. Your XP and level are not affected.
         </p>
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={levelScreen}
+            onChange={(e) => {
+              setLevelUpScreenEnabled(e.target.checked);
+              window.dispatchEvent(new Event(PREF_EVENT));
+            }}
+            className="size-4 accent-[var(--primary)]"
+          />
+          Full screen for big level ups, new ranks and unlocks
+        </label>
       </div>
 
       <Button type="submit" className="h-11 sm:w-48" disabled={saving}>

@@ -4,6 +4,7 @@ import { SystemTip } from "@/components/system-tip";
 import { getCurrentUserId } from "@/lib/auth";
 import { loadLevel } from "@/lib/level";
 import type { QuestStatus } from "@/lib/quests";
+import { SYSTEM, notice } from "@/lib/system-voice";
 import { cn } from "@/lib/utils";
 
 function QuestRow({ status }: { status: QuestStatus }) {
@@ -49,13 +50,13 @@ function QuestRow({ status }: { status: QuestStatus }) {
           done ? "border-primary text-primary" : "text-muted-foreground",
         )}
       >
-        +{quest.xp} XP
+        {done ? SYSTEM.questComplete : `+${quest.xp} XP`}
       </span>
     </li>
   );
 }
 
-function Sweep({ done, xp, label }: { done: boolean; xp: number; label: string }) {
+function Sweep({ done, xp }: { done: boolean; xp: number }) {
   return (
     <p
       className={cn(
@@ -63,7 +64,7 @@ function Sweep({ done, xp, label }: { done: boolean; xp: number; label: string }
         done ? "text-primary" : "text-muted-foreground",
       )}
     >
-      <span>{done ? `${label} done` : `Finish them all for a bonus`}</span>
+      <span>{done ? SYSTEM.questsComplete : "Finish them all for a bonus"}</span>
       <span className="uppercase tracking-widest">+{xp} XP</span>
     </p>
   );
@@ -76,27 +77,27 @@ export async function QuestsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SystemTip id="quests" title="Quests unlocked">
+      <SystemTip id="quests" title={notice("Quests unlocked")}>
         Three small goals every day and week. They tick themselves as you log, and finishing them earns bonus XP.
       </SystemTip>
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Panel label="Daily quests">
+        <Panel label="Daily quests" variant="system">
           <ul className="flex flex-col divide-y" aria-label="Daily quests">
             {quests.daily.map((s) => (
               <QuestRow key={s.quest.id} status={s} />
             ))}
           </ul>
-          <Sweep done={quests.dailySweep.done} xp={quests.dailySweep.xp} label="All daily quests" />
+          <Sweep done={quests.dailySweep.done} xp={quests.dailySweep.xp} />
           <p className="mt-2 text-xs text-muted-foreground">New quests tomorrow.</p>
         </Panel>
 
-        <Panel label="Weekly quests">
+        <Panel label="Weekly quests" variant="system">
           <ul className="flex flex-col divide-y" aria-label="Weekly quests">
             {quests.weekly.map((s) => (
               <QuestRow key={s.quest.id} status={s} />
             ))}
           </ul>
-          <Sweep done={quests.weeklySweep.done} xp={quests.weeklySweep.xp} label="All weekly quests" />
+          <Sweep done={quests.weeklySweep.done} xp={quests.weeklySweep.xp} />
           <p className="mt-2 text-xs text-muted-foreground">
             {quests.daysLeft} day{quests.daysLeft === 1 ? "" : "s"} left this week.
           </p>

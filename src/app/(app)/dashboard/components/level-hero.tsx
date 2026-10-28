@@ -17,7 +17,7 @@ export async function LevelHero() {
   const percent = Math.round(level.progress * 100);
 
   return (
-    <section aria-label="Your level" className="border bg-card p-4 sm:p-6">
+    <section aria-label="Your level" className="system-window p-4 sm:p-6">
       <div className="flex items-center gap-4 sm:gap-6">
         <RankBadge rank={level.rank} size={104} className="sm:w-32" />
 

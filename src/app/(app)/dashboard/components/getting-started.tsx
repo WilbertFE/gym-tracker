@@ -14,7 +14,7 @@ export function GettingStarted({ steps }: { steps: GuideStep[] }) {
   const next = steps.find((s) => !s.done);
 
   return (
-    <Panel label="Getting started">
+    <Panel label="Getting started" variant="system">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">

@@ -34,6 +34,16 @@ export type XpGain = {
   rank: Rank;
 };
 
+/** This many levels in one go count as a big moment, like a new rank or an unlock. */
+export const BIG_LEVEL_JUMP = 3;
+
+/**
+ * Whether a gain deserves the full screen: several levels at once, a new rank, or something that just
+ * unlocked (`unlockedCount` of them). Everything smaller keeps the small pop-up.
+ */
+export const isBigMoment = (gain: XpGain, unlockedCount: number): boolean =>
+  levelsGained(gain) >= BIG_LEVEL_JUMP || gain.rankedUp || unlockedCount > 0;
+
 /** How many levels, if any, were gained. */
 export const levelsGained = (gain: XpGain): number => gain.to.level - gain.from.level;
 
