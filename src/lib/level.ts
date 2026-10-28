@@ -11,6 +11,7 @@ import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { guideDone, guideSteps, type GuideStep } from "@/lib/guide";
 import { buildQuestBoard, type QuestBoard } from "@/lib/quests";
+import { computeStats, type Stat } from "@/lib/stats";
 import { computeXp, levelForXp, type LevelInfo, type XpSummary } from "@/lib/xp";
 
 export type GameState = {
@@ -20,6 +21,8 @@ export type GameState = {
   quests: QuestBoard;
   /** The getting started steps, each ticked from what the user has done. */
   guide: GuideStep[];
+  /** The five stats of the status window. */
+  stats: Stat[];
 };
 
 /**
@@ -61,5 +64,12 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     today,
   });
   const quests = buildQuestBoard({ checkins, weights, measurements, sessions, sets, exerciseMuscles }, today);
-  return { xp, level: levelForXp(xp.total), boosts, quests, guide };
+  const stats = computeStats({
+    checkins,
+    sessions,
+    sets,
+    exerciseMuscles,
+    questsCompleted: xp.lines.find((l) => l.source === "quests")?.count ?? 0,
+  });
+  return { xp, level: levelForXp(xp.total), boosts, quests, guide, stats };
 });

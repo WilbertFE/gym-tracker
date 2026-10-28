@@ -14,6 +14,7 @@ export async function LevelHero() {
   const [{ level, boosts }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
   const boostersOpen = isUnlocked("boosters", level.level, showAll);
   const leaderboardOpen = isUnlocked("leaderboard", level.level, showAll);
+  const statusOpen = isUnlocked("status", level.level, showAll);
   const percent = Math.round(level.progress * 100);
 
   return (
@@ -89,6 +90,14 @@ export async function LevelHero() {
         >
           See all ranks
         </Link>
+        {statusOpen && (
+          <Link
+            href="/status"
+            className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Status
+          </Link>
+        )}
         {leaderboardOpen && (
           <Link
             href="/leaderboard"
