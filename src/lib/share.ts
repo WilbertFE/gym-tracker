@@ -53,7 +53,7 @@ export function workoutMuscleLevels(sets: WorkoutSet[], exercises: Exercise[]): 
 }
 
 /**
- * The place line for a workout: the gym's name and area for a gym day, "Home workout" for a home day.
+ * The place line for a workout: the gym's name and the first part of its address for a gym day, "Home workout" for a home day.
  * Never coordinates. Null when there is no check-in for the day or no gym to name.
  */
 export function workoutLocation(input: {
@@ -63,7 +63,9 @@ export function workoutLocation(input: {
 }): string | null {
   if (input.kind === "home") return "Home workout";
   if (input.kind === "gym" && input.gymName) {
-    return input.gymLocation ? `${input.gymName}, ${input.gymLocation}` : input.gymName;
+    // The address field can be a whole geocoded address. Keep the first part, which is the place's own name.
+    const area = input.gymLocation?.split(",")[0]?.trim();
+    return area && area.toLowerCase() !== input.gymName.toLowerCase() ? `${input.gymName}, ${area}` : input.gymName;
   }
   return null;
 }

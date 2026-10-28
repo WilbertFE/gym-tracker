@@ -66,8 +66,9 @@ export type ExerciseGroup = {
 };
 
 /**
- * Groups sets by exercise in order of first appearance, sets ordered by set
- * number. `exercise` is null if the exercise no longer exists.
+ * Groups sets by exercise in the order the exercises were first done (by completion time, so an
+ * exercise started later is listed later), sets ordered by set number. `exercise` is null if the
+ * exercise no longer exists.
  */
 export function groupSetsByExercise(
   sets: WorkoutSet[],
@@ -75,7 +76,9 @@ export function groupSetsByExercise(
 ): ExerciseGroup[] {
   const byId = new Map(exercises.map((e) => [e.id, e]));
   const groups = new Map<string, ExerciseGroup>();
-  for (const set of sets) {
+  // Stable, so sets with the same time (older ones share the workout's start) keep the given order.
+  const inOrder = [...sets].sort((a, b) => a.completed_at.localeCompare(b.completed_at));
+  for (const set of inOrder) {
     let group = groups.get(set.exercise_id);
     if (!group) {
       group = {

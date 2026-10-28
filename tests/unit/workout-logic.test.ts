@@ -63,6 +63,23 @@ describe("groupSetsByExercise", () => {
     expect(groups[0].exercise?.name).toBe(row.name);
   });
 
+  it("lists exercises in the order they were done, not by set number", () => {
+    const [bench, row] = [BUILT_IN_EXERCISES[0], BUILT_IN_EXERCISES[24]];
+    const at = (n: number) => `2026-10-28T10:0${n}:00.000Z`;
+    // Bench set 1 first, then bench 2 and 3, then row set 1, which is also "set 1" but done later.
+    const groups = groupSetsByExercise(
+      [
+        { ...set(row.id, 1), completed_at: at(4) },
+        { ...set(bench.id, 3), completed_at: at(3) },
+        { ...set(bench.id, 1), completed_at: at(1) },
+        { ...set(bench.id, 2), completed_at: at(2) },
+      ],
+      BUILT_IN_EXERCISES,
+    );
+    expect(groups.map((g) => g.exercise_id)).toEqual([bench.id, row.id]);
+    expect(groups[0].sets.map((s) => s.set_number)).toEqual([1, 2, 3]);
+  });
+
   it("tolerates unknown exercises", () => {
     expect(groupSetsByExercise([set("gone", 1)], [])[0].exercise).toBeNull();
   });

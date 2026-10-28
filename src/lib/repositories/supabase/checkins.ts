@@ -26,7 +26,7 @@ export async function listCheckins(userId: string): Promise<Checkin[]> {
   return rows.map(toCheckin);
 }
 
-/** One check-in per user per day: saving the same date replaces the entry. */
+/** One check-in per user per day: saving the same date replaces the entry, including its kind. */
 export async function upsertCheckin(userId: string, input: CheckinInput): Promise<Checkin> {
   const db = await getDb();
   const { data, error } = await db

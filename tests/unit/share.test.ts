@@ -129,6 +129,17 @@ describe("workoutLocation", () => {
     expect(workoutLocation({ kind: "gym", gymName: "Iron Gym", gymLocation: null })).toBe("Iron Gym");
   });
 
+  it("keeps only the first part of a long geocoded address", () => {
+    const long = "Institut Teknologi Sepuluh Nopember, Keputih Gang I, RW 03, Sukolilo, Surabaya, Indonesia";
+    expect(workoutLocation({ kind: "gym", gymName: "GYM IKOMA ITS", gymLocation: long })).toBe(
+      "GYM IKOMA ITS, Institut Teknologi Sepuluh Nopember",
+    );
+  });
+
+  it("does not repeat the gym's name", () => {
+    expect(workoutLocation({ kind: "gym", gymName: "Iron Gym", gymLocation: "iron gym, Central Branch" })).toBe("Iron Gym");
+  });
+
   it("says home workout for a home day, whatever the membership", () => {
     expect(workoutLocation({ kind: "home", ...gym })).toBe("Home workout");
     expect(workoutLocation({ kind: "home", gymName: null, gymLocation: null })).toBe("Home workout");
