@@ -7,6 +7,7 @@ import { CheckinPanel } from "./checkin-panel";
 import { LevelHero } from "./level-hero";
 import { MembershipSnapshotPanel } from "./membership-snapshot-panel";
 import { NextWorkoutPanel } from "./next-workout-panel";
+import { QuestsPanel } from "./quests-panel";
 import { WeekPanel } from "./week-panel";
 import { WeightSnapshotPanel } from "./weight-snapshot-panel";
 
@@ -45,6 +46,10 @@ export async function DashboardContent() {
           <NextWorkoutPanel />
         </Suspense>
       </div>
+
+      <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+        <QuestsPanel />
+      </Suspense>
 
       {!firstRun && (
         <>

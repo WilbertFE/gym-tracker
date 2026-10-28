@@ -1,5 +1,6 @@
 import { dayMultiplier, firstActivityDate, welcomeWindow } from "@/lib/boosters";
 import { nextRankAfter, rankForLevel, type Rank } from "@/lib/ranks";
+import { DAILY_SWEEP_XP, QUEST_START_DATE, questRewards, WEEKLY_SWEEP_XP } from "@/lib/quests";
 import { longestStreak } from "@/lib/streak";
 import type {
   BodyMeasurement,
@@ -45,7 +46,17 @@ export const STREAK_MILESTONES: readonly (readonly [days: number, xp: number])[]
   [100, 1500],
 ];
 
-export type XpSource = "gym" | "home" | "rest" | "weight" | "measurement" | "photo" | "workout" | "sets" | "streak";
+export type XpSource =
+  | "gym"
+  | "home"
+  | "rest"
+  | "weight"
+  | "measurement"
+  | "photo"
+  | "workout"
+  | "sets"
+  | "quests"
+  | "streak";
 
 export const XP_SOURCE_LABELS: Record<XpSource, string> = {
   gym: "Gym check-ins",
@@ -56,6 +67,7 @@ export const XP_SOURCE_LABELS: Record<XpSource, string> = {
   photo: "Progress photo days",
   workout: "Finished workouts",
   sets: "Sets logged",
+  quests: "Quests",
   streak: "Streak milestones",
 };
 
@@ -69,6 +81,7 @@ export const XP_SOURCE_HINTS: Record<XpSource, string> = {
   photo: `${XP_RULES.progressPhoto} XP for each day you upload a progress photo (once a day).`,
   workout: `${XP_RULES.workout} XP for each finished workout with at least ${XP_RULES.minSetsForWorkout} sets.`,
   sets: `${XP_RULES.perSet} XP for each set in a finished workout, up to ${XP_RULES.maxRewardedSets} sets per workout.`,
+  quests: `XP for the daily and weekly quests on the dashboard, with a bonus of ${DAILY_SWEEP_XP} XP for finishing all of a day's quests and ${WEEKLY_SWEEP_XP} XP for all of a week's. They count from ${QUEST_START_DATE} on.`,
   streak: `A one-time bonus for the longest run of check-in days you reach: ${STREAK_MILESTONES.map(
     ([days, xp]) => `${days} days for ${xp} XP`,
   ).join(", ")}. Any check-in keeps a streak alive, rest days too.`,
@@ -77,14 +90,19 @@ export const XP_SOURCE_HINTS: Record<XpSource, string> = {
 export const XP_SOURCES = Object.keys(XP_SOURCE_LABELS) as XpSource[];
 
 export type XpInput = {
-  checkins: Pick<Checkin, "date" | "kind">[];
+  checkins: (Pick<Checkin, "date" | "kind"> & Partial<Pick<Checkin, "mood" | "energy" | "sleep_hours">>)[];
   weights: Pick<WeightLog, "date">[];
   measurements: Pick<BodyMeasurement, "date">[];
   photos: Pick<ProgressPhoto, "date">[];
   sessions: Pick<WorkoutSession, "id" | "date" | "ended_at">[];
-  sets: Pick<WorkoutSet, "session_id">[];
+  sets: (Pick<WorkoutSet, "session_id"> & Partial<Pick<WorkoutSet, "exercise_id">>)[];
   /** Days a Double XP Day booster was used on. The welcome boost needs no input, it comes from the data. */
   boostedDays?: readonly string[];
+  /**
+   * Turns quests on: today's date, and the primary muscle of each exercise for the muscle quests.
+   * Left out, no quest XP is counted, which is how the plain XP rules are tested on their own.
+   */
+  quests?: { today: string; start?: string; exerciseMuscles?: Record<string, string> };
   /** Set to false to leave the welcome boost out. Only tests do this. */
   welcomeBoost?: boolean;
 };
@@ -123,10 +141,10 @@ export function computeXp(input: XpInput): XpSummary {
 
   // Every XP reward as (date, amount), so a boosted day can double exactly what happened on it.
   const entries: Record<XpSource, { date: string; xp: number }[]> = {
-    gym: [], home: [], rest: [], weight: [], measurement: [], photo: [], workout: [], sets: [], streak: [],
+    gym: [], home: [], rest: [], weight: [], measurement: [], photo: [], workout: [], sets: [], quests: [], streak: [],
   };
   const countOf: Record<XpSource, number> = {
-    gym: 0, home: 0, rest: 0, weight: 0, measurement: 0, photo: 0, workout: 0, sets: 0, streak: reached.length,
+    gym: 0, home: 0, rest: 0, weight: 0, measurement: 0, photo: 0, workout: 0, sets: 0, quests: 0, streak: reached.length,
   };
 
   for (const kind of ["gym", "home", "rest"] as const) {
@@ -155,6 +173,15 @@ export function computeXp(input: XpInput): XpSummary {
     countOf.sets += rewarded;
     entries.workout.push({ date: session.date, xp: XP_RULES.workout });
     entries.sets.push({ date: session.date, xp: rewarded * XP_RULES.perSet });
+  }
+
+  if (input.quests) {
+    const { rewards, completed } = questRewards(
+      { ...input, exerciseMuscles: input.quests.exerciseMuscles },
+      { start: input.quests.start ?? QUEST_START_DATE, today: input.quests.today },
+    );
+    countOf.quests = completed;
+    entries.quests = rewards.map(({ date, xp }) => ({ date, xp }));
   }
 
   const firstDate = firstActivityDate([
