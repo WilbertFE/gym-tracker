@@ -12,11 +12,13 @@ import { getSettings } from "@/lib/repositories/settings";
 import { getSessionWithSets, lastSetsByExercise } from "@/lib/repositories/workouts";
 import { displayVolume } from "@/lib/units";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
+import { buildShareCard } from "@/lib/share";
 import { pickFocusExercise } from "@/lib/suggestion";
 import { formatDuration, groupSetsByExercise, lastSetCompletedAt, restBeforeSets, sessionVolume } from "@/lib/workout";
 import { SessionActions } from "./session-actions";
 import { SetList } from "./set-list";
 import { SetLogger } from "./set-logger";
+import { ShareWorkout } from "./share-workout";
 import { WorkoutMuscleMap } from "./workout-muscle-map";
 
 export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGroup | null }) {
@@ -89,6 +91,10 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
       <Panel label="Logged sets">
         <SetList sessionId={id} groups={groups} editable={active} unit={unit} rest={rest} />
       </Panel>
+
+      {!active && sets.length > 0 && (
+        <ShareWorkout card={buildShareCard({ session, sets, exercises, unit })} date={session.date} />
+      )}
 
       <SessionActions sessionId={id} active={active} />
     </div>
