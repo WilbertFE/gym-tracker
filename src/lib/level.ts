@@ -9,6 +9,7 @@ import { listMeasurements } from "@/lib/repositories/measurements";
 import { listPhotos } from "@/lib/repositories/photos";
 import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
+import { boosterGates, currentGate, type GateStatus } from "@/lib/gates";
 import { guideDone, guideSteps, type GuideStep } from "@/lib/guide";
 import { buildQuestBoard, type QuestBoard } from "@/lib/quests";
 import { computeStats, type Stat } from "@/lib/stats";
@@ -23,6 +24,8 @@ export type GameState = {
   guide: GuideStep[];
   /** The five stats of the status window. */
   stats: Stat[];
+  /** The weekly gate and how the fight stands. */
+  gate: GateStatus;
 };
 
 /**
@@ -42,7 +45,9 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
   ]);
   const today = todayISO();
   const exerciseMuscles = Object.fromEntries(exercises.map((e) => [e.id, e.primary_muscle]));
-  const input = { checkins, weights, measurements, photos, sessions, sets, quests: { today, exerciseMuscles } };
+  const input = { checkins, weights, measurements, photos, sessions, sets, quests: { today, exerciseMuscles }, gates: { today } };
+  const gateInput = { sessions, sets };
+  const gateBoosters = boosterGates(gateInput, today);
 
   // Boosters beyond the number earned are ignored (the oldest ones are kept), so rows added to the
   // table by hand cannot double anything. The API already refuses them, this covers the database.
@@ -52,6 +57,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     workouts: withoutBoosts.workouts,
     longestStreak: withoutBoosts.longestStreak,
     guideDone: guideDone(guide),
+    gateBoosters,
   }).total;
   const usedDays = boostRows.map((b) => b.day).sort().slice(0, earned);
   const xp = computeXp({ ...input, boostedDays: usedDays });
@@ -59,6 +65,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     workouts: xp.workouts,
     longestStreak: xp.longestStreak,
     guideDone: guideDone(guide),
+    gateBoosters,
     usedDays,
     firstDate: xp.firstDate,
     today,
@@ -71,5 +78,5 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     exerciseMuscles,
     questsCompleted: xp.lines.find((l) => l.source === "quests")?.count ?? 0,
   });
-  return { xp, level: levelForXp(xp.total), boosts, quests, guide, stats };
+  return { xp, level: levelForXp(xp.total), boosts, quests, guide, stats, gate: currentGate(gateInput, today) };
 });

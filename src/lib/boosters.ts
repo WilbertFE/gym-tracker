@@ -56,13 +56,20 @@ export function dayMultiplier(
 export type BoosterEarning = { label: string; count: number };
 
 /** How many Double XP Day boosters the activity so far has earned, and from what. */
-export function boostersEarned(input: { workouts: number; longestStreak: number; guideDone?: boolean }): {
+export function boostersEarned(input: {
+  workouts: number;
+  longestStreak: number;
+  guideDone?: boolean;
+  /** Cleared weekly gates of rank A or S. */
+  gateBoosters?: number;
+}): {
   total: number;
   sources: BoosterEarning[];
 } {
   const sources: BoosterEarning[] = [];
   if (input.workouts >= 1) sources.push({ label: "Your first finished workout", count: BOOSTER_RULES.firstWorkout });
   if (input.guideDone) sources.push({ label: "The getting started guide", count: BOOSTER_RULES.guide });
+  if (input.gateBoosters) sources.push({ label: `${input.gateBoosters} cleared A or S gate${input.gateBoosters === 1 ? "" : "s"}`, count: input.gateBoosters });
   const byWorkouts = Math.floor(input.workouts / BOOSTER_RULES.perWorkouts);
   if (byWorkouts > 0) {
     sources.push({ label: `${byWorkouts} x ${BOOSTER_RULES.perWorkouts} finished workouts`, count: byWorkouts });
@@ -90,6 +97,7 @@ export function summarizeBoosts(input: {
   workouts: number;
   longestStreak: number;
   guideDone?: boolean;
+  gateBoosters?: number;
   usedDays: string[];
   firstDate: string | null;
   today: string;
