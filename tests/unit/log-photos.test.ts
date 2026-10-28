@@ -6,6 +6,9 @@ import { resetStores } from "@/lib/repositories/memory/store";
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 
+// The demo gym is pinned at this point, so a position here counts as being at the gym.
+const AT_GYM = { latitude: -6.2088, longitude: 106.8456, accuracy: 15 };
+
 import { DELETE as deleteCheckin } from "@/app/api/checkins/[id]/route";
 import { POST as postCheckin } from "@/app/api/checkins/route";
 import { DELETE as deleteLogPhoto } from "@/app/api/log-photos/[id]/route";
@@ -37,7 +40,7 @@ function upload(
 }
 
 async function newCheckin() {
-  return (await (await postCheckin(json({ date: today, went_to_gym: true }))).json()).data.id as string;
+  return (await (await postCheckin(json({ date: today, went_to_gym: true, ...AT_GYM }))).json()).data.id as string;
 }
 async function newWeight() {
   return (await (await postWeight(json({ date: today, weight_kg: 70 }))).json()).data.id as string;

@@ -7,13 +7,14 @@ import { getCurrentUserId } from "@/lib/auth";
 import { ISO_FORMAT, todayISO } from "@/lib/dates";
 import { listCheckins } from "@/lib/repositories/checkins";
 import { listLogPhotos } from "@/lib/repositories/logPhotos";
+import { listMemberships } from "@/lib/repositories/memberships";
 import { computeStreak } from "@/lib/streak";
 import { cn } from "@/lib/utils";
 import { CheckinForm } from "./checkin-form";
 
 export async function CheckinPanel() {
   const userId = await getCurrentUserId();
-  const checkins = await listCheckins(userId);
+  const [checkins, [membership]] = await Promise.all([listCheckins(userId), listMemberships(userId)]);
   const today = todayISO();
 
   const streak = computeStreak(
@@ -62,7 +63,12 @@ export async function CheckinPanel() {
           </ul>
         </div>
 
-        <CheckinForm today={today} existing={todays} />
+        <CheckinForm
+          today={today}
+          existing={todays}
+          gymName={membership?.gym_name ?? null}
+          gymPinned={membership?.latitude != null && membership?.longitude != null}
+        />
 
         <div className="flex flex-col gap-3 border-t pt-4">
           {todays ? (

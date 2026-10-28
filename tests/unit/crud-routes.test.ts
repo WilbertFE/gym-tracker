@@ -5,6 +5,9 @@ import { resetStores } from "@/lib/repositories/memory/store";
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 
+// The demo gym is pinned at this point, so a position here counts as being at the gym.
+const AT_GYM = { latitude: -6.2088, longitude: 106.8456, accuracy: 15 };
+
 import { GET as getCheckins, POST as postCheckin } from "@/app/api/checkins/route";
 import { DELETE as deleteCheckin } from "@/app/api/checkins/[id]/route";
 import { GET as getWeights, POST as postWeight } from "@/app/api/weights/route";
@@ -34,7 +37,7 @@ describe("/api/checkins", () => {
   });
 
   it("upserts one check-in per date", async () => {
-    await postCheckin(json({ date: today, went_to_gym: true }));
+    await postCheckin(json({ date: today, went_to_gym: true, ...AT_GYM }));
     const second = await postCheckin(json({ date: today, went_to_gym: false, mood: 4 }));
     expect(second.status).toBe(200);
 
@@ -45,7 +48,7 @@ describe("/api/checkins", () => {
   });
 
   it("deletes and then returns 404 for a missing id", async () => {
-    const { data } = await (await postCheckin(json({ date: today, went_to_gym: true }))).json();
+    const { data } = await (await postCheckin(json({ date: today, went_to_gym: true, ...AT_GYM }))).json();
     expect((await deleteCheckin(new Request("http://x"), ctx(data.id))).status).toBe(200);
     expect((await deleteCheckin(new Request("http://x"), ctx(data.id))).status).toBe(404);
   });

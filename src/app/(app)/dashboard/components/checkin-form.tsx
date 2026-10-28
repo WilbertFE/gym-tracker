@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -8,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScaleSelect } from "@/components/scale-select";
 import { apiRequest } from "@/lib/api-client";
+import { getCurrentPosition } from "@/lib/browser-location";
+import { GYM_RADIUS_METERS } from "@/lib/gym-location";
 import type { Checkin } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { checkinSchema } from "@/lib/validation/checkin";
@@ -15,15 +18,24 @@ import { checkinSchema } from "@/lib/validation/checkin";
 type CheckinFormProps = {
   today: string;
   existing: Checkin | null;
+  /** Name of the gym to check in at, or null with no membership. */
+  gymName: string | null;
+  /** Whether the gym has a pin on the map. Without one a gym check-in cannot be verified. */
+  gymPinned: boolean;
 };
 
-export function CheckinForm({ today, existing }: CheckinFormProps) {
+export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinFormProps) {
   const router = useRouter();
   const [wentToGym, setWentToGym] = useState(existing?.went_to_gym ?? true);
   const [mood, setMood] = useState<number | null>(existing?.mood ?? null);
   const [energy, setEnergy] = useState<number | null>(existing?.energy ?? null);
   const [sleep, setSleep] = useState(existing?.sleep_hours?.toString() ?? "");
   const [submitting, setSubmitting] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  // A day that is already a gym check-in was verified when it was made, so editing it needs no location.
+  const needsLocation = wentToGym && !existing?.went_to_gym;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,11 +55,27 @@ export function CheckinForm({ today, existing }: CheckinFormProps) {
     }
 
     setSubmitting(true);
-    const result = await apiRequest("/api/checkins", "POST", parsed.data);
+    setProblem(null);
+
+    let position: { latitude: number; longitude: number; accuracy: number } | null = null;
+    if (needsLocation) {
+      setLocating(true);
+      const found = await getCurrentPosition();
+      setLocating(false);
+      if (!found.ok) {
+        setSubmitting(false);
+        setProblem(found.message);
+        return;
+      }
+      position = found;
+    }
+
+    const result = await apiRequest("/api/checkins", "POST", { ...parsed.data, ...position });
     setSubmitting(false);
 
     if (!result.ok) {
-      toast.error(result.error);
+      // A failed location check is not a glitch, so it stays on screen instead of a toast that vanishes.
+      setProblem(result.error);
       return;
     }
     toast.success(existing ? "Check-in updated" : "Checked in");
@@ -84,6 +112,24 @@ export function CheckinForm({ today, existing }: CheckinFormProps) {
         </div>
       </div>
 
+      {needsLocation && (
+        <p className="text-xs text-muted-foreground">
+          {gymPinned ? (
+            <>
+              Your location is checked against {gymName ?? "your gym"}. You need to be within {GYM_RADIUS_METERS} m of it.
+            </>
+          ) : (
+            <>
+              To check in at the gym, first pin your gym on the map in{" "}
+              <Link href="/membership" className="underline underline-offset-4">
+                Membership
+              </Link>
+              . Rest days need no location.
+            </>
+          )}
+        </p>
+      )}
+
       <details open={Boolean(existing?.mood || existing?.energy || existing?.sleep_hours)} className="group">
         <summary className="flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground hover:text-foreground">
           Add mood, energy and sleep (optional)
@@ -116,8 +162,14 @@ export function CheckinForm({ today, existing }: CheckinFormProps) {
         </div>
       </details>
 
-      <Button type="submit" className="h-11" disabled={submitting}>
-        {submitting ? "Saving" : existing ? "Update check-in" : "Check in"}
+      {problem && (
+        <p role="alert" className="border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          {problem}
+        </p>
+      )}
+
+      <Button type="submit" className="h-11" disabled={submitting || (needsLocation && !gymPinned)}>
+        {locating ? "Checking your location" : submitting ? "Saving" : existing ? "Update check-in" : "Check in"}
       </Button>
     </form>
   );

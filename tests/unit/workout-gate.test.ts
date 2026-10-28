@@ -5,6 +5,9 @@ import { resetStores } from "@/lib/repositories/memory/store";
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 
+// The demo gym is pinned at this point, so a position here counts as being at the gym.
+const AT_GYM = { latitude: -6.2088, longitude: 106.8456, accuracy: 15 };
+
 import { POST as postCheckin } from "@/app/api/checkins/route";
 import { POST as finish } from "@/app/api/workouts/[id]/finish/route";
 import { POST as startWorkout } from "@/app/api/workouts/route";
@@ -20,7 +23,7 @@ const json = (body: unknown) =>
   new Request("http://localhost/api/x", { method: "POST", body: JSON.stringify(body) });
 const empty = () => new Request("http://localhost/api/x", { method: "POST" });
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
-const checkIn = (date: string, went_to_gym: boolean) => postCheckin(json({ date, went_to_gym }));
+const checkIn = (date: string, went_to_gym: boolean) => postCheckin(json({ date, went_to_gym, ...(went_to_gym ? AT_GYM : {}) }));
 
 beforeEach(() => {
   resetStores(); // The demo seed has no check-in for today.

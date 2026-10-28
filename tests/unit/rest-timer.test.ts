@@ -6,6 +6,9 @@ import { formatElapsed, lastSetCompletedAt, REST_TARGET_SECONDS, restBeforeSets 
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 
+// The demo gym is pinned at this point, so a position here counts as being at the gym.
+const AT_GYM = { latitude: -6.2088, longitude: 106.8456, accuracy: 15 };
+
 import { POST as postCheckin } from "@/app/api/checkins/route";
 import { POST as postSet } from "@/app/api/workouts/[id]/sets/route";
 import { POST as startWorkout } from "@/app/api/workouts/route";
@@ -62,7 +65,7 @@ describe("logging a set records when it was completed", () => {
   const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
 
   it("stamps each set with the time it was logged, in order", async () => {
-    await postCheckin(json({ date: format(new Date(), "yyyy-MM-dd"), went_to_gym: true }));
+    await postCheckin(json({ date: format(new Date(), "yyyy-MM-dd"), went_to_gym: true, ...AT_GYM }));
     const { data } = await (await startWorkout(new Request("http://localhost/api/x", { method: "POST" }))).json();
 
     const before = Date.now();

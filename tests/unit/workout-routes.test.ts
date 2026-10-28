@@ -6,6 +6,9 @@ import { resetStores } from "@/lib/repositories/memory/store";
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 
+// The demo gym is pinned at this point, so a position here counts as being at the gym.
+const AT_GYM = { latitude: -6.2088, longitude: 106.8456, accuracy: 15 };
+
 import { POST as postCheckin } from "@/app/api/checkins/route";
 import { DELETE as deleteExercise } from "@/app/api/exercises/[id]/route";
 import { GET as getExercises, POST as postExercise } from "@/app/api/exercises/route";
@@ -43,7 +46,7 @@ beforeEach(async () => {
   // The seeded demo history includes only finished workouts, so none is active.
   // Starting a workout needs today's check-in to say you went to the gym.
   const today = format(new Date(), "yyyy-MM-dd");
-  await postCheckin(json({ date: today, went_to_gym: true }));
+  await postCheckin(json({ date: today, went_to_gym: true, ...AT_GYM }));
   resetRateLimits();
 });
 
