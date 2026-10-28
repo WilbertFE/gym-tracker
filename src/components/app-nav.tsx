@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { SITE_NAME } from "@/lib/site";
+import { isUnlocked, type FeatureId } from "@/lib/unlocks";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -23,6 +24,8 @@ type NavItem = {
   alsoActive?: string;
   /** Phones have room for five tabs, so Membership is reached from Settings there. */
   desktopOnly?: boolean;
+  /** Hidden until this feature has opened. */
+  feature?: FeatureId;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -30,7 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/workouts", label: "Workouts", icon: BarbellIcon },
   { href: "/body", label: "Body", icon: PersonSimpleIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarBlankIcon },
-  { href: "/leaderboard", label: "Leaderboard", icon: RankingIcon, desktopOnly: true },
+  { href: "/leaderboard", label: "Leaderboard", icon: RankingIcon, desktopOnly: true, feature: "leaderboard" },
   { href: "/membership", label: "Membership", icon: IdentificationCardIcon, desktopOnly: true },
   { href: "/settings", label: "Settings", icon: GearSixIcon, alsoActive: "/membership" },
 ];
@@ -47,9 +50,10 @@ function useSignOut() {
   };
 }
 
-export function AppNav() {
+export function AppNav({ level, showAll }: { level: number; showAll: boolean }) {
   const pathname = usePathname();
   const signOut = useSignOut();
+  const items = NAV_ITEMS.filter((item) => !item.feature || isUnlocked(item.feature, level, showAll));
 
   return (
     <>
@@ -62,7 +66,7 @@ export function AppNav() {
           {SITE_NAME}
         </p>
         <ul className="flex flex-1 flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
+          {items.map((item) => {
             const { href, label, icon: Icon } = item;
             const active = isActive(pathname, item, true);
             return (
@@ -100,7 +104,7 @@ export function AppNav() {
         className="fixed inset-x-0 bottom-0 z-40 border-t bg-card md:hidden"
       >
         <ul className="grid grid-cols-5">
-          {NAV_ITEMS.filter((item) => !item.desktopOnly).map((item) => {
+          {items.filter((item) => !item.desktopOnly).map((item) => {
             const { href, label, icon: Icon } = item;
             const active = isActive(pathname, item, false);
             return (

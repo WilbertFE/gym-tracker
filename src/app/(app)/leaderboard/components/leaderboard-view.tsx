@@ -1,7 +1,11 @@
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
 import { Panel } from "@/components/panel";
+import { LockedFeature } from "@/components/locked-feature";
 import { getCurrentUserId } from "@/lib/auth";
+import { loadLevel } from "@/lib/level";
+import { isUnlocked } from "@/lib/unlocks";
+import { getShowAll } from "@/lib/unlock-state";
 import { weekEnd, isBoardPeriod, isBoardScope } from "@/lib/leaderboard";
 import { buildBoard } from "@/lib/leaderboard-board";
 import { syncLeaderboardEntry } from "@/lib/leaderboard-sync";
@@ -12,6 +16,10 @@ import { JoinCard } from "./join-card";
 
 export async function LeaderboardView({ scope: rawScope, period: rawPeriod }: { scope?: string; period?: string }) {
   const userId = await getCurrentUserId();
+  const [{ level }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
+  if (!isUnlocked("leaderboard", level.level, showAll)) {
+    return <LockedFeature id="leaderboard" level={level.level} totalXp={level.total} />;
+  }
   const scope = isBoardScope(rawScope) ? rawScope : "global";
   const period = isBoardPeriod(rawPeriod) ? rawPeriod : "all";
 

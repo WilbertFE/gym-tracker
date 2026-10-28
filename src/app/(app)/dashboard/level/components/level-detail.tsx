@@ -2,6 +2,8 @@ import { Panel } from "@/components/panel";
 import { RankBadge } from "@/components/rank-badge";
 import { getCurrentUserId } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
+import { isUnlocked } from "@/lib/unlocks";
+import { getShowAll } from "@/lib/unlock-state";
 import { loadLevel } from "@/lib/level";
 import { RANKS } from "@/lib/ranks";
 import { cn } from "@/lib/utils";
@@ -10,7 +12,7 @@ import { BoostersPanel } from "./boosters-panel";
 
 export async function LevelDetail() {
   const userId = await getCurrentUserId();
-  const { xp, level, boosts } = await loadLevel(userId);
+  const [{ xp, level, boosts }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
   const percent = Math.round(level.progress * 100);
 
   return (
@@ -44,7 +46,7 @@ export async function LevelDetail() {
         </div>
       </Panel>
 
-      <BoostersPanel boosts={boosts} today={todayISO()} />
+      {isUnlocked("boosters", level.level, showAll) && <BoostersPanel boosts={boosts} today={todayISO()} />}
 
       <Panel label="Rank ladder">
         <ol className="flex flex-col divide-y border">

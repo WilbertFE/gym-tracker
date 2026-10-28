@@ -2,6 +2,8 @@ import Link from "next/link";
 import { RankBadge } from "@/components/rank-badge";
 import { getCurrentUserId } from "@/lib/auth";
 import { loadLevel } from "@/lib/level";
+import { isUnlocked } from "@/lib/unlocks";
+import { getShowAll } from "@/lib/unlock-state";
 
 /**
  * The first thing on the dashboard: your rank badge, level and progress. The point of the app is
@@ -9,7 +11,9 @@ import { loadLevel } from "@/lib/level";
  */
 export async function LevelHero() {
   const userId = await getCurrentUserId();
-  const { level, boosts } = await loadLevel(userId);
+  const [{ level, boosts }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
+  const boostersOpen = isUnlocked("boosters", level.level, showAll);
+  const leaderboardOpen = isUnlocked("leaderboard", level.level, showAll);
   const percent = Math.round(level.progress * 100);
 
   return (
@@ -47,7 +51,7 @@ export async function LevelHero() {
         </div>
       </div>
 
-      {(boosts.activeToday || boosts.available > 0) && (
+      {boostersOpen && (boosts.activeToday || boosts.available > 0) && (
         <ul className="mt-4 flex flex-wrap gap-2" aria-label="Boosts">
           {boosts.activeToday && (
             <li className="tabular border border-primary px-2 py-1 text-[11px] uppercase tracking-widest text-primary">
@@ -85,11 +89,19 @@ export async function LevelHero() {
         >
           See all ranks
         </Link>
+        {leaderboardOpen && (
+          <Link
+            href="/leaderboard"
+            className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Leaderboard
+          </Link>
+        )}
         <Link
-          href="/leaderboard"
+          href="/guide"
           className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
-          Leaderboard
+          How it works
         </Link>
       </div>
     </section>

@@ -9,10 +9,18 @@ import { listMeasurements } from "@/lib/repositories/measurements";
 import { listPhotos } from "@/lib/repositories/photos";
 import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
+import { guideDone, guideSteps, type GuideStep } from "@/lib/guide";
 import { buildQuestBoard, type QuestBoard } from "@/lib/quests";
 import { computeXp, levelForXp, type LevelInfo, type XpSummary } from "@/lib/xp";
 
-export type GameState = { xp: XpSummary; level: LevelInfo; boosts: BoostSummary; quests: QuestBoard };
+export type GameState = {
+  xp: XpSummary;
+  level: LevelInfo;
+  boosts: BoostSummary;
+  quests: QuestBoard;
+  /** The getting started steps, each ticked from what the user has done. */
+  guide: GuideStep[];
+};
 
 /**
  * A user's XP, level, boosters and quests, worked out from everything they have logged and used.
@@ -35,17 +43,23 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
 
   // Boosters beyond the number earned are ignored (the oldest ones are kept), so rows added to the
   // table by hand cannot double anything. The API already refuses them, this covers the database.
+  const guide = guideSteps({ checkins, weights, sessions, sets });
   const withoutBoosts = computeXp(input);
-  const earned = boostersEarned({ workouts: withoutBoosts.workouts, longestStreak: withoutBoosts.longestStreak }).total;
+  const earned = boostersEarned({
+    workouts: withoutBoosts.workouts,
+    longestStreak: withoutBoosts.longestStreak,
+    guideDone: guideDone(guide),
+  }).total;
   const usedDays = boostRows.map((b) => b.day).sort().slice(0, earned);
   const xp = computeXp({ ...input, boostedDays: usedDays });
   const boosts = summarizeBoosts({
     workouts: xp.workouts,
     longestStreak: xp.longestStreak,
+    guideDone: guideDone(guide),
     usedDays,
     firstDate: xp.firstDate,
     today,
   });
   const quests = buildQuestBoard({ checkins, weights, measurements, sessions, sets, exerciseMuscles }, today);
-  return { xp, level: levelForXp(xp.total), boosts, quests };
+  return { xp, level: levelForXp(xp.total), boosts, quests, guide };
 });

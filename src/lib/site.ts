@@ -16,6 +16,7 @@ export const PROTECTED_PREFIXES = [
   "/schedule",
   "/settings",
   "/leaderboard",
+  "/guide",
 ] as const;
 
 /** API routes that do not require a session. */

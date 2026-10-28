@@ -1,5 +1,6 @@
 import { CheckIcon } from "@phosphor-icons/react/ssr";
 import { Panel } from "@/components/panel";
+import { SystemTip } from "@/components/system-tip";
 import { getCurrentUserId } from "@/lib/auth";
 import { loadLevel } from "@/lib/level";
 import type { QuestStatus } from "@/lib/quests";
@@ -74,28 +75,33 @@ export async function QuestsPanel() {
   const { quests } = await loadLevel(userId);
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-2">
-      <Panel label="Daily quests">
-        <ul className="flex flex-col divide-y" aria-label="Daily quests">
-          {quests.daily.map((s) => (
-            <QuestRow key={s.quest.id} status={s} />
-          ))}
-        </ul>
-        <Sweep done={quests.dailySweep.done} xp={quests.dailySweep.xp} label="All daily quests" />
-        <p className="mt-2 text-xs text-muted-foreground">New quests tomorrow.</p>
-      </Panel>
+    <div className="flex flex-col gap-4">
+      <SystemTip id="quests" title="Quests unlocked">
+        Three small goals every day and week. They tick themselves as you log, and finishing them earns bonus XP.
+      </SystemTip>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <Panel label="Daily quests">
+          <ul className="flex flex-col divide-y" aria-label="Daily quests">
+            {quests.daily.map((s) => (
+              <QuestRow key={s.quest.id} status={s} />
+            ))}
+          </ul>
+          <Sweep done={quests.dailySweep.done} xp={quests.dailySweep.xp} label="All daily quests" />
+          <p className="mt-2 text-xs text-muted-foreground">New quests tomorrow.</p>
+        </Panel>
 
-      <Panel label="Weekly quests">
-        <ul className="flex flex-col divide-y" aria-label="Weekly quests">
-          {quests.weekly.map((s) => (
-            <QuestRow key={s.quest.id} status={s} />
-          ))}
-        </ul>
-        <Sweep done={quests.weeklySweep.done} xp={quests.weeklySweep.xp} label="All weekly quests" />
-        <p className="mt-2 text-xs text-muted-foreground">
-          {quests.daysLeft} day{quests.daysLeft === 1 ? "" : "s"} left this week.
-        </p>
-      </Panel>
+        <Panel label="Weekly quests">
+          <ul className="flex flex-col divide-y" aria-label="Weekly quests">
+            {quests.weekly.map((s) => (
+              <QuestRow key={s.quest.id} status={s} />
+            ))}
+          </ul>
+          <Sweep done={quests.weeklySweep.done} xp={quests.weeklySweep.xp} label="All weekly quests" />
+          <p className="mt-2 text-xs text-muted-foreground">
+            {quests.daysLeft} day{quests.daysLeft === 1 ? "" : "s"} left this week.
+          </p>
+        </Panel>
+      </div>
     </div>
   );
 }

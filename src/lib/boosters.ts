@@ -19,6 +19,8 @@ export const BOOST_DAYS_AHEAD = 7;
 export const BOOSTER_RULES = {
   /** For your first finished workout. */
   firstWorkout: 1,
+  /** For finishing every step of the getting started guide. */
+  guide: 1,
   /** And one more for every this many finished workouts. */
   perWorkouts: 5,
   /** For reaching a streak of this many days, [days, boosters]. */
@@ -54,12 +56,13 @@ export function dayMultiplier(
 export type BoosterEarning = { label: string; count: number };
 
 /** How many Double XP Day boosters the activity so far has earned, and from what. */
-export function boostersEarned(input: { workouts: number; longestStreak: number }): {
+export function boostersEarned(input: { workouts: number; longestStreak: number; guideDone?: boolean }): {
   total: number;
   sources: BoosterEarning[];
 } {
   const sources: BoosterEarning[] = [];
   if (input.workouts >= 1) sources.push({ label: "Your first finished workout", count: BOOSTER_RULES.firstWorkout });
+  if (input.guideDone) sources.push({ label: "The getting started guide", count: BOOSTER_RULES.guide });
   const byWorkouts = Math.floor(input.workouts / BOOSTER_RULES.perWorkouts);
   if (byWorkouts > 0) {
     sources.push({ label: `${byWorkouts} x ${BOOSTER_RULES.perWorkouts} finished workouts`, count: byWorkouts });
@@ -86,6 +89,7 @@ export type BoostSummary = {
 export function summarizeBoosts(input: {
   workouts: number;
   longestStreak: number;
+  guideDone?: boolean;
   usedDays: string[];
   firstDate: string | null;
   today: string;

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/api-client";
 import { countryOptions } from "@/lib/countries";
+import { SHOW_ALL_COOKIE, writeCookie } from "@/lib/feature-prefs";
 import { CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currency";
 import type { UserSettings } from "@/lib/types";
 import { UNIT_LABELS, WEIGHT_UNITS, type WeightUnit } from "@/lib/units";
@@ -28,13 +29,14 @@ const subscribePref = (notify: () => void) => {
   return () => window.removeEventListener(PREF_EVENT, notify);
 };
 
-export function SettingsForm({ initial }: { initial: UserSettings }) {
+export function SettingsForm({ initial, showAll }: { initial: UserSettings; showAll: boolean }) {
   const router = useRouter();
   const countries = useMemo(() => countryOptions(), []);
   const [country, setCountry] = useState<string>(initial.country ?? NO_COUNTRY);
   const [unit, setUnit] = useState<WeightUnit>(initial.weight_unit);
   const [currency, setCurrency] = useState<Currency>(initial.currency);
   const [saving, setSaving] = useState(false);
+  const [everything, setEverything] = useState(showAll);
   // Kept on this device, not in the account, and read after load so the server and browser agree.
   const popups = useSyncExternalStore(subscribePref, xpPopupsEnabled, () => true);
 
@@ -103,6 +105,26 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
         <p className="text-xs text-muted-foreground">
           {CURRENCY_LABELS[currency]}. The default for new membership prices. Amounts are never converted,
           each price keeps the currency it was saved in.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className={labelClass}>Features</span>
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={everything}
+            onChange={(e) => {
+              setEverything(e.target.checked);
+              writeCookie(SHOW_ALL_COOKIE, e.target.checked ? "1" : null);
+              router.refresh();
+            }}
+            className="size-4 accent-[var(--primary)]"
+          />
+          Show all features now
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Quests, boosters and the leaderboard normally open as you level up. Turn this on to see everything right away.
         </p>
       </div>
 

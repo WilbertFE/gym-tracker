@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { RankBadge } from "@/components/rank-badge";
 import { cn } from "@/lib/utils";
+import { LEVEL_COOKIE, parseLevelCookie, writeCookie } from "@/lib/feature-prefs";
 import { diffXp, levelsGained, mergeGains, XP_CHECK_EVENT, type XpGain, type XpSnapshot } from "@/lib/xp-diff";
 import { xpPopupsEnabled } from "@/lib/xp-popup-pref";
 
@@ -53,6 +55,7 @@ const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: r
  * fills the level bar. It is mounted once for the whole app and never blocks anything.
  */
 export function XpWatcher() {
+  const router = useRouter();
   const baseline = useRef<XpSnapshot | null>(null);
   const ready = useRef<Promise<void>>(Promise.resolve());
   const [shown, setShown] = useState<{ id: number; gain: XpGain } | null>(null);
@@ -65,13 +68,23 @@ export function XpWatcher() {
       if (!snapshot) return;
       baseline.current = snapshot;
       writeSnapshot(snapshot);
+      rememberLevel(snapshot.level);
     });
+
+    // The menu is built from a level cookie. When the real level differs, store it and rebuild the page once.
+    const rememberLevel = (level: number) => {
+      const known = parseLevelCookie(document.cookie.split("; ").find((c) => c.startsWith(`${LEVEL_COOKIE}=`))?.split("=")[1]);
+      if (known === level) return;
+      writeCookie(LEVEL_COOKIE, String(level));
+      router.refresh();
+    };
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const check = async () => {
       await ready.current;
       const next = await fetchSnapshot();
       if (!next) return;
+      rememberLevel(next.level);
       const found = diffXp(baseline.current, next);
       const changed = baseline.current !== null && baseline.current.total !== next.total;
       baseline.current = next;
@@ -92,6 +105,7 @@ export function XpWatcher() {
       clearTimeout(timer);
       window.removeEventListener(XP_CHECK_EVENT, onEvent);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!shown) return null;
