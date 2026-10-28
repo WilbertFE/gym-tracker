@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,16 @@ import { countryOptions } from "@/lib/countries";
 import { CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currency";
 import type { UserSettings } from "@/lib/types";
 import { UNIT_LABELS, WEIGHT_UNITS, type WeightUnit } from "@/lib/units";
+import { setXpPopupsEnabled, xpPopupsEnabled } from "@/lib/xp-popup-pref";
 
 const labelClass = "text-[11px] uppercase tracking-widest text-muted-foreground";
 const NO_COUNTRY = "none";
+
+const PREF_EVENT = "gymtrack:xp-pref";
+const subscribePref = (notify: () => void) => {
+  window.addEventListener(PREF_EVENT, notify);
+  return () => window.removeEventListener(PREF_EVENT, notify);
+};
 
 export function SettingsForm({ initial }: { initial: UserSettings }) {
   const router = useRouter();
@@ -28,6 +35,8 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
   const [unit, setUnit] = useState<WeightUnit>(initial.weight_unit);
   const [currency, setCurrency] = useState<Currency>(initial.currency);
   const [saving, setSaving] = useState(false);
+  // Kept on this device, not in the account, and read after load so the server and browser agree.
+  const popups = useSyncExternalStore(subscribePref, xpPopupsEnabled, () => true);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -94,6 +103,25 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
         <p className="text-xs text-muted-foreground">
           {CURRENCY_LABELS[currency]}. The default for new membership prices. Amounts are never converted,
           each price keeps the currency it was saved in.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className={labelClass}>XP pop-ups</span>
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={popups}
+            onChange={(e) => {
+              setXpPopupsEnabled(e.target.checked);
+              window.dispatchEvent(new Event(PREF_EVENT));
+            }}
+            className="size-4 accent-[var(--primary)]"
+          />
+          Show a small pop-up when I earn XP
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Applies on this device only and takes effect straight away. Your XP and level are not affected.
         </p>
       </div>
 

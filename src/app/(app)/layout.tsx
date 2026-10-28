@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { AppNav } from "@/components/app-nav";
+import { XpWatcher } from "@/components/xp-watcher";
 import { isDemoMode } from "@/lib/demo";
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
@@ -20,6 +21,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         )}
         {children}
       </div>
+      <XpWatcher />
     </div>
   );
 }

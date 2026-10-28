@@ -2,6 +2,8 @@ export type ApiResult<T = unknown> =
   | { ok: true; data: T }
   | { ok: false; error: string };
 
+import { affectsXp, XP_CHECK_EVENT } from "@/lib/xp-diff";
+
 /**
  * Browser helper for calling the app's own API routes. Never throws.
  * Plain objects are sent as JSON. A FormData body is sent as multipart, and the
@@ -23,6 +25,8 @@ export async function apiRequest<T = unknown>(
     if (!res.ok) {
       return { ok: false, error: json.error ?? "Something went wrong" };
     }
+    // This write may have earned XP. The pop-up checks after a short wait.
+    if (typeof window !== "undefined" && affectsXp(url)) window.dispatchEvent(new Event(XP_CHECK_EVENT));
     return { ok: true, data: json.data as T };
   } catch {
     return { ok: false, error: "Network error. Try again." };
