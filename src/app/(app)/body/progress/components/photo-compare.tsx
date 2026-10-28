@@ -69,7 +69,7 @@ export function PhotoCompare({ photos, weights, measurements }: PhotoCompareProp
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
             {([
               { key: "before", label: "Before", photo: before },
               { key: "after", label: "After", photo: after },
@@ -88,7 +88,7 @@ export function PhotoCompare({ photos, weights, measurements }: PhotoCompareProp
                     ))}
                   </SelectContent>
                 </Select>
-                <PhotoImage photo={photo} className="mx-auto max-w-64" />
+                <PhotoImage photo={photo} className="mx-auto w-full max-w-64" />
               </div>
             ))}
           </div>

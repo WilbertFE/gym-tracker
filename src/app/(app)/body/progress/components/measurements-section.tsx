@@ -10,15 +10,13 @@ export async function MeasurementsSection() {
   const rows = await listMeasurements(userId);
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <Panel label="Log measurements">
         <MeasurementForm today={todayISO()} />
       </Panel>
       <Panel label="Measurement history">
-        <div className="overflow-x-auto">
-          <MeasurementHistory rowsDesc={rows} />
-        </div>
+        <MeasurementHistory rowsDesc={rows} />
       </Panel>
-    </>
+    </div>
   );
 }

@@ -17,7 +17,7 @@ export async function PhotosSection() {
   ]);
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <Panel label="Compare">
         <PhotoCompare photos={photos} weights={weights} measurements={measurements} />
       </Panel>
@@ -35,6 +35,6 @@ export async function PhotosSection() {
       <Panel label={`Gallery, ${photos.length} photos`}>
         <PhotoBrowser photos={photos} />
       </Panel>
-    </>
+    </div>
   );
 }

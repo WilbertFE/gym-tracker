@@ -52,8 +52,9 @@ export function BodyHeatmap({ stats }: { stats: MuscleStat[] }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <SegmentedControl
+            className="w-full sm:w-auto"
             label="Period"
             value={period}
             onChange={setPeriod}
@@ -63,6 +64,7 @@ export function BodyHeatmap({ stats }: { stats: MuscleStat[] }) {
             ]}
           />
           <SegmentedControl
+            className="w-full sm:w-auto"
             label="View"
             value={view}
             onChange={setView}
@@ -74,7 +76,7 @@ export function BodyHeatmap({ stats }: { stats: MuscleStat[] }) {
           />
         </div>
 
-        <div className="relative border bg-background p-4 [background-image:linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] [background-size:24px_24px]">
+        <div className="relative border bg-background p-2 sm:p-4 [background-image:linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] [background-size:24px_24px]">
           {/* Corner brackets */}
           {[
             "left-1 top-1 border-l border-t",

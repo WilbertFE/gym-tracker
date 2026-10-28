@@ -56,7 +56,7 @@ export function MeasurementForm({ today }: { today: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid grid-cols-2 gap-4 sm:grid-cols-3" noValidate>
+    <form onSubmit={onSubmit} className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 sm:gap-x-4" noValidate>
       <div className="col-span-2 flex flex-col gap-2 sm:col-span-3">
         <Label htmlFor="m-date" className={labelClass}>Date</Label>
         <Input
@@ -69,7 +69,7 @@ export function MeasurementForm({ today }: { today: string }) {
       </div>
 
       {MEASUREMENT_FIELDS.map(({ key, label, unit }) => (
-        <div key={key} className="flex flex-col gap-2">
+        <div key={key} className="flex flex-col justify-end gap-2">
           <Label htmlFor={`m-${key}`} className={labelClass}>
             {label} ({unit})
           </Label>

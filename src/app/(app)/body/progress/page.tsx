@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
+import { SectionTabs } from "@/components/section-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
 import { MeasurementsSection } from "./components/measurements-section";
@@ -23,13 +24,29 @@ export default function ProgressPage() {
         description="Compare photos from two dates and see how your weight and measurements changed between them."
       />
 
-      <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
-        <PhotosSection />
-      </Suspense>
-
-      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <MeasurementsSection />
-      </Suspense>
+      <SectionTabs
+        label="Progress views"
+        tabs={[
+          {
+            value: "photos",
+            label: "Photos",
+            content: (
+              <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
+                <PhotosSection />
+              </Suspense>
+            ),
+          },
+          {
+            value: "measurements",
+            label: "Measurements",
+            content: (
+              <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                <MeasurementsSection />
+              </Suspense>
+            ),
+          },
+        ]}
+      />
 
       <nav aria-label="Related">
         <Link

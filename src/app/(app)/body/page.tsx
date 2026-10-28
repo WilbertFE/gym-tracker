@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
-import { BodyTabs } from "./components/body-tabs";
+import { SectionTabs } from "@/components/section-tabs";
 import { HeatmapPanel } from "./components/heatmap-panel";
 import { WeightPanel } from "./components/weight-panel";
 
@@ -23,24 +23,36 @@ export default function BodyPage() {
         title="Body"
         description="See which muscles you have trained, or log your weight."
       />
-      <BodyTabs
-        muscles={
-          <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
-            <HeatmapPanel />
-          </Suspense>
-        }
-        weight={
-          <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
-            <WeightPanel />
-          </Suspense>
-        }
+      <SectionTabs
+        label="Body views"
+        tabs={[
+          {
+            value: "muscles",
+            label: "Muscles",
+            content: (
+              <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
+                <HeatmapPanel />
+              </Suspense>
+            ),
+          },
+          {
+            value: "weight",
+            label: "Weight",
+            content: (
+              <Suspense fallback={<Skeleton className="h-[40rem] w-full" />}>
+                <WeightPanel />
+              </Suspense>
+            ),
+          },
+        ]}
       />
       <nav aria-label="Physique tools">
         <Link
           href="/body/progress"
-          className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          className="flex min-h-12 items-center justify-between border bg-card px-4 text-sm hover:bg-surface-raised"
         >
           Progress photos and measurements
+          <span aria-hidden className="text-muted-foreground">&rarr;</span>
         </Link>
       </nav>
     </main>
