@@ -160,12 +160,23 @@ function statTiles(
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, tileW, tileHeight);
     label(ctx, f, p, s.name, x + 28, y + 56);
-    const size = s.value.length > 7 ? 54 : 68;
-    text(ctx, f, s.value, x + 28, y + tileHeight - 40, { size, color: p.text, mono: true, weight: 500, maxWidth: tileW - 56 });
+    // The unit sits after the number, so the number gets what is left of the tile. Shrink it until it fits.
+    // Measuring must not inherit the letter spacing of the label drawn just before.
+    (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "0px";
+    ctx.font = `400 26px ${f.mono}`;
+    const unitWidth = s.unit ? ctx.measureText(s.unit).width + 12 : 0;
+    const room = tileW - 56 - unitWidth;
+    let size = 68;
+    for (; size > 36; size -= 2) {
+      ctx.font = `500 ${size}px ${f.mono}`;
+      if (ctx.measureText(s.value).width <= room) break;
+    }
+    const baseline = y + tileHeight - 40;
+    text(ctx, f, s.value, x + 28, baseline, { size, color: p.text, mono: true, weight: 500, maxWidth: room });
     if (s.unit) {
-      ctx.font = `400 26px ${f.mono}`;
-      const valueWidth = ctx.measureText(s.value).width;
-      text(ctx, f, s.unit, x + 28 + Math.min(valueWidth, tileW - 56) + 10, y + tileHeight - 40, { size: 26, color: p.muted, mono: true });
+      ctx.font = `500 ${size}px ${f.mono}`;
+      const valueWidth = Math.min(ctx.measureText(s.value).width, room);
+      text(ctx, f, s.unit, x + 28 + valueWidth + 12, baseline, { size: 26, color: p.muted, mono: true });
     }
   });
 }

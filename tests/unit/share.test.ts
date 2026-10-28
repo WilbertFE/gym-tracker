@@ -163,17 +163,23 @@ describe("workoutLocation", () => {
 function fakeContext() {
   const drawn: string[] = [];
   const fills: string[] = [];
+  const placed: { text: string; x: number; size: number }[] = [];
+  const fontSize = () => Number(/(\d+)px/.exec(String(target.font))?.[1] ?? 10);
   const target: Record<string, unknown> = {
     fill: () => void fills.push(String((target as { fillStyle?: string }).fillStyle)),
-    measureText: (s: string) => ({ width: s.length * 10 }),
-    fillText: (s: string) => void drawn.push(s),
+    // Monospace at 0.6 em a character, like the real font, so a bigger size measures wider.
+    measureText: (s: string) => ({ width: s.length * fontSize() * 0.6 }),
+    fillText: (s: string, x: number) => {
+      drawn.push(s);
+      placed.push({ text: s, x, size: fontSize() });
+    },
     createLinearGradient: () => ({ addColorStop: () => {} }),
   };
   const ctx = new Proxy(target, {
     get: (t, key: string) => (key in t ? t[key] : () => {}),
     set: (t, key: string, value) => ((t[key] = value), true),
   }) as unknown as CanvasRenderingContext2D;
-  return { ctx, drawn, fills };
+  return { ctx, drawn, fills, placed };
 }
 
 vi.stubGlobal("Path2D", class {});
@@ -222,6 +228,29 @@ describe("drawShareCard", () => {
     drawShareCard(ctx, long, "bold", "story", fonts);
     const shown = drawn.find((t) => t.startsWith("GGG"))!;
     expect(shown.endsWith("...")).toBe(true);
+  });
+
+  it("keeps every headline number inside its tile, even a long time with a unit", () => {
+    // Tiles are 290 px wide with a 28 px padding, so a value may reach 262 px from the tile's left edge.
+    const wide = { ...c, duration: "10h 19m", volume: "123,456", sets: 120 };
+    for (const [template, format] of [["classic", "story"], ["bold", "square"], ["light", "story"]] as const) {
+      const { ctx, placed } = fakeContext();
+      drawShareCard(ctx, wide, template, format, fonts);
+      const tiles = [80, 80 + 290 + 24, 80 + 2 * (290 + 24)];
+      const values = ["10h 19m", "123,456", "120"].map((v) => placed.find((p) => p.text.startsWith(v.slice(0, 3)))!);
+      values.forEach((v, i) => {
+        const right = v.x + v.text.length * v.size * 0.6;
+        expect(right, `${v.text} in ${template} ${format}`).toBeLessThanOrEqual(tiles[i] + 290 - 28);
+      });
+    }
+  });
+
+  it("puts the unit after the volume without covering it", () => {
+    const { ctx, placed } = fakeContext();
+    drawShareCard(ctx, { ...c, volume: "12,340" }, "classic", "story", fonts);
+    const value = placed.find((p) => p.text === "12,340")!;
+    const unit = placed.find((p) => p.text === "kg")!;
+    expect(unit.x).toBeGreaterThanOrEqual(value.x + value.text.length * value.size * 0.6);
   });
 
   it("never uses an em dash", () => {

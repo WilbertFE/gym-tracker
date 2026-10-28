@@ -490,6 +490,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-28: Fixed the share card headline numbers overlapping: a long time such as 1h 19m was cut to "1h 19.." and the kg unit could sit on top of the volume. The number now shrinks to fit its tile and the unit is placed after it.
 - 2026-10-28: Checked the home check-in, geofence refusals, set times, rest timer and share images against the live project (test rows removed afterwards). Exercises in the logged sets list now follow the order they were done. The share card shows the gym name plus the first part of its address instead of the whole geocoded address. If an API route still reports an old column after a migration, restart `next dev`: its route cache can go stale.
 - 2026-10-28: Home workout is a third check-in choice and needs no location. It counts as training for starting workouts and earns XP. Streaks now earn milestone XP. Sets show how far into the workout they were done instead of the clock time. Share images show the muscles worked on a body and where you trained, with a switch to hide the location. Needs migration `20261028000200_checkin_kind.sql`.
 - 2026-10-28: Shareable workout images in three looks and two sizes (story and square), made in the browser, with the phone share sheet or a download. Drawing logic is unit tested, but the images have not been checked by eye yet.
