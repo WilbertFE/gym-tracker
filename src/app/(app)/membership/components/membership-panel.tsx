@@ -6,13 +6,15 @@ import { Stat } from "@/components/stat";
 import { getCurrentUserId } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
 import { membershipStatus } from "@/lib/membership";
+import { formatPrice } from "@/lib/currency";
 import { listMemberships } from "@/lib/repositories/memberships";
+import { getSettings } from "@/lib/repositories/settings";
 import { cn } from "@/lib/utils";
 import { MembershipForm } from "./membership-form";
 
 export async function MembershipPanel() {
   const userId = await getCurrentUserId();
-  const [current] = await listMemberships(userId);
+  const [[current], settings] = await Promise.all([listMemberships(userId), getSettings(userId)]);
   const today = todayISO();
 
   if (!current) {
@@ -21,7 +23,7 @@ export async function MembershipPanel() {
         <p className="mb-4 text-sm text-muted-foreground">
           No membership yet. Add your dates to get an expiry warning.
         </p>
-        <MembershipForm today={today} existing={null} />
+        <MembershipForm today={today} existing={null} defaultCurrency={settings.currency} />
       </Panel>
     );
   }
@@ -59,6 +61,13 @@ export async function MembershipPanel() {
               value={format(parseISO(current.end_date), "d MMM yyyy")}
               className="[&>span:last-child]:text-xl"
             />
+            {current.price !== null && (
+              <Stat
+                label="Price"
+                value={formatPrice(current.price, current.currency)}
+                className="[&>span:last-child]:text-xl"
+              />
+            )}
           </div>
 
           <div
@@ -83,7 +92,7 @@ export async function MembershipPanel() {
       </Panel>
 
       <Panel label="Edit membership">
-        <MembershipForm today={today} existing={current} />
+        <MembershipForm today={today} existing={current} defaultCurrency={settings.currency} />
       </Panel>
     </div>
   );

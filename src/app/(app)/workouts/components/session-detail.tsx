@@ -7,7 +7,9 @@ import { Stat } from "@/components/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
 import { listExercises } from "@/lib/repositories/exercises";
+import { getSettings } from "@/lib/repositories/settings";
 import { getSessionWithSets, lastSetsByExercise } from "@/lib/repositories/workouts";
+import { displayVolume } from "@/lib/units";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
 import { pickFocusExercise } from "@/lib/suggestion";
 import { formatDuration, groupSetsByExercise, sessionVolume } from "@/lib/workout";
@@ -23,14 +25,16 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
 
   const { session, sets } = found;
   const active = session.ended_at === null;
-  const [exercises, lastSets] = await Promise.all([
+  const [exercises, lastSets, settings] = await Promise.all([
     listExercises(userId),
     lastSetsByExercise(userId, id),
+    getSettings(userId),
   ]);
+  const unit = settings.weight_unit;
 
   const groups = groupSetsByExercise(sets, exercises);
   const focusExercise = focus ? pickFocusExercise(exercises, focus, Object.keys(lastSets)) : null;
-  const volume = Math.round(sessionVolume(sets));
+  const volume = sessionVolume(sets);
 
   return (
     <div className="flex flex-col gap-6">
@@ -49,7 +53,7 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
           )}
           <Stat label="Sets" value={sets.length} />
           <Stat label="Exercises" value={groups.length} />
-          <Stat label="Volume" value={volume.toLocaleString("en-US")} unit="kg" hint="Weight x reps, all sets" />
+          <Stat label="Volume" value={displayVolume(volume, unit)} unit={unit} hint="Weight x reps, all sets" />
         </div>
       </Panel>
 
@@ -66,6 +70,7 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
             sessionId={id}
             exercises={exercises}
             lastSets={lastSets}
+            unit={unit}
             sessionExerciseIds={groups.map((g) => g.exercise_id)}
             focusExerciseId={focusExercise?.id}
           />
@@ -77,7 +82,7 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
       </Suspense>
 
       <Panel label="Logged sets">
-        <SetList sessionId={id} groups={groups} editable={active} />
+        <SetList sessionId={id} groups={groups} editable={active} unit={unit} />
       </Panel>
 
       <SessionActions sessionId={id} active={active} />

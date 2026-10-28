@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CURRENCIES } from "@/lib/currency";
 import { isoDate, optionalNotes } from "./common";
 
 export const membershipSchema = z
@@ -10,6 +11,7 @@ export const membershipSchema = z
     start_date: isoDate,
     end_date: isoDate,
     price: z.number().min(0).max(1_000_000_000).nullish(),
+    currency: z.enum(CURRENCIES),
     notes: optionalNotes,
   })
   .refine((v) => v.end_date >= v.start_date, {

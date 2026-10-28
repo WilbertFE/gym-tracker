@@ -8,20 +8,23 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-
-const config = {
-  weight_kg: { label: "Weight (kg)", color: "var(--primary)" },
-} satisfies ChartConfig;
+import { fromKg, type WeightUnit } from "@/lib/units";
 
 type WeightChartProps = {
-  /** Oldest first. */
+  /** Oldest first, in kilograms. */
   data: { date: string; weight_kg: number }[];
+  unit: WeightUnit;
 };
 
-export function WeightChart({ data }: WeightChartProps) {
+export function WeightChart({ data, unit }: WeightChartProps) {
+  const config = {
+    weight: { label: `Weight (${unit})`, color: "var(--primary)" },
+  } satisfies ChartConfig;
+  const points = data.map((d) => ({ date: d.date, weight: Number(fromKg(d.weight_kg, unit).toFixed(1)) }));
+
   return (
     <ChartContainer config={config} className="aspect-auto h-56 w-full">
-      <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+      <LineChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="var(--border)" />
         <XAxis
           dataKey="date"
@@ -44,9 +47,9 @@ export function WeightChart({ data }: WeightChartProps) {
           }
         />
         <Line
-          dataKey="weight_kg"
+          dataKey="weight"
           type="monotone"
-          stroke="var(--color-weight_kg)"
+          stroke="var(--color-weight)"
           strokeWidth={2}
           dot={false}
           isAnimationActive={false}

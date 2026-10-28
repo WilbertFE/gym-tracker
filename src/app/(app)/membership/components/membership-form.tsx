@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/api-client";
+import { CURRENCIES, type Currency } from "@/lib/currency";
 import type { Membership } from "@/lib/types";
 import { membershipSchema, type MembershipInput } from "@/lib/validation/membership";
 import { LocationPicker } from "./location-picker";
@@ -16,11 +17,13 @@ import { LocationPicker } from "./location-picker";
 type MembershipFormProps = {
   today: string;
   existing: Membership | null;
+  /** Currency preselected for a new membership, from Settings. */
+  defaultCurrency: Currency;
 };
 
 const labelClass = "text-[11px] uppercase tracking-widest text-muted-foreground";
 
-export function MembershipForm({ today, existing }: MembershipFormProps) {
+export function MembershipForm({ today, existing, defaultCurrency }: MembershipFormProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   // The address the map last filled in. A new pin may replace it, but never text the user typed.
@@ -42,6 +45,7 @@ export function MembershipForm({ today, existing }: MembershipFormProps) {
       start_date: existing?.start_date ?? today,
       end_date: existing?.end_date ?? "",
       price: existing?.price ?? null,
+      currency: existing?.currency ?? defaultCurrency,
       notes: existing?.notes ?? "",
     },
   });
@@ -127,17 +131,30 @@ export function MembershipForm({ today, existing }: MembershipFormProps) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="price" className={labelClass}>Price</Label>
-        <Input
-          id="price"
-          type="number"
-          inputMode="decimal"
-          min="0"
-          className="tabular h-11"
-          aria-invalid={!!errors.price}
-          {...register("price", {
-            setValueAs: (v) => (v === "" || v == null ? null : Number(v)),
-          })}
-        />
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <Input
+            id="price"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            className="tabular h-11"
+            aria-invalid={!!errors.price}
+            {...register("price", {
+              setValueAs: (v) => (v === "" || v == null ? null : Number(v)),
+            })}
+          />
+          <select
+            aria-label="Currency"
+            className="h-11 border bg-background px-2 text-sm"
+            {...register("currency")}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
         {errors.price && <p className="text-xs text-destructive">Enter a valid price</p>}
       </div>
 

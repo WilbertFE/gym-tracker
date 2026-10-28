@@ -16,15 +16,17 @@ import {
 } from "@/components/ui/table";
 import { apiRequest } from "@/lib/api-client";
 import type { LogPhoto, WeightLog } from "@/lib/types";
+import { displayWeight, type WeightUnit } from "@/lib/units";
 
 type WeightHistoryProps = {
   /** Newest first. */
   logs: WeightLog[];
   /** Photos grouped by the weigh-in they belong to. */
   photosByWeight: Record<string, LogPhoto[]>;
+  unit: WeightUnit;
 };
 
-export function WeightHistory({ logs, photosByWeight }: WeightHistoryProps) {
+export function WeightHistory({ logs, photosByWeight, unit }: WeightHistoryProps) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -68,7 +70,7 @@ export function WeightHistory({ logs, photosByWeight }: WeightHistoryProps) {
               <TableRow>
                 <TableCell className="tabular">{day}</TableCell>
                 <TableCell className="tabular text-right">
-                  {log.weight_kg.toFixed(1)} <span className="text-muted-foreground">kg</span>
+                  {displayWeight(log.weight_kg, unit)} <span className="text-muted-foreground">{unit}</span>
                 </TableCell>
                 <TableCell>
                   <button

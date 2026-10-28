@@ -1,4 +1,7 @@
+import type { CountryCode } from "@/lib/countries";
+import type { Currency } from "@/lib/currency";
 import type { MuscleGroup } from "@/lib/muscles";
+import type { WeightUnit } from "@/lib/units";
 
 export type Checkin = {
   id: string;
@@ -31,6 +34,8 @@ export type Membership = {
   start_date: string;
   end_date: string;
   price: number | null;
+  /** What `price` is in. Prices are never converted. */
+  currency: Currency;
   notes: string | null;
 };
 
@@ -110,4 +115,14 @@ export type LogPhoto = {
   weight_id: string | null;
   storage_path: string;
   created_at: string;
+};
+
+/** Per user preferences. Defaults apply until the user saves something. */
+export type UserSettings = {
+  user_id: string;
+  /** ISO 3166-1 alpha-2 code. Used later for local leaderboards. */
+  country: CountryCode | null;
+  weight_unit: WeightUnit;
+  /** Default currency for new prices. */
+  currency: Currency;
 };

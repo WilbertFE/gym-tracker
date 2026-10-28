@@ -163,7 +163,7 @@ Map these onto shadcn's CSS variables (`--background`, `--card`, `--border`, `--
 - 12 column grid on desktop, single column on mobile, consistent 4px spacing scale.
 - Cards: 1px border, `surface` background, radius `2px`, small uppercase label at top left, optional status dot at top right.
 - Optional HUD details, used sparingly: thin corner brackets on the body model panel, subtle grid background behind the model, a faint scanline overlay on the hero panel only.
-- Navigation: bottom tab bar on mobile (Dashboard, Workouts, Body, Schedule, Membership), left rail on desktop.
+- Navigation: bottom tab bar on mobile (Dashboard, Workouts, Body, Schedule, Settings), left rail on desktop (the same plus Membership). On phones Membership is reached from the Settings page, and the Settings tab stays highlighted on the Membership page.
 - Motion: short (150 to 250ms), functional only (state changes, heatmap color transitions). Respect `prefers-reduced-motion`.
 
 ---
@@ -350,7 +350,10 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Weekly commitments | Schedule page: recurring classes and other commitments per weekday (Monday first), add and remove. A weekly calendar (Monday to Sunday, 06:00 to 22:00, widened to fit any commitment outside those hours) works like Google Calendar: drag down a day to select the hours (snaps to 15 minutes), or tap or click for a one hour slot, then name it in a dialog where the times can still be adjusted. Click or tap a block to remove it. On touch screens the page keeps scrolling, so a tap picks one hour there. The "Add with exact times" form stays below the calendar for keyboard use. The blocks are buttons, so they can be opened and removed with the keyboard too. Logic in `src/lib/week-grid.ts`, component in `src/app/(app)/schedule/components/week-calendar.tsx`. Weekday numbers follow `Date#getDay`: 0 = Sunday ... 6 = Saturday. Times are `HH:MM` on a 24 hour clock |
 | Best time to train | Schedule page (`src/lib/scheduling.ts`): top 3 days in the next week, one best slot each. A slot must fit between 06:00 and 22:00, start at least 15 minutes from now, and stay 30 minutes clear of every commitment. Slot length is the median of your finished workouts, rounded up to 15 minutes (60 minutes with no history). Score: closeness to the times you trained on that weekday (up to 3) and on any weekday (up to 2), plus rest (+1 well rested, -1 trained the day before, -2 already trained that day) and -3 once 4 workouts are done that week. Each suggestion lists its reasons. All numbers are in the `SCHEDULING` constant |
 | Under-trained recommendations (not shown) | The Schedule page panel was removed for now. The logic is kept in `src/lib/recommendations.ts` with its tests, but nothing in the interface uses it. It would list: muscles that are untrained or light this week (same scoring as the heatmap), fewest weekly sets first, then longest since last trained. Shows how many more sets reach a moderate level and which exercises to try, favouring ones you use |
-| Pages | All pages are functional: landing, login, dashboard, workouts (list, detail, library), body (heatmap, weight), body progress, membership, schedule |
+| Settings | Settings page (`/settings`): country (optional, for local rankings later), weight unit (kg or lb) and default currency (IDR or USD). Defaults for a new user: no country, kg, IDR. Saved with `PUT /api/settings`. Needs migration `20261028000000_user_settings.sql` |
+| Weight unit (kg or lb) | Weights are always stored in kilograms. The unit only changes display and input: body weight (form, stats, chart, history, diary), set logging (the weight box, its step of 2.5 kg or 5 lb, and the logged sets), volume everywhere, and the weight change in photo comparison. Typed pounds are converted to kilograms rounded to 2 decimals, so switching units never loses data. Helpers in `src/lib/units.ts` |
+| Currency | Each membership price has its own currency (IDR or USD), preselected from Settings for new memberships. Prices are never converted, so changing the default does not change saved prices. The price is shown on the Membership page (`formatPrice` in `src/lib/currency.ts`) |
+| Pages | All pages are functional: landing, login, dashboard, workouts (list, detail, library), body (heatmap, weight), body progress, membership, schedule, settings |
 | Phases 2 to 7 | Not started |
 
 Deviations from the planned structure: authenticated pages live in the `src/app/(app)/` route group so they share one layout with the navigation. URLs are unchanged (`/dashboard`, `/workouts`, and so on). The fifth tab is called Membership on mobile and desktop.
@@ -374,7 +377,9 @@ Deviations from the planned structure: authenticated pages live in the `src/app/
 | `/api/weights` | POST | `{ date, weight_kg (20 to 500), notes? }` | `201 { data }` | 30 writes per minute per user |
 | `/api/weights/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
 | `/api/membership` | GET | none | `{ data: Membership[] }` newest end date first | |
-| `/api/membership` | POST | `{ gym_name, location? (up to 120 characters), latitude? and longitude? (both or neither), start_date, end_date, price?, notes? }` | `201 { data }` | end_date must not precede start_date |
+| `/api/membership` | POST | `{ gym_name, location? (up to 120 characters), latitude? and longitude? (both or neither), start_date, end_date, price?, currency ("IDR" or "USD"), notes? }` | `201 { data }` | end_date must not precede start_date |
+| `/api/settings` | GET | none | `{ data: { user_id, country, weight_unit, currency } }` | Defaults when nothing is saved yet |
+| `/api/settings` | PUT | `{ country (ISO code or null), weight_unit ("kg" or "lb"), currency ("IDR" or "USD") }` | `200 { data }` | Replaces all three. Creates the row on first save |
 | `/api/membership/[id]` | PUT, DELETE | same body for PUT | `{ data }` or `{ ok: true }`, 404 if missing | |
 | `/api/exercises` | GET | none | `{ data: Exercise[] }` built-ins plus own, by name | |
 | `/api/exercises` | POST | `{ name, primary_muscle, secondary_muscles?, equipment? }` | `201 { data }` | Primary muscle is removed from the secondary list |
@@ -436,6 +441,7 @@ Streak definition: consecutive days with any check-in (gym or rest day), since t
 | Migration | Contents |
 | --- | --- |
 | `20261024000500_log_photos.sql` | `log_photos` table for check-in and weigh-in photos, with indexes and row level security that also checks the entry belongs to the same user |
+| `20261028000000_user_settings.sql` | `user_settings` table (country, weight unit, currency) with row level security, and a `currency` column on `memberships` (existing prices become IDR) |
 | `20261024000400_membership_coordinates.sql` | Adds optional `latitude` and `longitude` to `memberships` with range checks and a both-or-neither rule |
 | `20261024000300_membership_location.sql` | Adds the optional `location` column to `memberships`. Both of these are safe to run twice (`if not exists`), so a project that already ran `setup.sql` just runs these two files |
 | `20261024000200_integrity_and_exercise_seed.sql` | Unique indexes the Supabase repositories rely on (one in-progress workout per user, unique set numbers per exercise, unique built-in exercise names) and the 37 built-in exercises |
@@ -478,6 +484,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-28: Settings page with country, weight unit (kg or lb) and currency (IDR or USD). Weights are shown and typed in the chosen unit but stay in kilograms in the database. Membership prices carry their own currency. Needs migration `20261028000000_user_settings.sql`. On phones the last tab is now Settings, with Membership one tap away.
 - 2026-10-28: Body and progress pages made roomier on phones: tabs instead of long stacks, full width heatmap controls, measurement history as cards, tighter photo comparison. Not yet checked on a real phone.
 - 2026-10-27: Simplified the app. Dashboard is now "1. Check in" and "2. Start training" first, with a lighter weekly summary and small weight and membership cards below, and a Welcome guide for new accounts. Optional check-in fields are folded away. The mobile tab "More" is now "Membership". The Body page uses Muscles and Weight tabs. Added plain-language hints for volume and primary muscle.
 - 2026-10-27: Removed two Schedule page panels that were confusing: "Under-trained this week" and the "All commitments" list (the weekly calendar already shows every commitment). `recommendUndertrained` stays in the code, unused by the interface.

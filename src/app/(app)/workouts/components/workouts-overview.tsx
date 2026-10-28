@@ -4,18 +4,22 @@ import { ElapsedTimer } from "@/components/elapsed-timer";
 import { Panel } from "@/components/panel";
 import { getCurrentUserId } from "@/lib/auth";
 import { listExercises } from "@/lib/repositories/exercises";
+import { getSettings } from "@/lib/repositories/settings";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
+import { displayVolume } from "@/lib/units";
 import { formatDuration, sessionVolume } from "@/lib/workout";
 import { GATE_MESSAGES, getWorkoutGate } from "@/lib/workout-gate";
 import { StartWorkoutButton } from "@/components/start-workout-button";
 
 export async function WorkoutsOverview() {
   const userId = await getCurrentUserId();
-  const [sessions, sets, exercises] = await Promise.all([
+  const [sessions, sets, exercises, settings] = await Promise.all([
     listSessions(userId),
     listAllSets(userId),
     listExercises(userId),
+    getSettings(userId),
   ]);
+  const unit = settings.weight_unit;
 
   const gate = await getWorkoutGate(userId);
   const active = sessions.find((s) => s.ended_at === null) ?? null;
@@ -79,7 +83,7 @@ export async function WorkoutsOverview() {
                     <span className="tabular flex gap-4 text-xs text-muted-foreground">
                       <span>{session.duration_minutes !== null ? formatDuration(session.duration_minutes) : "n/a"}</span>
                       <span>{own.length} sets</span>
-                      <span>{Math.round(sessionVolume(own)).toLocaleString("en-US")} kg</span>
+                      <span>{displayVolume(sessionVolume(own), unit)} {unit}</span>
                     </span>
                   </Link>
                 </li>

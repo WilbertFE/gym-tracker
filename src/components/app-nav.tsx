@@ -4,6 +4,7 @@ import {
   BarbellIcon,
   CalendarBlankIcon,
   GaugeIcon,
+  GearSixIcon,
   IdentificationCardIcon,
   PersonSimpleIcon,
   SignOutIcon,
@@ -12,13 +13,27 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof GaugeIcon;
+  /** Also highlighted for these paths. */
+  alsoActive?: string;
+  /** Phones have room for five tabs, so Membership is reached from Settings there. */
+  desktopOnly?: boolean;
+};
+
+const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: GaugeIcon },
   { href: "/workouts", label: "Workouts", icon: BarbellIcon },
   { href: "/body", label: "Body", icon: PersonSimpleIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarBlankIcon },
-  { href: "/membership", label: "Membership", icon: IdentificationCardIcon },
-] as const;
+  { href: "/membership", label: "Membership", icon: IdentificationCardIcon, desktopOnly: true },
+  { href: "/settings", label: "Settings", icon: GearSixIcon, alsoActive: "/membership" },
+];
+
+const isActive = (pathname: string, item: NavItem, desktop: boolean) =>
+  pathname.startsWith(item.href) || (!desktop && !!item.alsoActive && pathname.startsWith(item.alsoActive));
 
 function useSignOut() {
   const router = useRouter();
@@ -44,8 +59,9 @@ export function AppNav() {
           GymTrack
         </p>
         <ul className="flex flex-1 flex-col gap-1">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
+          {NAV_ITEMS.map((item) => {
+            const { href, label, icon: Icon } = item;
+            const active = isActive(pathname, item, true);
             return (
               <li key={href}>
                 <Link
@@ -81,8 +97,9 @@ export function AppNav() {
         className="fixed inset-x-0 bottom-0 z-40 border-t bg-card md:hidden"
       >
         <ul className="grid grid-cols-5">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
+          {NAV_ITEMS.filter((item) => !item.desktopOnly).map((item) => {
+            const { href, label, icon: Icon } = item;
+            const active = isActive(pathname, item, false);
             return (
               <li key={href}>
                 <Link

@@ -24,6 +24,7 @@ export async function createMembership(
     start_date: input.start_date,
     end_date: input.end_date,
     price: input.price ?? null,
+    currency: input.currency,
     notes: input.notes ?? null,
   };
   getStore(userId).memberships.push(row);
@@ -47,6 +48,7 @@ export async function updateMembership(
     start_date: input.start_date,
     end_date: input.end_date,
     price: input.price ?? null,
+    currency: input.currency,
     notes: input.notes ?? null,
   };
   store.memberships[idx] = row;

@@ -6,15 +6,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/api-client";
 import { MUSCLE_LABELS } from "@/lib/muscles";
+import { displayWeight, type WeightUnit } from "@/lib/units";
 import type { ExerciseGroup } from "@/lib/workout";
 
 type SetListProps = {
   sessionId: string;
   groups: ExerciseGroup[];
   editable: boolean;
+  unit: WeightUnit;
 };
 
-export function SetList({ sessionId, groups, editable }: SetListProps) {
+export function SetList({ sessionId, groups, editable, unit }: SetListProps) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -55,7 +57,7 @@ export function SetList({ sessionId, groups, editable }: SetListProps) {
                   {"  "}
                   {set.weight_kg > 0 ? (
                     <>
-                      {set.weight_kg} <span className="text-muted-foreground">kg</span>
+                      {displayWeight(set.weight_kg, unit)} <span className="text-muted-foreground">{unit}</span>
                     </>
                   ) : (
                     <span className="text-muted-foreground">bodyweight</span>

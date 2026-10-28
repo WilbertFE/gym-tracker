@@ -2,25 +2,26 @@ import Link from "next/link";
 import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
 import { getCurrentUserId } from "@/lib/auth";
+import { getSettings } from "@/lib/repositories/settings";
 import { listWeights } from "@/lib/repositories/weights";
+import { displayChange, displayWeight } from "@/lib/units";
 import { summarizeWeights } from "@/lib/weight";
-
-const signed = (n: number | null) =>
-  n === null ? "n/a" : `${n > 0 ? "+" : ""}${n.toFixed(1)}`;
 
 /** Small on purpose: latest weight and the 7 day change. The chart and history live on the Body page. */
 export async function WeightSnapshotPanel() {
   const userId = await getCurrentUserId();
-  const summary = summarizeWeights(await listWeights(userId));
+  const [logs, settings] = await Promise.all([listWeights(userId), getSettings(userId)]);
+  const unit = settings.weight_unit;
+  const summary = summarizeWeights(logs);
 
   return (
     <Panel label="Body weight">
       <div className="flex flex-col gap-3">
         <Stat
           label="Latest"
-          value={summary.latest ? summary.latest.weight_kg.toFixed(1) : "n/a"}
-          unit={summary.latest ? "kg" : undefined}
-          hint={summary.change7d === null ? "Log a weight to see changes" : `${signed(summary.change7d)} kg in 7 days`}
+          value={summary.latest ? displayWeight(summary.latest.weight_kg, unit) : "n/a"}
+          unit={summary.latest ? unit : undefined}
+          hint={summary.change7d === null ? "Log a weight to see changes" : `${displayChange(summary.change7d, unit)} ${unit} in 7 days`}
         />
         <Link
           href="/body"

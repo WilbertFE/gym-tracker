@@ -17,6 +17,7 @@ import {
 import { apiRequest } from "@/lib/api-client";
 import { MUSCLE_GROUPS, MUSCLE_LABELS } from "@/lib/muscles";
 import type { Exercise } from "@/lib/types";
+import { displayWeight, toKg, type WeightUnit } from "@/lib/units";
 import { cn } from "@/lib/utils";
 import { setSchema } from "@/lib/validation/workout";
 
@@ -29,6 +30,8 @@ type SetLoggerProps = {
   sessionExerciseIds: string[];
   /** Exercise to have selected when the logger opens, for example from a muscle group focus. */
   focusExerciseId?: string;
+  /** The unit the weight box is typed and shown in. Sets are stored in kilograms. */
+  unit: WeightUnit;
 };
 
 export function SetLogger({
@@ -37,13 +40,14 @@ export function SetLogger({
   lastSets,
   sessionExerciseIds,
   focusExerciseId,
+  unit,
 }: SetLoggerProps) {
   const router = useRouter();
   const initial = focusExerciseId ?? sessionExerciseIds[sessionExerciseIds.length - 1] ?? "";
   const [exerciseId, setExerciseId] = useState(initial);
   const [reps, setReps] = useState(initial && lastSets[initial] ? String(lastSets[initial].reps) : "");
   const [weight, setWeight] = useState(
-    initial && lastSets[initial] ? String(lastSets[initial].weight_kg) : "",
+    initial && lastSets[initial] ? displayWeight(lastSets[initial].weight_kg, unit) : "",
   );
   const [submitting, setSubmitting] = useState(false);
 
@@ -53,7 +57,7 @@ export function SetLogger({
     setExerciseId(id);
     const last = lastSets[id];
     setReps(last ? String(last.reps) : "");
-    setWeight(last ? String(last.weight_kg) : "");
+    setWeight(last ? displayWeight(last.weight_kg, unit) : "");
   }
 
   async function log() {
@@ -61,7 +65,7 @@ export function SetLogger({
     const parsed = setSchema.safeParse({
       exercise_id: exerciseId,
       reps: reps === "" ? NaN : Number(reps),
-      weight_kg: weight === "" ? 0 : Number(weight),
+      weight_kg: weight === "" ? 0 : toKg(Number(weight), unit),
     });
     if (!exerciseId) {
       toast.error("Choose an exercise first");
@@ -137,10 +141,10 @@ export function SetLogger({
         <NumberStepper
           id="weight"
           label="Weight"
-          unit="kg"
+          unit={unit}
           value={weight}
           onChange={setWeight}
-          step={2.5}
+          step={unit === "lb" ? 5 : 2.5}
           max={1000}
         />
       </div>

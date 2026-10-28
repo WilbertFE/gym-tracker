@@ -3,7 +3,7 @@ import type { Membership } from "@/lib/types";
 import type { MembershipInput } from "@/lib/validation/membership";
 import { check, fetchAll, getDb, isUuid, numOrNull } from "./db";
 
-const COLUMNS = "id,user_id,gym_name,location,latitude,longitude,start_date,end_date,price,notes";
+const COLUMNS = "id,user_id,gym_name,location,latitude,longitude,start_date,end_date,price,currency,notes";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const toMembership = (r: any): Membership => ({
@@ -16,6 +16,7 @@ const toMembership = (r: any): Membership => ({
   start_date: r.start_date,
   end_date: r.end_date,
   price: numOrNull(r.price),
+  currency: r.currency,
   notes: r.notes,
 });
 
@@ -27,6 +28,7 @@ const toRow = (input: MembershipInput) => ({
   start_date: input.start_date,
   end_date: input.end_date,
   price: input.price ?? null,
+  currency: input.currency,
   notes: input.notes ?? null,
 });
 

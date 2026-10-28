@@ -13,6 +13,7 @@ export default function robots(): MetadataRoute.Robots {
         "/body/",
         "/membership/",
         "/schedule/",
+        "/settings/",
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

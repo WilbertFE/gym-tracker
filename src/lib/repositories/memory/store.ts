@@ -13,6 +13,7 @@ import type {
   Membership,
   PhotoPose,
   ProgressPhoto,
+  UserSettings,
   WeightLog,
   WorkoutSession,
   WorkoutSet,
@@ -38,6 +39,8 @@ export type Store = {
   availability: AvailabilityBlock[];
   /** Photos on check-ins and weigh-ins. Their bytes live in `files` too. */
   logPhotos: LogPhoto[];
+  /** null until the user saves Settings. */
+  settings: UserSettings | null;
 };
 
 const g = globalThis as unknown as { __gymStore?: Map<string, Store> };
@@ -250,6 +253,7 @@ function seed(userId: string): Store {
       start_date: iso(subDays(now, 70)),
       end_date: iso(addDays(now, 18)),
       price: 350000,
+      currency: "IDR",
       notes: null,
     },
   ];
@@ -268,6 +272,7 @@ function seed(userId: string): Store {
     measurements,
     availability: seedAvailability(userId),
     logPhotos: seedLogPhotos(userId, checkins, weights, files),
+    settings: null,
   };
 }
 
@@ -283,6 +288,7 @@ const empty = (): Store => ({
   measurements: [],
   availability: [],
   logPhotos: [],
+  settings: null,
 });
 
 export function getStore(userId: string): Store {

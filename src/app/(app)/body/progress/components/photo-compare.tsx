@@ -12,19 +12,21 @@ import {
 } from "@/components/ui/select";
 import { compareProgress, describeSpan } from "@/lib/progress";
 import type { BodyMeasurement, PhotoPose, ProgressPhoto, WeightLog } from "@/lib/types";
+import { displayChange, displayWeight, type WeightUnit } from "@/lib/units";
 import { PhotoImage } from "./photo-image";
 
 type PhotoCompareProps = {
   photos: ProgressPhoto[];
   weights: WeightLog[];
   measurements: BodyMeasurement[];
+  unit: WeightUnit;
 };
 
 const fmtDate = (d: string) => format(parseISO(d), "d MMM yyyy");
 const signed = (n: number, digits = 1) => `${n > 0 ? "+" : ""}${n.toFixed(digits)}`;
 
 /** Same pose, two dates, side by side, with the weight and measurement change between them. */
-export function PhotoCompare({ photos, weights, measurements }: PhotoCompareProps) {
+export function PhotoCompare({ photos, weights, measurements, unit }: PhotoCompareProps) {
   const firstPose = (["front", "side", "back"] as PhotoPose[]).find((p) =>
     photos.some((x) => x.pose === p),
   );
@@ -105,9 +107,9 @@ export function PhotoCompare({ photos, weights, measurements }: PhotoCompareProp
                 <div className="flex flex-col gap-1">
                   <dt className="text-[11px] uppercase tracking-widest text-muted-foreground">Weight</dt>
                   <dd className="tabular text-lg">
-                    {signed(comparison.weight.change)} <span className="text-xs text-muted-foreground">kg</span>
+                    {displayChange(comparison.weight.change, unit)} <span className="text-xs text-muted-foreground">{unit}</span>
                     <span className="block text-[11px] text-muted-foreground">
-                      {comparison.weight.before} to {comparison.weight.after}
+                      {displayWeight(comparison.weight.before, unit)} to {displayWeight(comparison.weight.after, unit)}
                     </span>
                   </dd>
                 </div>

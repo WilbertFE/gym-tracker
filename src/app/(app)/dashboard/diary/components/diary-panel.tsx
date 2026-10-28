@@ -5,15 +5,19 @@ import { getCurrentUserId } from "@/lib/auth";
 import { buildDiary } from "@/lib/diary";
 import { listCheckins } from "@/lib/repositories/checkins";
 import { listLogPhotos } from "@/lib/repositories/logPhotos";
+import { getSettings } from "@/lib/repositories/settings";
 import { listWeights } from "@/lib/repositories/weights";
+import { displayWeight } from "@/lib/units";
 
 export async function DiaryPanel() {
   const userId = await getCurrentUserId();
-  const [photos, checkins, weights] = await Promise.all([
+  const [photos, checkins, weights, settings] = await Promise.all([
     listLogPhotos(userId),
     listCheckins(userId),
     listWeights(userId),
+    getSettings(userId),
   ]);
+  const unit = settings.weight_unit;
   const days = buildDiary({ photos, checkins, weights });
 
   if (days.length === 0) {
@@ -43,7 +47,7 @@ export async function DiaryPanel() {
                   </span>
                 )}
                 {day.weights.map((w) => (
-                  <span key={w.id}>Weighed {w.weight_kg.toFixed(1)} kg</span>
+                  <span key={w.id}>Weighed {displayWeight(w.weight_kg, unit)} {unit}</span>
                 ))}
               </p>
 

@@ -3,7 +3,9 @@ import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
 import { getCurrentUserId } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
+import { getSettings } from "@/lib/repositories/settings";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
+import { displayVolume } from "@/lib/units";
 import {
   addDaysISO,
   formatDelta,
@@ -14,7 +16,12 @@ import { cn } from "@/lib/utils";
 
 export async function WeekPanel() {
   const userId = await getCurrentUserId();
-  const [sessions, sets] = await Promise.all([listSessions(userId), listAllSets(userId)]);
+  const [sessions, sets, settings] = await Promise.all([
+    listSessions(userId),
+    listAllSets(userId),
+    getSettings(userId),
+  ]);
+  const unit = settings.weight_unit;
 
   const today = todayISO();
   const { start, end } = weekRange(today);
@@ -33,7 +40,7 @@ export async function WeekPanel() {
             value={current.sessions}
             hint={`${formatDelta(current.sessions - previous.sessions)} vs last week`}
           />
-          <Stat label="Volume" value={Math.round(current.volume).toLocaleString("en-US")} unit="kg" hint="Weight x reps, all sets" />
+          <Stat label="Volume" value={displayVolume(current.volume, unit)} unit={unit} hint="Weight x reps, all sets" />
         </div>
 
         <ul className="grid grid-cols-7 gap-1" aria-label="Volume per day this week">
@@ -48,7 +55,7 @@ export async function WeekPanel() {
             const description =
               day.sessions === 0
                 ? "no workout"
-                : `${day.sessions} workout${day.sessions === 1 ? "" : "s"}, ${Math.round(day.volume).toLocaleString("en-US")} kg`;
+                : `${day.sessions} workout${day.sessions === 1 ? "" : "s"}, ${displayVolume(day.volume, unit)} ${unit}`;
             return (
               <li key={day.date} className="flex flex-col items-center gap-1">
                 <div

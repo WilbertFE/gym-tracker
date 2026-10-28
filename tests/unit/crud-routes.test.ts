@@ -78,7 +78,7 @@ describe("/api/weights", () => {
 
 describe("/api/membership", () => {
   it("stores an optional location, trims it, and allows clearing it", async () => {
-    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01" };
+    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01", currency: "IDR" };
 
     const withLocation = await postMembership(json({ ...base, location: "  Central Branch, Main St  " }));
     expect((await withLocation.json()).data.location).toBe("Central Branch, Main St");
@@ -97,7 +97,7 @@ describe("/api/membership", () => {
   });
 
   it("stores a pinned position, replaces it and clears it", async () => {
-    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01" };
+    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01", currency: "IDR" };
 
     const created = await postMembership(json({ ...base, latitude: -6.2088, longitude: 106.8456 }));
     expect((await created.json()).data).toMatchObject({ latitude: -6.2088, longitude: 106.8456 });
@@ -113,7 +113,7 @@ describe("/api/membership", () => {
   });
 
   it("rejects half a position and impossible coordinates", async () => {
-    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01" };
+    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01", currency: "IDR" };
     expect((await postMembership(json({ ...base, latitude: 10 }))).status).toBe(400);
     expect((await postMembership(json({ ...base, longitude: 10 }))).status).toBe(400);
     expect((await postMembership(json({ ...base, latitude: 91, longitude: 0 }))).status).toBe(400);
@@ -123,7 +123,7 @@ describe("/api/membership", () => {
   });
 
   it("rejects a location longer than 120 characters", async () => {
-    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01" };
+    const base = { gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01", currency: "IDR" };
     expect((await postMembership(json({ ...base, location: "x".repeat(120) }))).status).toBe(201);
     expect((await postMembership(json({ ...base, location: "x".repeat(121) }))).status).toBe(400);
     expect((await postMembership(json({ ...base, location: 12345 }))).status).toBe(400);
@@ -131,23 +131,23 @@ describe("/api/membership", () => {
 
   it("rejects an end date before the start date", async () => {
     const res = await postMembership(
-      json({ gym_name: "Gym", start_date: "2026-10-10", end_date: "2026-10-01" }),
+      json({ gym_name: "Gym", start_date: "2026-10-10", end_date: "2026-10-01", currency: "IDR" }),
     );
     expect(res.status).toBe(400);
   });
 
   it("creates and updates a membership", async () => {
     const created = await postMembership(
-      json({ gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01", price: 100 }),
+      json({ gym_name: "Iron", start_date: "2026-10-01", end_date: "2026-12-01", price: 100, currency: "USD" }),
     );
     expect(created.status).toBe(201);
     const { data } = await created.json();
 
     const updated = await putMembership(
-      json({ gym_name: "Iron", start_date: "2026-10-01", end_date: "2027-01-01", price: null }),
+      json({ gym_name: "Iron", start_date: "2026-10-01", end_date: "2027-01-01", price: null, currency: "USD" }),
       ctx(data.id),
     );
-    expect((await updated.json()).data).toMatchObject({ end_date: "2027-01-01", price: null });
+    expect((await updated.json()).data).toMatchObject({ end_date: "2027-01-01", price: null, currency: "USD" });
 
     const list = (await (await getMemberships()).json()).data;
     expect(list[0].end_date).toBe("2027-01-01");
