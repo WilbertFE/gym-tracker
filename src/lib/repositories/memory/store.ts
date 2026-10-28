@@ -230,7 +230,7 @@ function seed(userId: string): Store {
     id: crypto.randomUUID(),
     user_id: userId,
     date: iso(subDays(now, o)),
-    went_to_gym: i % 3 !== 0,
+    kind: (["rest", "gym", "home"] as const)[i % 3],
     mood: 3 + (i % 3),
     energy: 2 + (i % 4),
     sleep_hours: 6 + (i % 3) * 0.5,

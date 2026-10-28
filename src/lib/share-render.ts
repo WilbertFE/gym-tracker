@@ -1,3 +1,6 @@
+import { BODY_DECOR, SHAPES_BY_VIEW, type BodyView } from "@/components/body-map/body-shapes";
+import type { IntensityLevel } from "@/lib/muscle-intensity";
+import type { MuscleGroup } from "@/lib/muscles";
 import type { ShareCard } from "@/lib/share";
 
 export type ShareTemplate = "classic" | "bold" | "light";
@@ -29,6 +32,9 @@ type Palette = {
   accent: string;
   surface: string;
   line: string;
+  /** Body picture: muscles not worked, and the color between muscles. */
+  bodyNone: string;
+  bodyGap: string;
   /** Text on top of the accent color. */
   onAccent: string;
   grid: boolean;
@@ -42,6 +48,8 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     accent: "#22d3ee",
     surface: "#111317",
     line: "#23272e",
+    bodyNone: "#1b1f26",
+    bodyGap: "#0a0b0d",
     onAccent: "#0a0b0d",
     grid: true,
   },
@@ -52,6 +60,8 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     accent: "#a5f3fc",
     surface: "rgba(10, 11, 13, 0.35)",
     line: "rgba(255, 255, 255, 0.25)",
+    bodyNone: "rgba(255, 255, 255, 0.16)",
+    bodyGap: "rgba(10, 11, 13, 0.6)",
     onAccent: "#0a0b0d",
     grid: false,
   },
@@ -62,6 +72,8 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     accent: "#0891b2",
     surface: "#ffffff",
     line: "#d9dde3",
+    bodyNone: "#dfe3e8",
+    bodyGap: "#f4f5f7",
     onAccent: "#ffffff",
     grid: false,
   },
@@ -158,6 +170,74 @@ function statTiles(
   });
 }
 
+/** How much of the accent color each level gets. */
+const LEVEL_ALPHA: Record<IntensityLevel, number> = { none: 0, low: 0.4, mid: 0.7, high: 1 };
+
+/** One body, front or back, with the worked muscles in the accent color. The box is 200 by 410. */
+function drawBody(
+  ctx: CanvasRenderingContext2D,
+  p: Palette,
+  levels: Record<MuscleGroup, IntensityLevel>,
+  view: BodyView,
+  x: number,
+  y: number,
+  scale: number,
+) {
+  if (typeof Path2D === "undefined") return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+
+  const drawHalf = (path: Path2D, mirror: boolean, level: IntensityLevel) => {
+    ctx.save();
+    if (mirror) {
+      ctx.translate(200, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.fillStyle = p.bodyNone;
+    ctx.fill(path);
+    if (level !== "none") {
+      ctx.globalAlpha = LEVEL_ALPHA[level];
+      ctx.fillStyle = p.accent;
+      ctx.fill(path);
+      ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = p.bodyGap;
+    ctx.lineWidth = 1.5;
+    ctx.stroke(path);
+    ctx.restore();
+  };
+
+  const { head, neck, hands, feet } = BODY_DECOR;
+  ctx.fillStyle = p.bodyNone;
+  ctx.beginPath();
+  ctx.arc(head.cx, head.cy, head.r, 0, Math.PI * 2);
+  ctx.fill();
+  for (const part of [neck, hands, feet]) {
+    drawHalf(new Path2D(part), false, "none");
+    if (part !== neck) drawHalf(new Path2D(part), true, "none");
+  }
+  for (const { muscle, d } of SHAPES_BY_VIEW[view]) {
+    const path = new Path2D(d);
+    drawHalf(path, false, levels[muscle]);
+    drawHalf(path, true, levels[muscle]);
+  }
+  ctx.restore();
+}
+
+/** A small map pin: a ring with a dot. */
+function pin(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(x + 12, y - 14, 12, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x + 12, y - 14, 4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function muscleBars(
   ctx: CanvasRenderingContext2D,
   f: ShareFonts,
@@ -230,19 +310,32 @@ export function drawShareCard(
   ctx.fillStyle = p.accent;
   ctx.fillRect(MARGIN, titleY + 36, 140, 10);
 
+  // Where it happened.
+  if (card.location) {
+    const y = titleY + (story ? 108 : 96);
+    pin(ctx, MARGIN, y, p.accent);
+    text(ctx, fonts, card.location, MARGIN + 40, y, { size: 32, color: p.muted, maxWidth: inner - 40 });
+  }
+
   // Headline numbers.
-  const tilesY = titleY + (story ? 130 : 90);
+  const tilesY = titleY + (story ? (card.location ? 180 : 130) : card.location ? 140 : 90);
   const tileHeight = story ? 190 : 160;
   statTiles(ctx, fonts, p, card, tilesY, w, tileHeight);
 
   const sectionY = tilesY + tileHeight + (story ? 110 : 70);
+  // The body, front and back, next to the muscles it is made of. Square keeps the picture and the bars,
+  // story has room for the top lifts as well.
+  const bodyScale = story ? 1.2 : 0.82;
+  const figure = 200 * bodyScale;
+  drawBody(ctx, p, card.bodyLevels, "front", MARGIN, sectionY, bodyScale);
+  drawBody(ctx, p, card.bodyLevels, "back", MARGIN + figure, sectionY, bodyScale);
+  const barsX = MARGIN + figure * 2 + 48;
+  const barsW = w - MARGIN - barsX;
   if (story) {
-    muscleBars(ctx, fonts, p, card, MARGIN, sectionY, inner, 92, 5);
-    liftList(ctx, fonts, p, card, MARGIN, sectionY + 40 + 5 * 92 + 70, inner, 118, 3);
+    muscleBars(ctx, fonts, p, card, barsX, sectionY, barsW, 92, 5);
+    liftList(ctx, fonts, p, card, MARGIN, sectionY + 410 * bodyScale + 70, inner, 118, 3);
   } else {
-    const col = (inner - 64) / 2;
-    muscleBars(ctx, fonts, p, card, MARGIN, sectionY, col, 80, 4);
-    liftList(ctx, fonts, p, card, MARGIN + col + 64, sectionY, col, 110, 3);
+    muscleBars(ctx, fonts, p, card, barsX, sectionY, barsW, 74, 4);
   }
 
   // Footer.

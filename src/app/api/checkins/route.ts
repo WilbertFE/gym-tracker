@@ -12,9 +12,9 @@ export async function GET() {
 }
 
 /**
- * Creates or replaces the check-in for the given date. Saying you went to the gym needs a position
- * within reach of the gym pinned on the Membership page. A rest day needs no position, and a day that
- * is already a verified gym check-in can be edited (mood, sleep) from anywhere.
+ * Creates or replaces the check-in for the given date. A gym check-in needs a position within
+ * reach of the gym pinned on the Membership page. A home workout or a rest day needs no position, and a
+ * day that is already a verified gym check-in can be edited (mood, sleep) from anywhere.
  */
 export async function POST(request: Request) {
   const g = await guard("checkins", { write: true });
@@ -24,9 +24,9 @@ export async function POST(request: Request) {
   if (!parsed.success) return badRequest();
   const { latitude, longitude, accuracy, ...input } = parsed.data;
 
-  if (input.went_to_gym) {
+  if (input.kind === "gym") {
     const existing = await getCheckinByDate(g.userId, input.date);
-    if (!existing?.went_to_gym) {
+    if (existing?.kind !== "gym") {
       const [membership] = await listMemberships(g.userId);
       const gym =
         membership && membership.latitude !== null && membership.longitude !== null

@@ -1,3 +1,4 @@
+import { longestStreak } from "@/lib/streak";
 import type {
   BodyMeasurement,
   Checkin,
@@ -15,6 +16,7 @@ import type {
  */
 export const XP_RULES = {
   gymCheckin: 20,
+  homeCheckin: 15,
   restCheckin: 5,
   weight: 10,
   measurement: 10,
@@ -27,33 +29,53 @@ export const XP_RULES = {
   minSetsForWorkout: 3,
 } as const;
 
-export type XpSource = "gym" | "rest" | "weight" | "measurement" | "photo" | "workout" | "sets";
+/**
+ * One-time bonuses for the longest run of consecutive check-in days you have reached: [days, XP].
+ * They are based on your best run, so they stay earned if a streak ends, and a streak you rebuild
+ * cannot earn the same bonus twice. Any kind of check-in keeps a streak alive, a rest day included.
+ */
+export const STREAK_MILESTONES: readonly (readonly [days: number, xp: number])[] = [
+  [3, 30],
+  [7, 70],
+  [14, 150],
+  [30, 400],
+  [60, 800],
+  [100, 1500],
+];
+
+export type XpSource = "gym" | "home" | "rest" | "weight" | "measurement" | "photo" | "workout" | "sets" | "streak";
 
 export const XP_SOURCE_LABELS: Record<XpSource, string> = {
   gym: "Gym check-ins",
+  home: "Home workout check-ins",
   rest: "Rest day check-ins",
   weight: "Weigh-ins",
   measurement: "Measurements",
   photo: "Progress photo days",
   workout: "Finished workouts",
   sets: "Sets logged",
+  streak: "Streak milestones",
 };
 
 /** How to earn each, in words, for the explanation page. */
 export const XP_SOURCE_HINTS: Record<XpSource, string> = {
   gym: `${XP_RULES.gymCheckin} XP for each day you check in at the gym.`,
+  home: `${XP_RULES.homeCheckin} XP for each day you check in with a workout at home.`,
   rest: `${XP_RULES.restCheckin} XP for each rest day you check in, so honest rest days count too.`,
   weight: `${XP_RULES.weight} XP for each day you log your weight (once a day).`,
   measurement: `${XP_RULES.measurement} XP for each day you log measurements.`,
   photo: `${XP_RULES.progressPhoto} XP for each day you upload a progress photo (once a day).`,
   workout: `${XP_RULES.workout} XP for each finished workout with at least ${XP_RULES.minSetsForWorkout} sets.`,
   sets: `${XP_RULES.perSet} XP for each set in a finished workout, up to ${XP_RULES.maxRewardedSets} sets per workout.`,
+  streak: `A one-time bonus for the longest run of check-in days you reach: ${STREAK_MILESTONES.map(
+    ([days, xp]) => `${days} days for ${xp} XP`,
+  ).join(", ")}. Any check-in keeps a streak alive, rest days too.`,
 };
 
 export const XP_SOURCES = Object.keys(XP_SOURCE_LABELS) as XpSource[];
 
 export type XpInput = {
-  checkins: Pick<Checkin, "date" | "went_to_gym">[];
+  checkins: Pick<Checkin, "date" | "kind">[];
   weights: Pick<WeightLog, "date">[];
   measurements: Pick<BodyMeasurement, "date">[];
   photos: Pick<ProgressPhoto, "date">[];
@@ -68,8 +90,8 @@ export type XpSummary = { total: number; lines: XpLine[] };
 const distinct = (dates: string[]) => new Set(dates).size;
 
 export function computeXp(input: XpInput): XpSummary {
-  const gymDays = distinct(input.checkins.filter((c) => c.went_to_gym).map((c) => c.date));
-  const restDays = distinct(input.checkins.filter((c) => !c.went_to_gym).map((c) => c.date));
+  const daysOf = (kind: Checkin["kind"]) => distinct(input.checkins.filter((c) => c.kind === kind).map((c) => c.date));
+  const reached = STREAK_MILESTONES.filter(([days]) => longestStreak(input.checkins.map((c) => c.date)) >= days);
 
   const setsBySession = new Map<string, number>();
   for (const s of input.sets) setsBySession.set(s.session_id, (setsBySession.get(s.session_id) ?? 0) + 1);
@@ -85,18 +107,22 @@ export function computeXp(input: XpInput): XpSummary {
   }
 
   const counts: Record<XpSource, [number, number]> = {
-    gym: [gymDays, XP_RULES.gymCheckin],
-    rest: [restDays, XP_RULES.restCheckin],
+    gym: [daysOf("gym"), XP_RULES.gymCheckin],
+    home: [daysOf("home"), XP_RULES.homeCheckin],
+    rest: [daysOf("rest"), XP_RULES.restCheckin],
     weight: [distinct(input.weights.map((w) => w.date)), XP_RULES.weight],
     measurement: [distinct(input.measurements.map((m) => m.date)), XP_RULES.measurement],
     photo: [distinct(input.photos.map((p) => p.date)), XP_RULES.progressPhoto],
     workout: [workouts, XP_RULES.workout],
     sets: [rewardedSets, XP_RULES.perSet],
+    // Not a count times a rate: the count is how many milestones, the XP is what they add up to.
+    streak: [reached.length, 0],
   };
 
   const lines = XP_SOURCES.map((source) => {
     const [count, each] = counts[source];
-    return { source, label: XP_SOURCE_LABELS[source], count, xp: count * each };
+    const xp = source === "streak" ? reached.reduce((sum, [, bonus]) => sum + bonus, 0) : count * each;
+    return { source, label: XP_SOURCE_LABELS[source], count, xp };
   });
   return { total: lines.reduce((sum, l) => sum + l.xp, 0), lines };
 }

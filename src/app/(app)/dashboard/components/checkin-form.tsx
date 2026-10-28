@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { ScaleSelect } from "@/components/scale-select";
 import { apiRequest } from "@/lib/api-client";
 import { getCurrentPosition } from "@/lib/browser-location";
+import { CHECKIN_KIND_LABELS, CHECKIN_KINDS, type CheckinKind } from "@/lib/checkin-kind";
 import { GYM_RADIUS_METERS } from "@/lib/gym-location";
 import type { Checkin } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,7 @@ type CheckinFormProps = {
 
 export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinFormProps) {
   const router = useRouter();
-  const [wentToGym, setWentToGym] = useState(existing?.went_to_gym ?? true);
+  const [kind, setKind] = useState<CheckinKind>(existing?.kind ?? "gym");
   const [mood, setMood] = useState<number | null>(existing?.mood ?? null);
   const [energy, setEnergy] = useState<number | null>(existing?.energy ?? null);
   const [sleep, setSleep] = useState(existing?.sleep_hours?.toString() ?? "");
@@ -35,7 +36,7 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
   const [problem, setProblem] = useState<string | null>(null);
 
   // A day that is already a gym check-in was verified when it was made, so editing it needs no location.
-  const needsLocation = wentToGym && !existing?.went_to_gym;
+  const needsLocation = kind === "gym" && existing?.kind !== "gym";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,7 +44,7 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
 
     const parsed = checkinSchema.safeParse({
       date: today,
-      went_to_gym: wentToGym,
+      kind,
       mood,
       energy,
       sleep_hours: sleep === "" ? null : Number(sleep),
@@ -86,27 +87,24 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
-          Went to the gym today
+          How did you train today?
         </span>
-        <div role="radiogroup" aria-label="Went to the gym today" className="grid grid-cols-2 gap-1">
-          {[
-            { label: "Yes", value: true },
-            { label: "Rest day", value: false },
-          ].map((opt) => (
+        <div role="radiogroup" aria-label="How did you train today" className="grid grid-cols-3 gap-1">
+          {CHECKIN_KINDS.map((value) => (
             <button
-              key={opt.label}
+              key={value}
               type="button"
               role="radio"
-              aria-checked={wentToGym === opt.value}
-              onClick={() => setWentToGym(opt.value)}
+              aria-checked={kind === value}
+              onClick={() => setKind(value)}
               className={cn(
-                "min-h-11 border text-sm transition-colors",
-                wentToGym === opt.value
+                "min-h-11 border px-1 text-sm transition-colors",
+                kind === value
                   ? "border-primary bg-primary text-primary-foreground"
                   : "bg-surface text-muted-foreground hover:text-foreground",
               )}
             >
-              {opt.label}
+              {CHECKIN_KIND_LABELS[value]}
             </button>
           ))}
         </div>
@@ -124,7 +122,7 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
               <Link href="/membership" className="underline underline-offset-4">
                 Membership
               </Link>
-              . Rest days need no location.
+              . A home workout or a rest day needs no location.
             </>
           )}
         </p>

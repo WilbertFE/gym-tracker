@@ -1,4 +1,5 @@
 import { format, parseISO } from "date-fns";
+import { CHECKIN_KIND_LABELS } from "@/lib/checkin-kind";
 import { LogPhotoImage } from "@/components/log-photo-image";
 import { Panel } from "@/components/panel";
 import { getCurrentUserId } from "@/lib/auth";
@@ -41,7 +42,7 @@ export async function DiaryPanel() {
               <p className="tabular flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 {day.checkin && (
                   <span>
-                    {day.checkin.went_to_gym ? "Went to the gym" : "Rest day"}
+                    {CHECKIN_KIND_LABELS[day.checkin.kind]}
                     {day.checkin.mood ? `, mood ${day.checkin.mood}/5` : ""}
                     {day.checkin.energy ? `, energy ${day.checkin.energy}/5` : ""}
                   </span>

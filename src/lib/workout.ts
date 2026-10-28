@@ -22,6 +22,24 @@ export function lastSetCompletedAt(sets: Pick<WorkoutSet, "completed_at">[]): st
 }
 
 /**
+ * How far into the workout each set was completed, in seconds, by set id. This is the "2:31" shown
+ * next to a set, not the clock time. Sets with no usable time, such as sets logged before
+ * timestamps existed (which carry the workout's start time), are left out.
+ */
+export function elapsedAtSets(
+  sets: Pick<WorkoutSet, "id" | "completed_at">[],
+  startedAt: string,
+): Map<string, number> {
+  const start = new Date(startedAt).getTime();
+  const at = new Map<string, number>();
+  for (const s of sets) {
+    const seconds = Math.round((new Date(s.completed_at).getTime() - start) / 1000);
+    if (seconds > 0) at.set(s.id, seconds);
+  }
+  return at;
+}
+
+/**
  * Seconds of rest before each set: the gap since the previous set of the same workout, across
  * exercises, in the order they were logged. The first set has none. A gap of zero or less, which is
  * what sets logged before timestamps existed look like, is left out rather than shown as "0:00".

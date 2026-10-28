@@ -15,7 +15,7 @@ export async function upsertCheckin(userId: string, input: CheckinInput): Promis
     id: existing?.id ?? crypto.randomUUID(),
     user_id: userId,
     date: input.date,
-    went_to_gym: input.went_to_gym,
+    kind: input.kind,
     mood: input.mood ?? null,
     energy: input.energy ?? null,
     sleep_hours: input.sleep_hours ?? null,

@@ -27,28 +27,28 @@ beforeEach(() => {
 
 describe("/api/checkins", () => {
   it("rejects invalid bodies", async () => {
-    const res = await postCheckin(json({ date: "nope", went_to_gym: true }));
+    const res = await postCheckin(json({ date: "nope", kind: "gym" }));
     expect(res.status).toBe(400);
   });
 
   it("rejects future dates and out of range scales", async () => {
-    expect((await postCheckin(json({ date: "2999-01-01", went_to_gym: true }))).status).toBe(400);
-    expect((await postCheckin(json({ date: today, went_to_gym: true, mood: 9 }))).status).toBe(400);
+    expect((await postCheckin(json({ date: "2999-01-01", kind: "gym" }))).status).toBe(400);
+    expect((await postCheckin(json({ date: today, kind: "gym", mood: 9 }))).status).toBe(400);
   });
 
   it("upserts one check-in per date", async () => {
-    await postCheckin(json({ date: today, went_to_gym: true, ...AT_GYM }));
-    const second = await postCheckin(json({ date: today, went_to_gym: false, mood: 4 }));
+    await postCheckin(json({ date: today, kind: "gym", ...AT_GYM }));
+    const second = await postCheckin(json({ date: today, kind: "rest", mood: 4 }));
     expect(second.status).toBe(200);
 
     const { data } = await (await getCheckins()).json();
     const forToday = data.filter((c: { date: string }) => c.date === today);
     expect(forToday).toHaveLength(1);
-    expect(forToday[0]).toMatchObject({ went_to_gym: false, mood: 4 });
+    expect(forToday[0]).toMatchObject({ kind: "rest", mood: 4 });
   });
 
   it("deletes and then returns 404 for a missing id", async () => {
-    const { data } = await (await postCheckin(json({ date: today, went_to_gym: true, ...AT_GYM }))).json();
+    const { data } = await (await postCheckin(json({ date: today, kind: "gym", ...AT_GYM }))).json();
     expect((await deleteCheckin(new Request("http://x"), ctx(data.id))).status).toBe(200);
     expect((await deleteCheckin(new Request("http://x"), ctx(data.id))).status).toBe(404);
   });

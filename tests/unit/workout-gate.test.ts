@@ -23,7 +23,8 @@ const json = (body: unknown) =>
   new Request("http://localhost/api/x", { method: "POST", body: JSON.stringify(body) });
 const empty = () => new Request("http://localhost/api/x", { method: "POST" });
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
-const checkIn = (date: string, went_to_gym: boolean) => postCheckin(json({ date, went_to_gym, ...(went_to_gym ? AT_GYM : {}) }));
+const checkIn = (date: string, gym: boolean) =>
+  postCheckin(json({ date, kind: gym ? "gym" : "rest", ...(gym ? AT_GYM : {}) }));
 
 beforeEach(() => {
   resetStores(); // The demo seed has no check-in for today.
@@ -32,7 +33,7 @@ beforeEach(() => {
 
 describe("decideGate", () => {
   it("allows a new workout only after a gym check-in", () => {
-    expect(decideGate({ hasActive: false, checkin: { went_to_gym: true } })).toEqual({
+    expect(decideGate({ hasActive: false, checkin: { kind: "gym" } })).toEqual({
       allowed: true,
       reason: null,
       hasActive: false,
@@ -47,15 +48,23 @@ describe("decideGate", () => {
     });
   });
 
+  it("allows a workout at home too", () => {
+    expect(decideGate({ hasActive: false, checkin: { kind: "home" } })).toEqual({
+      allowed: true,
+      reason: null,
+      hasActive: false,
+    });
+  });
+
   it("blocks when today is marked as a rest day", () => {
-    expect(decideGate({ hasActive: false, checkin: { went_to_gym: false } })).toMatchObject({
+    expect(decideGate({ hasActive: false, checkin: { kind: "rest" } })).toMatchObject({
       allowed: false,
       reason: "rest_day",
     });
   });
 
   it("always lets you continue a workout that is already in progress", () => {
-    for (const checkin of [null, { went_to_gym: false }, { went_to_gym: true }]) {
+    for (const checkin of [null, { kind: "rest" as const }, { kind: "gym" as const }, { kind: "home" as const }]) {
       expect(decideGate({ hasActive: true, checkin })).toEqual({ allowed: true, reason: null, hasActive: true });
     }
   });
@@ -92,6 +101,11 @@ describe("POST /api/workouts enforces the gym check-in", () => {
     const res = await startWorkout(empty());
     expect(res.status).toBe(201);
     expect((await res.json()).already_active).toBe(false);
+  });
+
+  it("allows starting after a home workout check-in, with no location", async () => {
+    await postCheckin(json({ date: today, kind: "home" }));
+    expect((await startWorkout(empty())).status).toBe(201);
   });
 
   it("does not count a check-in from another day", async () => {

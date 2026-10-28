@@ -7,7 +7,7 @@ const checkin = (id: string, date: string, went = true): Checkin => ({
   id,
   user_id: "u",
   date,
-  went_to_gym: went,
+  kind: went ? "gym" : "rest",
   mood: null,
   energy: null,
   sleep_hours: null,

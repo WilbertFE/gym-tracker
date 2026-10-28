@@ -4,14 +4,14 @@ import type { CheckinInput } from "@/lib/validation/checkin";
 import { check, fetchAll, getDb, isUuid, numOrNull } from "./db";
 import { listEntryFilePaths, removeStoredFiles } from "./logPhotos";
 
-const COLUMNS = "id,user_id,date,went_to_gym,mood,energy,sleep_hours,notes";
+const COLUMNS = "id,user_id,date,kind,mood,energy,sleep_hours,notes";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const toCheckin = (r: any): Checkin => ({
   id: r.id,
   user_id: r.user_id,
   date: r.date,
-  went_to_gym: r.went_to_gym,
+  kind: r.kind,
   mood: r.mood,
   energy: r.energy,
   sleep_hours: numOrNull(r.sleep_hours),
@@ -35,7 +35,7 @@ export async function upsertCheckin(userId: string, input: CheckinInput): Promis
       {
         user_id: userId,
         date: input.date,
-        went_to_gym: input.went_to_gym,
+        kind: input.kind,
         mood: input.mood ?? null,
         energy: input.energy ?? null,
         sleep_hours: input.sleep_hours ?? null,

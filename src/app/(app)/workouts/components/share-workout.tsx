@@ -1,7 +1,7 @@
 "use client";
 
 import { ShareNetworkIcon } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,9 @@ export function ShareWorkout({ card, date }: { card: ShareCard; date: string }) 
   const [template, setTemplate] = useState<ShareTemplate>("classic");
   const [format, setFormat] = useState<ShareFormat>("story");
   const [busy, setBusy] = useState(false);
+  const [showLocation, setShowLocation] = useState(true);
+  // The card actually drawn: with the location left out when the switch is off.
+  const shown = useMemo(() => (showLocation ? card : { ...card, location: null }), [card, showLocation]);
 
   // Redraw whenever the dialog opens or a choice changes. The canvas mounts a moment after `open`.
   useEffect(() => {
@@ -60,12 +63,12 @@ export function ShareWorkout({ card, date }: { card: ShareCard; date: string }) 
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
-      if (ctx) drawShareCard(ctx, card, template, format, pageFonts());
+      if (ctx) drawShareCard(ctx, shown, template, format, pageFonts());
     })();
     return () => {
       cancelled = true;
     };
-  }, [open, card, template, format]);
+  }, [open, shown, template, format]);
 
   async function makeFile(): Promise<File | null> {
     const canvas = canvasRef.current;
@@ -129,7 +132,7 @@ export function ShareWorkout({ card, date }: { card: ShareCard; date: string }) 
         <DialogHeader>
           <DialogTitle>Share your workout</DialogTitle>
           <DialogDescription>
-            Pick a look and a size. The image shows only what you see here: no name, no location.
+            Pick a look and a size. The image shows only what you see here. It never has your name or exact position.
           </DialogDescription>
         </DialogHeader>
 
@@ -149,6 +152,18 @@ export function ShareWorkout({ card, date }: { card: ShareCard; date: string }) 
             options={SHARE_FORMATS.map((f) => ({ value: f.value, label: `${f.label} ${f.hint}` }))}
           />
         </div>
+
+        {card.location && (
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={showLocation}
+              onChange={(e) => setShowLocation(e.target.checked)}
+              className="size-4 accent-[var(--primary)]"
+            />
+            Show where I trained ({card.location})
+          </label>
+        )}
 
         <div className="flex justify-center bg-surface p-2">
           <canvas

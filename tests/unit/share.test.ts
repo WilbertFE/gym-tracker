@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { BUILT_IN_EXERCISES, builtInId } from "@/lib/exercise-library";
 import type { MuscleGroup } from "@/lib/muscles";
-import { buildShareCard, workoutTitle } from "@/lib/share";
+import { buildShareCard, workoutLocation, workoutMuscleLevels, workoutTitle } from "@/lib/share";
 import {
   drawShareCard,
   SHARE_FORMATS,
@@ -98,10 +98,62 @@ describe("buildShareCard", () => {
   });
 });
 
+describe("workoutMuscleLevels", () => {
+  it("colors the muscles this workout worked and leaves the rest", () => {
+    const levels = workoutMuscleLevels(
+      [...Array.from({ length: 6 }, () => set("Barbell Bench Press", 8, 60)), set("Lateral Raise", 12, 8)],
+      BUILT_IN_EXERCISES,
+    );
+    expect(levels.chest).toBe("high");
+    expect(levels.side_delts).toBe("low");
+    expect(levels.quads).toBe("none");
+    expect(Object.keys(levels)).toHaveLength(16);
+  });
+
+  it("counts secondary muscles at half a set", () => {
+    // Bench press works the triceps and front delts as secondary muscles.
+    const levels = workoutMuscleLevels(Array.from({ length: 6 }, () => set("Barbell Bench Press", 8, 60)), BUILT_IN_EXERCISES);
+    expect(levels.triceps).toBe("mid");
+  });
+
+  it("is all none with no sets", () => {
+    expect(Object.values(workoutMuscleLevels([], BUILT_IN_EXERCISES)).every((l) => l === "none")).toBe(true);
+  });
+});
+
+describe("workoutLocation", () => {
+  const gym = { gymName: "Iron Gym", gymLocation: "Central Branch" };
+
+  it("names the gym and area for a gym day", () => {
+    expect(workoutLocation({ kind: "gym", ...gym })).toBe("Iron Gym, Central Branch");
+    expect(workoutLocation({ kind: "gym", gymName: "Iron Gym", gymLocation: null })).toBe("Iron Gym");
+  });
+
+  it("says home workout for a home day, whatever the membership", () => {
+    expect(workoutLocation({ kind: "home", ...gym })).toBe("Home workout");
+    expect(workoutLocation({ kind: "home", gymName: null, gymLocation: null })).toBe("Home workout");
+  });
+
+  it("is null with no check-in, a rest day, or no gym to name", () => {
+    expect(workoutLocation({ kind: null, ...gym })).toBeNull();
+    expect(workoutLocation({ kind: "rest", ...gym })).toBeNull();
+    expect(workoutLocation({ kind: "gym", gymName: null, gymLocation: null })).toBeNull();
+  });
+
+  it("carries the location into the card and never any coordinates", () => {
+    const c = buildShareCard({ session, sets: [set("Pull Up", 8, 0)], exercises: BUILT_IN_EXERCISES, unit: "kg", location: "Iron Gym" });
+    expect(c.location).toBe("Iron Gym");
+    expect(JSON.stringify(c)).not.toMatch(/latitude|longitude/);
+    expect(card([set("Pull Up", 8, 0)]).location).toBeNull();
+  });
+});
+
 /** A canvas context that records the text it is asked to draw and measures it at 10 px a character. */
 function fakeContext() {
   const drawn: string[] = [];
+  const fills: string[] = [];
   const target: Record<string, unknown> = {
+    fill: () => void fills.push(String((target as { fillStyle?: string }).fillStyle)),
     measureText: (s: string) => ({ width: s.length * 10 }),
     fillText: (s: string) => void drawn.push(s),
     createLinearGradient: () => ({ addColorStop: () => {} }),
@@ -110,8 +162,10 @@ function fakeContext() {
     get: (t, key: string) => (key in t ? t[key] : () => {}),
     set: (t, key: string, value) => ((t[key] = value), true),
   }) as unknown as CanvasRenderingContext2D;
-  return { ctx, drawn };
+  return { ctx, drawn, fills };
 }
+
+vi.stubGlobal("Path2D", class {});
 
 describe("drawShareCard", () => {
   const c = card([set("Barbell Bench Press", 8, 60), set("Lateral Raise", 12, 8), set("Tricep Pushdown", 12, 25)]);
@@ -128,6 +182,37 @@ describe("drawShareCard", () => {
     },
   );
 
+  it("draws the body in the accent color for worked muscles, front and back", () => {
+    const worked = card(Array.from({ length: 6 }, () => set("Barbell Bench Press", 8, 60)));
+    const { ctx, fills } = fakeContext();
+    drawShareCard(ctx, worked, "classic", "story", fonts);
+    // The accent color is used for the chest on both views and both halves.
+    expect(fills.filter((f) => f === "#22d3ee").length).toBeGreaterThanOrEqual(4);
+
+    const idle = fakeContext();
+    drawShareCard(idle.ctx, card([]), "classic", "story", fonts);
+    expect(idle.fills.filter((f) => f === "#22d3ee")).toHaveLength(0);
+  });
+
+  it("draws the location only when there is one", () => {
+    const withPlace = { ...c, location: "Iron Gym, Central Branch" };
+    const a = fakeContext();
+    drawShareCard(a.ctx, withPlace, "classic", "story", fonts);
+    expect(a.drawn).toContain("Iron Gym, Central Branch");
+
+    const b = fakeContext();
+    drawShareCard(b.ctx, c, "classic", "square", fonts);
+    expect(b.drawn.some((t) => t.includes("Iron Gym"))).toBe(false);
+  });
+
+  it("shortens a long location instead of overflowing", () => {
+    const long = { ...c, location: "G".repeat(300) };
+    const { ctx, drawn } = fakeContext();
+    drawShareCard(ctx, long, "bold", "story", fonts);
+    const shown = drawn.find((t) => t.startsWith("GGG"))!;
+    expect(shown.endsWith("...")).toBe(true);
+  });
+
   it("never uses an em dash", () => {
     const { ctx, drawn } = fakeContext();
     drawShareCard(ctx, c, "classic", "story", fonts);
@@ -137,7 +222,7 @@ describe("drawShareCard", () => {
   it("shortens a name that is too wide instead of overflowing", () => {
     const long = { ...c, topLifts: [{ name: "A".repeat(200), best: "60 kg x 8" }] };
     const { ctx, drawn } = fakeContext();
-    drawShareCard(ctx, long, "classic", "square", fonts);
+    drawShareCard(ctx, long, "classic", "story", fonts);
     const shown = drawn.find((s) => s.startsWith("AAA"))!;
     expect(shown.endsWith("...")).toBe(true);
     expect(shown.length).toBeLessThan(200);

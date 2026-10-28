@@ -1,6 +1,7 @@
 import { format, parseISO, subDays } from "date-fns";
 import Link from "next/link";
 import { EntryPhotos } from "@/components/entry-photos";
+import { CHECKIN_KIND_LABELS, didTrain } from "@/lib/checkin-kind";
 import { Panel } from "@/components/panel";
 import { Stat } from "@/components/stat";
 import { getCurrentUserId } from "@/lib/auth";
@@ -30,18 +31,18 @@ export async function CheckinPanel() {
     const date = format(subDays(parseISO(today), 6 - i), ISO_FORMAT);
     return { date, checkin: checkins.find((c) => c.date === date) ?? null };
   });
-  const gymDays = week.filter((d) => d.checkin?.went_to_gym).length;
+  const trainedDays = week.filter((d) => d.checkin && didTrain(d.checkin.kind)).length;
 
   return (
     <Panel label="1. Check in">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3">
-          <Stat label="Streak" value={streak.current} unit="d" hint={`Went to the gym ${gymDays}x in the last 7 days`} />
+          <Stat label="Streak" value={streak.current} unit="d" hint={`Trained ${trainedDays}x in the last 7 days`} />
           <ul className="grid grid-cols-7 gap-1" aria-label="Last 7 days">
             {week.map(({ date, checkin }) => {
-              const state = checkin ? (checkin.went_to_gym ? "gym" : "rest") : "none";
+              const state = checkin ? checkin.kind : "none";
               const label = `${format(parseISO(date), "EEEE d MMM")}: ${
-                state === "gym" ? "went to the gym" : state === "rest" ? "rest day" : "no check-in"
+                state === "none" ? "no check-in" : CHECKIN_KIND_LABELS[state].toLowerCase()
               }`;
               return (
                 <li key={date} className="flex flex-col items-center gap-1">
@@ -51,6 +52,7 @@ export async function CheckinPanel() {
                     className={cn(
                       "h-6 w-full border",
                       state === "gym" && "border-primary bg-primary",
+                      state === "home" && "border-primary bg-primary/40",
                       state === "rest" && "border-primary bg-transparent",
                     )}
                   />

@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resetRateLimits } from "@/lib/rate-limit";
 import { resetStores } from "@/lib/repositories/memory/store";
-import { formatElapsed, lastSetCompletedAt, REST_TARGET_SECONDS, restBeforeSets } from "@/lib/workout";
+import { elapsedAtSets, formatElapsed, lastSetCompletedAt, REST_TARGET_SECONDS, restBeforeSets } from "@/lib/workout";
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 
@@ -18,6 +18,7 @@ import { getSessionWithSets } from "@/lib/repositories/workouts";
 const DEMO = "00000000-0000-4000-8000-000000000001";
 const at = (seconds: number) => new Date(Date.UTC(2026, 9, 28, 10, 0, seconds)).toISOString();
 const s = (id: string, seconds: number) => ({ id, completed_at: at(seconds) });
+const at0 = () => at(0);
 
 describe("lastSetCompletedAt", () => {
   it("is null with no sets", () => {
@@ -49,6 +50,19 @@ describe("restBeforeSets", () => {
   });
 });
 
+describe("elapsedAtSets", () => {
+  it("is how far into the workout each set was done, not the clock time", () => {
+    const at = elapsedAtSets([s("a", 151), s("b", 400)], at0());
+    expect(at.get("a")).toBe(151);
+    expect(formatElapsed(at.get("a")!)).toBe("02:31");
+    expect(at.get("b")).toBe(400);
+  });
+
+  it("leaves out sets that carry the workout's own start time", () => {
+    expect(elapsedAtSets([s("a", 0), s("b", 90)], at0()).has("a")).toBe(false);
+  });
+});
+
 describe("rest timer constants", () => {
   it("formats a rest as minutes and seconds", () => {
     expect(formatElapsed(REST_TARGET_SECONDS)).toBe("01:30");
@@ -65,7 +79,7 @@ describe("logging a set records when it was completed", () => {
   const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
 
   it("stamps each set with the time it was logged, in order", async () => {
-    await postCheckin(json({ date: format(new Date(), "yyyy-MM-dd"), went_to_gym: true, ...AT_GYM }));
+    await postCheckin(json({ date: format(new Date(), "yyyy-MM-dd"), kind: "gym", ...AT_GYM }));
     const { data } = await (await startWorkout(new Request("http://localhost/api/x", { method: "POST" }))).json();
 
     const before = Date.now();

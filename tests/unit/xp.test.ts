@@ -1,5 +1,6 @@
+import { addDays, format } from "date-fns";
 import { describe, expect, it } from "vitest";
-import { computeXp, levelForXp, titleForLevel, XP_RULES, xpForLevel, type XpInput } from "@/lib/xp";
+import { computeXp, levelForXp, STREAK_MILESTONES, titleForLevel, XP_RULES, xpForLevel, type XpInput } from "@/lib/xp";
 
 const empty: XpInput = { checkins: [], weights: [], measurements: [], photos: [], sessions: [], sets: [] };
 const line = (xp: ReturnType<typeof computeXp>, source: string) => xp.lines.find((l) => l.source === source)!;
@@ -16,8 +17,8 @@ describe("computeXp", () => {
     const xp = computeXp({
       ...empty,
       checkins: [
-        { date: "2026-10-26", went_to_gym: true },
-        { date: "2026-10-27", went_to_gym: false },
+        { date: "2026-10-26", kind: "gym" },
+        { date: "2026-10-27", kind: "rest" },
       ],
     });
     expect(line(xp, "gym").xp).toBe(XP_RULES.gymCheckin);
@@ -60,7 +61,7 @@ describe("computeXp", () => {
 
   it("totals every source", () => {
     const xp = computeXp({
-      checkins: [{ date: "2026-10-26", went_to_gym: true }],
+      checkins: [{ date: "2026-10-26", kind: "gym" }],
       weights: [{ date: "2026-10-26" }],
       measurements: [{ date: "2026-10-26" }],
       photos: [{ date: "2026-10-26" }],
@@ -71,6 +72,65 @@ describe("computeXp", () => {
       XP_RULES.gymCheckin + XP_RULES.weight + XP_RULES.measurement + XP_RULES.progressPhoto + XP_RULES.workout + 5 * XP_RULES.perSet,
     );
     expect(xp.lines.reduce((sum, l) => sum + l.xp, 0)).toBe(xp.total);
+  });
+});
+
+const run = (days: number, kind: "gym" | "home" | "rest" = "gym") =>
+  Array.from({ length: days }, (_, i) => ({ date: format(addDays(new Date(2026, 8, 1), i), "yyyy-MM-dd"), kind }));
+
+describe("home workouts", () => {
+  it("earn XP like a check-in, a bit less than the gym", () => {
+    const xp = computeXp({ ...empty, checkins: [{ date: "2026-10-26", kind: "home" }] });
+    expect(line(xp, "home").xp).toBe(XP_RULES.homeCheckin);
+    expect(XP_RULES.homeCheckin).toBeLessThan(XP_RULES.gymCheckin);
+    expect(XP_RULES.homeCheckin).toBeGreaterThan(XP_RULES.restCheckin);
+  });
+});
+
+describe("streak XP", () => {
+  const streakXp = (checkins: XpInput["checkins"]) => line(computeXp({ ...empty, checkins }), "streak");
+
+  it("is nothing below the first milestone", () => {
+    expect(streakXp(run(2))).toMatchObject({ count: 0, xp: 0 });
+  });
+
+  it("pays each milestone once the run reaches it", () => {
+    expect(streakXp(run(3))).toMatchObject({ count: 1, xp: 30 });
+    expect(streakXp(run(7))).toMatchObject({ count: 2, xp: 30 + 70 });
+    expect(streakXp(run(30)).xp).toBe(30 + 70 + 150 + 400);
+  });
+
+  it("adds every milestone for a very long run", () => {
+    expect(streakXp(run(100))).toMatchObject({
+      count: STREAK_MILESTONES.length,
+      xp: STREAK_MILESTONES.reduce((sum, [, xp]) => sum + xp, 0),
+    });
+  });
+
+  it("keeps what was earned after a streak ends, based on the best run", () => {
+    const old = run(7);
+    const recent = [{ date: "2026-10-20", kind: "gym" as const }, { date: "2026-10-21", kind: "gym" as const }];
+    expect(streakXp([...old, ...recent])).toMatchObject({ count: 2, xp: 100 });
+  });
+
+  it("does not pay a milestone twice for rebuilding a streak", () => {
+    const first = run(3);
+    const second = [20, 21, 22].map((d) => ({ date: `2026-09-${d}`, kind: "gym" as const }));
+    expect(streakXp([...first, ...second])).toMatchObject({ count: 1, xp: 30 });
+  });
+
+  it("counts any kind of check-in, rest days included", () => {
+    expect(streakXp([...run(2, "gym"), { date: "2026-09-03", kind: "rest" }]).count).toBe(1);
+  });
+
+  it("does not break on a gap of one day", () => {
+    const gap = [{ date: "2026-09-01", kind: "gym" as const }, { date: "2026-09-03", kind: "gym" as const }, { date: "2026-09-04", kind: "gym" as const }];
+    expect(streakXp(gap).count).toBe(0);
+  });
+
+  it("is part of the total", () => {
+    const xp = computeXp({ ...empty, checkins: run(3) });
+    expect(xp.total).toBe(3 * XP_RULES.gymCheckin + 30);
   });
 });
 

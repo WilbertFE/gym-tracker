@@ -1,3 +1,4 @@
+import type { CheckinKind } from "@/lib/checkin-kind";
 import type { CountryCode } from "@/lib/countries";
 import type { Currency } from "@/lib/currency";
 import type { MuscleGroup } from "@/lib/muscles";
@@ -7,7 +8,8 @@ export type Checkin = {
   id: string;
   user_id: string;
   date: string;
-  went_to_gym: boolean;
+  /** Gym, a workout at home, or a rest day. */
+  kind: CheckinKind;
   mood: number | null;
   energy: number | null;
   sleep_hours: number | null;

@@ -25,7 +25,7 @@ describe("backend selection", () => {
     const rows = await listCheckins(DEMO);
     expect(rows).not.toEqual(["from-supabase"]);
     expect(rows.length).toBeGreaterThan(0);
-    expect(rows[0]).toHaveProperty("went_to_gym");
+    expect(rows[0]).toHaveProperty("kind");
   });
 
   it("uses Supabase when demo mode is off or unset", async () => {

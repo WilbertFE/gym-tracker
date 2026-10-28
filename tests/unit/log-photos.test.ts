@@ -40,7 +40,7 @@ function upload(
 }
 
 async function newCheckin() {
-  return (await (await postCheckin(json({ date: today, went_to_gym: true, ...AT_GYM }))).json()).data.id as string;
+  return (await (await postCheckin(json({ date: today, kind: "gym", ...AT_GYM }))).json()).data.id as string;
 }
 async function newWeight() {
   return (await (await postWeight(json({ date: today, weight_kg: 70 }))).json()).data.id as string;
@@ -92,7 +92,7 @@ describe("uploading to a check-in", () => {
   it("keeps the photos when the same day's check-in is saved again", async () => {
     const entry = await newCheckin();
     await postLogPhoto(upload(JPEG, { kind: "checkin", entry_id: entry }));
-    const again = await postCheckin(json({ date: today, went_to_gym: false, mood: 2 }));
+    const again = await postCheckin(json({ date: today, kind: "rest", mood: 2 }));
     expect((await again.json()).data.id).toBe(entry);
     expect(await listLogPhotos(DEMO, { kind: "checkin", entryId: entry })).toHaveLength(1);
   });

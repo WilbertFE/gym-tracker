@@ -7,14 +7,16 @@ import { RestTimer } from "@/components/rest-timer";
 import { Stat } from "@/components/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
+import { getCheckinByDate } from "@/lib/repositories/checkins";
 import { listExercises } from "@/lib/repositories/exercises";
+import { listMemberships } from "@/lib/repositories/memberships";
 import { getSettings } from "@/lib/repositories/settings";
 import { getSessionWithSets, lastSetsByExercise } from "@/lib/repositories/workouts";
 import { displayVolume } from "@/lib/units";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
-import { buildShareCard } from "@/lib/share";
+import { buildShareCard, workoutLocation } from "@/lib/share";
 import { pickFocusExercise } from "@/lib/suggestion";
-import { formatDuration, groupSetsByExercise, lastSetCompletedAt, restBeforeSets, sessionVolume } from "@/lib/workout";
+import { elapsedAtSets, formatDuration, groupSetsByExercise, lastSetCompletedAt, restBeforeSets, sessionVolume } from "@/lib/workout";
 import { SessionActions } from "./session-actions";
 import { SetList } from "./set-list";
 import { SetLogger } from "./set-logger";
@@ -28,10 +30,12 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
 
   const { session, sets } = found;
   const active = session.ended_at === null;
-  const [exercises, lastSets, settings] = await Promise.all([
+  const [exercises, lastSets, settings, checkin, [membership]] = await Promise.all([
     listExercises(userId),
     lastSetsByExercise(userId, id),
     getSettings(userId),
+    getCheckinByDate(userId, session.date),
+    listMemberships(userId),
   ]);
   const unit = settings.weight_unit;
 
@@ -39,6 +43,7 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
   const focusExercise = focus ? pickFocusExercise(exercises, focus, Object.keys(lastSets)) : null;
   const volume = sessionVolume(sets);
   const rest = Object.fromEntries(restBeforeSets(sets));
+  const at = Object.fromEntries(elapsedAtSets(sets, session.started_at));
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,11 +94,27 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
       </Suspense>
 
       <Panel label="Logged sets">
-        <SetList sessionId={id} groups={groups} editable={active} unit={unit} rest={rest} />
+        <p className="mb-4 text-xs text-muted-foreground">
+          The time on the right is how far into the workout each set was done, then the rest before it.
+        </p>
+        <SetList sessionId={id} groups={groups} editable={active} unit={unit} rest={rest} at={at} />
       </Panel>
 
       {!active && sets.length > 0 && (
-        <ShareWorkout card={buildShareCard({ session, sets, exercises, unit })} date={session.date} />
+        <ShareWorkout
+          card={buildShareCard({
+            session,
+            sets,
+            exercises,
+            unit,
+            location: workoutLocation({
+              kind: checkin?.kind ?? null,
+              gymName: membership?.gym_name ?? null,
+              gymLocation: membership?.location ?? null,
+            }),
+          })}
+          date={session.date}
+        />
       )}
 
       <SessionActions sessionId={id} active={active} />

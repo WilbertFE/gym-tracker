@@ -78,7 +78,7 @@ describe("verifyAtGym", () => {
 
 describe("POST /api/checkins and the gym location", () => {
   it("refuses a gym check-in with no position and saves nothing", async () => {
-    const res = await checkIn({ went_to_gym: true });
+    const res = await checkIn({ kind: "gym" });
     expect(res.status).toBe(403);
     expect(await res.json()).toMatchObject({ code: "location_required", reason: "no_position" });
     const stored = (await (await getCheckins()).json()).data.filter((c: { date: string }) => c.date === today);
@@ -86,7 +86,7 @@ describe("POST /api/checkins and the gym location", () => {
   });
 
   it("refuses a position far from the gym and says how far", async () => {
-    const res = await checkIn({ went_to_gym: true, ...north(5000), accuracy: 10 });
+    const res = await checkIn({ kind: "gym", ...north(5000), accuracy: 10 });
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body).toMatchObject({ code: "location_required", reason: "too_far" });
@@ -95,33 +95,51 @@ describe("POST /api/checkins and the gym location", () => {
   });
 
   it("accepts a position at the gym", async () => {
-    const res = await checkIn({ went_to_gym: true, ...north(30), accuracy: 15 });
+    const res = await checkIn({ kind: "gym", ...north(30), accuracy: 15 });
     expect(res.status).toBe(200);
-    expect((await res.json()).data).toMatchObject({ date: today, went_to_gym: true });
+    expect((await res.json()).data).toMatchObject({ date: today, kind: "gym" });
   });
 
   it("does not store the position", async () => {
-    const { data } = await (await checkIn({ went_to_gym: true, ...GYM, accuracy: 5 })).json();
+    const { data } = await (await checkIn({ kind: "gym", ...GYM, accuracy: 5 })).json();
     expect(data).not.toHaveProperty("latitude");
     expect(data).not.toHaveProperty("longitude");
     expect(data).not.toHaveProperty("accuracy");
   });
 
   it("needs no position for a rest day", async () => {
-    expect((await checkIn({ went_to_gym: false })).status).toBe(200);
+    expect((await checkIn({ kind: "rest" })).status).toBe(200);
+  });
+
+  it("needs no position for a workout at home, however far from the gym", async () => {
+    const res = await checkIn({ kind: "home", ...north(50_000), accuracy: 10 });
+    expect(res.status).toBe(200);
+    expect((await res.json()).data).toMatchObject({ date: today, kind: "home" });
+    expect((await checkIn({ kind: "home" })).status).toBe(200);
+  });
+
+  it("checks the position when a home day is changed to a gym day", async () => {
+    await checkIn({ kind: "home" });
+    expect((await checkIn({ kind: "gym" })).status).toBe(403);
+    expect((await checkIn({ kind: "gym", ...GYM, accuracy: 5 })).status).toBe(200);
+  });
+
+  it("rejects an unknown kind and the old yes/no field", async () => {
+    expect((await checkIn({ kind: "park" })).status).toBe(400);
+    expect((await checkIn({ went_to_gym: true, ...GYM })).status).toBe(400);
   });
 
   it("lets a verified gym check-in be edited from anywhere", async () => {
-    await checkIn({ went_to_gym: true, ...GYM, accuracy: 5 });
-    const res = await checkIn({ went_to_gym: true, mood: 4 });
+    await checkIn({ kind: "gym", ...GYM, accuracy: 5 });
+    const res = await checkIn({ kind: "gym", mood: 4 });
     expect(res.status).toBe(200);
-    expect((await res.json()).data).toMatchObject({ mood: 4, went_to_gym: true });
+    expect((await res.json()).data).toMatchObject({ mood: 4, kind: "gym" });
   });
 
   it("asks for the position again when a rest day is changed to a gym day", async () => {
-    await checkIn({ went_to_gym: false });
-    expect((await checkIn({ went_to_gym: true })).status).toBe(403);
-    expect((await checkIn({ went_to_gym: true, ...GYM, accuracy: 5 })).status).toBe(200);
+    await checkIn({ kind: "rest" });
+    expect((await checkIn({ kind: "gym" })).status).toBe(403);
+    expect((await checkIn({ kind: "gym", ...GYM, accuracy: 5 })).status).toBe(200);
   });
 
   it("refuses when the membership has no pinned location", async () => {
@@ -135,12 +153,12 @@ describe("POST /api/checkins and the gym location", () => {
       }),
       { params: Promise.resolve({ id }) } as never,
     );
-    const res = await checkIn({ went_to_gym: true, ...GYM, accuracy: 5 });
+    const res = await checkIn({ kind: "gym", ...GYM, accuracy: 5 });
     expect(res.status).toBe(403);
     expect((await res.json()).reason).toBe("no_gym_location");
   });
 
   it("rejects an impossible position", async () => {
-    expect((await checkIn({ went_to_gym: true, latitude: 200, longitude: 0 })).status).toBe(400);
+    expect((await checkIn({ kind: "gym", latitude: 200, longitude: 0 })).status).toBe(400);
   });
 });

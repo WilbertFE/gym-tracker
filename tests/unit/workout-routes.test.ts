@@ -46,7 +46,7 @@ beforeEach(async () => {
   // The seeded demo history includes only finished workouts, so none is active.
   // Starting a workout needs today's check-in to say you went to the gym.
   const today = format(new Date(), "yyyy-MM-dd");
-  await postCheckin(json({ date: today, went_to_gym: true, ...AT_GYM }));
+  await postCheckin(json({ date: today, kind: "gym", ...AT_GYM }));
   resetRateLimits();
 });
 

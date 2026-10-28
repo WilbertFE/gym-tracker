@@ -6,6 +6,12 @@ export type StreakResult = {
   checkedInToday: boolean;
 };
 
+/** The longest run of consecutive check-in days ever, whether or not it is still going. */
+export function longestStreak(dates: string[]): number {
+  // The longest run does not depend on today, so any date works here.
+  return computeStreak(dates, "1970-01-01").longest;
+}
+
 /**
  * Streak of consecutive days that have a check-in (whether or not the user went
  * to the gym, since the habit being tracked is logging). The current streak
