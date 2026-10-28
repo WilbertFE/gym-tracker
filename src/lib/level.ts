@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { summarizeBoosts, type BoostSummary } from "@/lib/boosters";
+import { boostersEarned, summarizeBoosts, type BoostSummary } from "@/lib/boosters";
 import { todayISO } from "@/lib/dates";
 import { listBoosts } from "@/lib/repositories/boosts";
 import { listCheckins } from "@/lib/repositories/checkins";
@@ -30,18 +30,15 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     listExercises(userId),
   ]);
   const today = todayISO();
-  const usedDays = boostRows.map((b) => b.day);
   const exerciseMuscles = Object.fromEntries(exercises.map((e) => [e.id, e.primary_muscle]));
-  const xp = computeXp({
-    checkins,
-    weights,
-    measurements,
-    photos,
-    sessions,
-    sets,
-    boostedDays: usedDays,
-    quests: { today, exerciseMuscles },
-  });
+  const input = { checkins, weights, measurements, photos, sessions, sets, quests: { today, exerciseMuscles } };
+
+  // Boosters beyond the number earned are ignored (the oldest ones are kept), so rows added to the
+  // table by hand cannot double anything. The API already refuses them, this covers the database.
+  const withoutBoosts = computeXp(input);
+  const earned = boostersEarned({ workouts: withoutBoosts.workouts, longestStreak: withoutBoosts.longestStreak }).total;
+  const usedDays = boostRows.map((b) => b.day).sort().slice(0, earned);
+  const xp = computeXp({ ...input, boostedDays: usedDays });
   const boosts = summarizeBoosts({
     workouts: xp.workouts,
     longestStreak: xp.longestStreak,

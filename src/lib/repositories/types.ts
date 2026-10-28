@@ -1,3 +1,4 @@
+import type { LeaderboardEntry } from "@/lib/leaderboard";
 import type { LogPhoto, ProgressPhoto, WorkoutSet, XpBoost } from "@/lib/types";
 
 /** Result shapes shared by the in-memory and Supabase repositories. */
@@ -11,6 +12,10 @@ export type CreatePhotoResult =
 export type AddSetResult =
   | { ok: true; set: WorkoutSet }
   | { ok: false; reason: "session_not_found" | "exercise_not_found" };
+
+export type UpsertEntryResult =
+  | { ok: true; entry: LeaderboardEntry }
+  | { ok: false; reason: "name_taken" };
 
 export type CreateBoostResult =
   | { ok: true; boost: XpBoost }

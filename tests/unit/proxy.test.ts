@@ -16,7 +16,7 @@ function call(path: string, userId: string | null) {
 describe("proxy auth protection", () => {
   beforeEach(() => updateSession.mockReset());
 
-  it.each(["/dashboard", "/workouts", "/body", "/membership", "/schedule", "/settings", "/dashboard/x"])(
+  it.each(["/dashboard", "/workouts", "/body", "/membership", "/schedule", "/settings", "/leaderboard", "/dashboard/x"])(
     "redirects anonymous users from %s to /login",
     async (path) => {
       const res = await call(path, null);

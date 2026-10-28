@@ -3,6 +3,7 @@ import { addDays, format, subDays } from "date-fns";
 import { DEMO_USER_ID } from "@/lib/demo";
 import { ISO_FORMAT } from "@/lib/dates";
 import { builtInId } from "@/lib/exercise-library";
+import { resetLeaderboard } from "./leaderboard";
 import type {
   AvailabilityBlock,
   BodyMeasurement,
@@ -311,4 +312,5 @@ export function getStore(userId: string): Store {
 /** Test helper. */
 export function resetStores() {
   stores.clear();
+  resetLeaderboard();
 }

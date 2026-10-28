@@ -127,6 +127,8 @@ export type XpSummary = {
   longestStreak: number;
   /** The earliest day with any activity. */
   firstDate: string | null;
+  /** XP earned on each date, after boosts. Streak milestone bonuses have no date and are not in here. */
+  byDate: Record<string, number>;
 };
 
 const distinctDates = (dates: string[]) => [...new Set(dates)];
@@ -194,6 +196,7 @@ export function computeXp(input: XpInput): XpSummary {
   const welcome = input.welcomeBoost === false ? null : welcomeWindow(firstDate);
   const boosted = new Set(input.boostedDays ?? []);
 
+  const byDate: Record<string, number> = {};
   const lines = XP_SOURCES.map((source): XpLine => {
     if (source === "streak") {
       // Milestone bonuses are a reward for the whole run, not for one day, so boosts do not double them.
@@ -204,6 +207,7 @@ export function computeXp(input: XpInput): XpSummary {
     let bonus = 0;
     for (const entry of entries[source]) {
       const doubled = entry.xp * dayMultiplier(entry.date, welcome, boosted);
+      byDate[entry.date] = (byDate[entry.date] ?? 0) + doubled;
       xp += doubled;
       bonus += doubled - entry.xp;
     }
@@ -217,6 +221,7 @@ export function computeXp(input: XpInput): XpSummary {
     workouts: countOf.workout,
     longestStreak: streakDays,
     firstDate,
+    byDate,
   };
 }
 

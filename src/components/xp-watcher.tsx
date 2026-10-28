@@ -73,8 +73,11 @@ export function XpWatcher() {
       const next = await fetchSnapshot();
       if (!next) return;
       const found = diffXp(baseline.current, next);
+      const changed = baseline.current !== null && baseline.current.total !== next.total;
       baseline.current = next;
       writeSnapshot(next);
+      // Anyone on the leaderboard gets their score refreshed. The server ignores it for everyone else.
+      if (changed) void fetch("/api/leaderboard/sync", { method: "POST" }).catch(() => {});
       if (!found || !xpPopupsEnabled()) return;
       // A pop-up still on screen grows to include the new gain instead of queueing another one.
       setShown((current) => ({ id: (current?.id ?? 0) + 1, gain: current ? mergeGains(current.gain, found) : found }));

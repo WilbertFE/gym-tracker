@@ -6,6 +6,7 @@ import {
   GaugeIcon,
   GearSixIcon,
   IdentificationCardIcon,
+  RankingIcon,
   PersonSimpleIcon,
   SignOutIcon,
 } from "@phosphor-icons/react";
@@ -29,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/workouts", label: "Workouts", icon: BarbellIcon },
   { href: "/body", label: "Body", icon: PersonSimpleIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarBlankIcon },
+  { href: "/leaderboard", label: "Leaderboard", icon: RankingIcon, desktopOnly: true },
   { href: "/membership", label: "Membership", icon: IdentificationCardIcon, desktopOnly: true },
   { href: "/settings", label: "Settings", icon: GearSixIcon, alsoActive: "/membership" },
 ];
