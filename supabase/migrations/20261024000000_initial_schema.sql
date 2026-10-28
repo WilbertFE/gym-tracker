@@ -1,4 +1,4 @@
--- Initial schema for GymTrack. Every table has RLS: a user only sees their own rows.
+-- Initial schema for Muscles Leveling. Every table has RLS: a user only sees their own rows.
 
 create type public.muscle_group as enum (
   'chest', 'front_delts', 'side_delts', 'rear_delts', 'biceps', 'triceps',

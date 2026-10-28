@@ -221,7 +221,7 @@ describe("drawShareCard", () => {
     (template, format) => {
       const { ctx, drawn } = fakeContext();
       expect(() => drawShareCard(ctx, c, template, format, fonts)).not.toThrow();
-      expect(drawn).toContain("GYMTRACK");
+      expect(drawn).toContain("MUSCLES LEVELING");
       expect(drawn).toContain(c.title);
       expect(drawn).toContain(c.volume);
     },
@@ -342,7 +342,7 @@ describe("drawShareCard", () => {
 describe("shareFileName", () => {
   it("makes a safe, readable file name", () => {
     expect(shareFileName(card([set("Barbell Bench Press", 8, 60)]), "2026-10-28", "story")).toBe(
-      "gymtrack-push-day-2026-10-28-story.png",
+      "muscles-leveling-push-day-2026-10-28-story.png",
     );
   });
 });

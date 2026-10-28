@@ -342,7 +342,7 @@ export function drawShareCard(
   background(ctx, p, w, h);
 
   // Header: brand and date.
-  text(ctx, fonts, "GYMTRACK", MARGIN, 120, { size: 30, color: p.accent, mono: true, weight: 700, spacing: 6 });
+  text(ctx, fonts, "MUSCLES LEVELING", MARGIN, 120, { size: 30, color: p.accent, mono: true, weight: 700, spacing: 6 });
   text(ctx, fonts, card.dateLabel, w - MARGIN, 120, { size: 28, color: p.muted, mono: true, align: "right" });
 
   // Title.
@@ -417,11 +417,11 @@ export function drawShareCard(
   }
 
   // Footer.
-  text(ctx, fonts, "Tracked with GymTrack", w / 2, h - 70, { size: 26, color: p.muted, mono: true, align: "center", spacing: 2 });
+  text(ctx, fonts, "Tracked with Muscles Leveling", w / 2, h - 70, { size: 26, color: p.muted, mono: true, align: "center", spacing: 2 });
 }
 
-/** The exact file name used for downloads, for example "gymtrack-push-day-2026-10-28-story.png". */
+/** The exact file name used for downloads, for example "muscles-leveling-push-day-2026-10-28-story.png". */
 export function shareFileName(card: ShareCard, isoDate: string, format: ShareFormat): string {
   const slug = card.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return `gymtrack-${slug}-${isoDate}-${format}.png`;
+  return `muscles-leveling-${slug}-${isoDate}-${format}.png`;
 }

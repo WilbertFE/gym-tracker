@@ -3,9 +3,9 @@ export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
 ).replace(/\/$/, "");
 
-export const SITE_NAME = "GymTrack";
+export const SITE_NAME = "Muscles Leveling";
 export const SITE_DESCRIPTION =
-  "Personal gym tracker: workouts, body weight, check-ins, membership and a muscle heatmap.";
+  "Level up your training: log workouts, earn XP, climb ranks, finish quests and watch your muscles grow.";
 
 /** Routes that require authentication. Used by proxy.ts, robots.ts and tests. */
 export const PROTECTED_PREFIXES = [

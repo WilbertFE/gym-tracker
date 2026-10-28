@@ -1,6 +1,6 @@
-# GymTrack (working name)
+# Muscles Leveling
 
-A personal gym tracking and automation app. It records workouts, body weight, daily check-ins, and membership status, then turns that data into insights: a 3D body heatmap showing which muscles have been trained, scheduling suggestions, and training recommendations.
+A personal gym tracking app that plays like a game (formerly called GymTrack): levels, ranks, quests and boosters on top of workouts, body weight, check-ins and membership. It records workouts, body weight, daily check-ins, and membership status, then turns that data into insights: a 3D body heatmap showing which muscles have been trained, scheduling suggestions, and training recommendations.
 
 This README is the source of truth for building the app. Agents must read it, and `CLAUDE.md`, before writing any code. Keep this file updated whenever something is created, updated, or deleted (see "Documentation Rule" at the bottom).
 
@@ -498,6 +498,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-28: Renamed the app from GymTrack to Muscles Leveling everywhere you can read it: sidebar, landing and login, page titles and descriptions, the share images (header, footer and the saved file name, now `muscles-leveling-...png`), the share sheet title and the docs. Not renamed on purpose: the package name `gym-tracker`, the folder, and the browser storage keys and event names that start with `gymtrack:`, so saved XP pop-up settings are not reset. A test keeps the old name out of the code.
 - 2026-10-28: Daily and weekly quests on the dashboard. Three of each, rotating by date, with progress bars and XP, a bonus for finishing them all, no claiming and no new table. `loadLevel` is now cached per request so the level card and the quests share one load.
 - 2026-10-28: Game pass, part 3. XP boosters: an automatic welcome boost (double XP for the first 7 days) and collectable Double XP Day boosters earned from workouts and streaks and used on a day you choose. New `GET` and `POST /api/boosts`, a Boosters panel on the level page, boost chips on the dashboard hero and an x2 tag on the XP pop-up. Needs migration `20261028000300_xp_boosts.sql`.
 - 2026-10-28: Game pass, part 2. XP pop-ups with an animated level bar, level-up and rank-up moments, merged and short, switchable in Settings. New `GET /api/xp`. Coming next: XP boosters.

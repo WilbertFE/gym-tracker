@@ -11,6 +11,7 @@ import {
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -56,7 +57,7 @@ export function AppNav() {
         className="fixed inset-y-0 left-0 hidden w-56 flex-col border-r bg-card p-4 md:flex"
       >
         <p className="tabular mb-8 text-[11px] uppercase tracking-widest text-primary">
-          GymTrack
+          {SITE_NAME}
         </p>
         <ul className="flex flex-1 flex-col gap-1">
           {NAV_ITEMS.map((item) => {

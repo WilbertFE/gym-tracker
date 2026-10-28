@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { ShareCard } from "@/lib/share";
+import { SITE_NAME } from "@/lib/site";
 import {
   drawShareCard,
   SHARE_FORMATS,
@@ -110,7 +111,7 @@ export function ShareWorkout({ card, date, defaultOpen = false }: { card: ShareC
       const file = await makeFile();
       if (!file) throw new Error("no image");
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: `${card.title} on GymTrack` });
+        await navigator.share({ files: [file], title: `${card.title} on ${SITE_NAME}` });
       } else {
         download(file);
       }
