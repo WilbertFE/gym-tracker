@@ -17,6 +17,7 @@ import type {
   WeightLog,
   WorkoutSession,
   WorkoutSet,
+  XpBoost,
 } from "@/lib/types";
 
 /**
@@ -41,6 +42,8 @@ export type Store = {
   logPhotos: LogPhoto[];
   /** null until the user saves Settings. */
   settings: UserSettings | null;
+  /** Double XP Day boosters that were used. */
+  boosts: XpBoost[];
 };
 
 const g = globalThis as unknown as { __gymStore?: Map<string, Store> };
@@ -276,6 +279,7 @@ function seed(userId: string): Store {
     availability: seedAvailability(userId),
     logPhotos: seedLogPhotos(userId, checkins, weights, files),
     settings: null,
+    boosts: [],
   };
 }
 
@@ -292,6 +296,7 @@ const empty = (): Store => ({
   availability: [],
   logPhotos: [],
   settings: null,
+  boosts: [],
 });
 
 export function getStore(userId: string): Store {

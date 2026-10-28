@@ -155,7 +155,10 @@ function XpToast({ gain, onClose }: { gain: XpGain; onClose: () => void }) {
 
         <span className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="tabular flex items-baseline justify-between gap-3">
-            <span className="text-2xl font-semibold leading-none text-primary">+{gain.gained} XP</span>
+            <span className="text-2xl font-semibold leading-none text-primary">
+              +{gain.gained} XP
+              {gain.boosted && <span className="ml-2 border border-primary px-1 py-0.5 align-middle text-[10px] tracking-widest">x2</span>}
+            </span>
             {celebrate && (
               <span className="text-[11px] font-semibold uppercase tracking-widest text-primary">
                 Level up {gain.from.level} to {gain.to.level}

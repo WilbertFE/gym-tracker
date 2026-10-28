@@ -121,6 +121,14 @@ export type LogPhoto = {
   created_at: string;
 };
 
+/** A Double XP Day booster that was used on `day`. */
+export type XpBoost = {
+  id: string;
+  user_id: string;
+  day: string;
+  created_at: string;
+};
+
 /** Per user preferences. Defaults apply until the user saves something. */
 export type UserSettings = {
   user_id: string;

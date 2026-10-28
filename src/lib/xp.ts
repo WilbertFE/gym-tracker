@@ -1,3 +1,4 @@
+import { dayMultiplier, firstActivityDate, welcomeWindow } from "@/lib/boosters";
 import { nextRankAfter, rankForLevel, type Rank } from "@/lib/ranks";
 import { longestStreak } from "@/lib/streak";
 import type {
@@ -80,52 +81,116 @@ export type XpInput = {
   weights: Pick<WeightLog, "date">[];
   measurements: Pick<BodyMeasurement, "date">[];
   photos: Pick<ProgressPhoto, "date">[];
-  sessions: Pick<WorkoutSession, "id" | "ended_at">[];
+  sessions: Pick<WorkoutSession, "id" | "date" | "ended_at">[];
   sets: Pick<WorkoutSet, "session_id">[];
+  /** Days a Double XP Day booster was used on. The welcome boost needs no input, it comes from the data. */
+  boostedDays?: readonly string[];
+  /** Set to false to leave the welcome boost out. Only tests do this. */
+  welcomeBoost?: boolean;
 };
 
-export type XpLine = { source: XpSource; label: string; count: number; xp: number };
+export type XpLine = {
+  source: XpSource;
+  label: string;
+  count: number;
+  /** Includes `bonus`. */
+  xp: number;
+  /** The part of `xp` that came from boosts. */
+  bonus: number;
+};
 
-export type XpSummary = { total: number; lines: XpLine[] };
+export type XpSummary = {
+  total: number;
+  lines: XpLine[];
+  /** The welcome boost's days, or null before any activity. */
+  welcome: { start: string; end: string } | null;
+  /** Finished workouts that count, for working out boosters. */
+  workouts: number;
+  longestStreak: number;
+  /** The earliest day with any activity. */
+  firstDate: string | null;
+};
 
-const distinct = (dates: string[]) => new Set(dates).size;
+const distinctDates = (dates: string[]) => [...new Set(dates)];
 
 export function computeXp(input: XpInput): XpSummary {
-  const daysOf = (kind: Checkin["kind"]) => distinct(input.checkins.filter((c) => c.kind === kind).map((c) => c.date));
-  const reached = STREAK_MILESTONES.filter(([days]) => longestStreak(input.checkins.map((c) => c.date)) >= days);
+  const checkinDates = input.checkins.map((c) => c.date);
+  const streakDays = longestStreak(checkinDates);
+  const reached = STREAK_MILESTONES.filter(([days]) => streakDays >= days);
 
   const setsBySession = new Map<string, number>();
   for (const s of input.sets) setsBySession.set(s.session_id, (setsBySession.get(s.session_id) ?? 0) + 1);
 
-  let workouts = 0;
-  let rewardedSets = 0;
+  // Every XP reward as (date, amount), so a boosted day can double exactly what happened on it.
+  const entries: Record<XpSource, { date: string; xp: number }[]> = {
+    gym: [], home: [], rest: [], weight: [], measurement: [], photo: [], workout: [], sets: [], streak: [],
+  };
+  const countOf: Record<XpSource, number> = {
+    gym: 0, home: 0, rest: 0, weight: 0, measurement: 0, photo: 0, workout: 0, sets: 0, streak: reached.length,
+  };
+
+  for (const kind of ["gym", "home", "rest"] as const) {
+    const days = distinctDates(input.checkins.filter((c) => c.kind === kind).map((c) => c.date));
+    const each = kind === "gym" ? XP_RULES.gymCheckin : kind === "home" ? XP_RULES.homeCheckin : XP_RULES.restCheckin;
+    countOf[kind] = days.length;
+    entries[kind] = days.map((date) => ({ date, xp: each }));
+  }
+  const daily: [XpSource, string[], number][] = [
+    ["weight", input.weights.map((w) => w.date), XP_RULES.weight],
+    ["measurement", input.measurements.map((m) => m.date), XP_RULES.measurement],
+    ["photo", input.photos.map((p) => p.date), XP_RULES.progressPhoto],
+  ];
+  for (const [source, dates, each] of daily) {
+    const days = distinctDates(dates);
+    countOf[source] = days.length;
+    entries[source] = days.map((date) => ({ date, xp: each }));
+  }
+
   for (const session of input.sessions) {
     if (session.ended_at === null) continue; // still in progress, nothing yet
     const sets = setsBySession.get(session.id) ?? 0;
     if (sets < XP_RULES.minSetsForWorkout) continue;
-    workouts += 1;
-    rewardedSets += Math.min(sets, XP_RULES.maxRewardedSets);
+    const rewarded = Math.min(sets, XP_RULES.maxRewardedSets);
+    countOf.workout += 1;
+    countOf.sets += rewarded;
+    entries.workout.push({ date: session.date, xp: XP_RULES.workout });
+    entries.sets.push({ date: session.date, xp: rewarded * XP_RULES.perSet });
   }
 
-  const counts: Record<XpSource, [number, number]> = {
-    gym: [daysOf("gym"), XP_RULES.gymCheckin],
-    home: [daysOf("home"), XP_RULES.homeCheckin],
-    rest: [daysOf("rest"), XP_RULES.restCheckin],
-    weight: [distinct(input.weights.map((w) => w.date)), XP_RULES.weight],
-    measurement: [distinct(input.measurements.map((m) => m.date)), XP_RULES.measurement],
-    photo: [distinct(input.photos.map((p) => p.date)), XP_RULES.progressPhoto],
-    workout: [workouts, XP_RULES.workout],
-    sets: [rewardedSets, XP_RULES.perSet],
-    // Not a count times a rate: the count is how many milestones, the XP is what they add up to.
-    streak: [reached.length, 0],
-  };
+  const firstDate = firstActivityDate([
+    ...checkinDates,
+    ...input.weights.map((w) => w.date),
+    ...input.measurements.map((m) => m.date),
+    ...input.photos.map((p) => p.date),
+    ...input.sessions.map((s) => s.date),
+  ]);
+  const welcome = input.welcomeBoost === false ? null : welcomeWindow(firstDate);
+  const boosted = new Set(input.boostedDays ?? []);
 
-  const lines = XP_SOURCES.map((source) => {
-    const [count, each] = counts[source];
-    const xp = source === "streak" ? reached.reduce((sum, [, bonus]) => sum + bonus, 0) : count * each;
-    return { source, label: XP_SOURCE_LABELS[source], count, xp };
+  const lines = XP_SOURCES.map((source): XpLine => {
+    if (source === "streak") {
+      // Milestone bonuses are a reward for the whole run, not for one day, so boosts do not double them.
+      const xp = reached.reduce((sum, [, bonus]) => sum + bonus, 0);
+      return { source, label: XP_SOURCE_LABELS[source], count: countOf[source], xp, bonus: 0 };
+    }
+    let xp = 0;
+    let bonus = 0;
+    for (const entry of entries[source]) {
+      const doubled = entry.xp * dayMultiplier(entry.date, welcome, boosted);
+      xp += doubled;
+      bonus += doubled - entry.xp;
+    }
+    return { source, label: XP_SOURCE_LABELS[source], count: countOf[source], xp, bonus };
   });
-  return { total: lines.reduce((sum, l) => sum + l.xp, 0), lines };
+
+  return {
+    total: lines.reduce((sum, l) => sum + l.xp, 0),
+    lines,
+    welcome,
+    workouts: countOf.workout,
+    longestStreak: streakDays,
+    firstDate,
+  };
 }
 
 /**

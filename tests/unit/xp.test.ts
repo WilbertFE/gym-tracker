@@ -2,10 +2,11 @@ import { addDays, format } from "date-fns";
 import { describe, expect, it } from "vitest";
 import { computeXp, levelForXp, STREAK_MILESTONES, XP_RULES, xpForLevel, type XpInput } from "@/lib/xp";
 
-const empty: XpInput = { checkins: [], weights: [], measurements: [], photos: [], sessions: [], sets: [] };
+// The welcome boost has its own tests below. The rest check the plain rules, so it is left out.
+const empty: XpInput = { checkins: [], weights: [], measurements: [], photos: [], sessions: [], sets: [], welcomeBoost: false };
 const line = (xp: ReturnType<typeof computeXp>, source: string) => xp.lines.find((l) => l.source === source)!;
 
-const finished = (id: string) => ({ id, ended_at: "2026-10-28T11:00:00.000Z" });
+const finished = (id: string, date = "2026-10-28") => ({ id, date, ended_at: "2026-10-28T11:00:00.000Z" });
 const sets = (session_id: string, n: number) => Array.from({ length: n }, () => ({ session_id }));
 
 describe("computeXp", () => {
@@ -45,7 +46,7 @@ describe("computeXp", () => {
   });
 
   it("ignores a workout still in progress", () => {
-    const xp = computeXp({ ...empty, sessions: [{ id: "w1", ended_at: null }], sets: sets("w1", 10) });
+    const xp = computeXp({ ...empty, sessions: [{ id: "w1", date: "2026-10-28", ended_at: null }], sets: sets("w1", 10) });
     expect(xp.total).toBe(0);
   });
 
@@ -67,6 +68,7 @@ describe("computeXp", () => {
       photos: [{ date: "2026-10-26" }],
       sessions: [finished("w1")],
       sets: sets("w1", 5),
+      welcomeBoost: false,
     });
     expect(xp.total).toBe(
       XP_RULES.gymCheckin + XP_RULES.weight + XP_RULES.measurement + XP_RULES.progressPhoto + XP_RULES.workout + 5 * XP_RULES.perSet,

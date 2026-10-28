@@ -1,14 +1,16 @@
 import { Panel } from "@/components/panel";
 import { RankBadge } from "@/components/rank-badge";
 import { getCurrentUserId } from "@/lib/auth";
+import { todayISO } from "@/lib/dates";
 import { loadLevel } from "@/lib/level";
 import { RANKS } from "@/lib/ranks";
 import { cn } from "@/lib/utils";
 import { XP_SOURCE_HINTS, xpForLevel } from "@/lib/xp";
+import { BoostersPanel } from "./boosters-panel";
 
 export async function LevelDetail() {
   const userId = await getCurrentUserId();
-  const { xp, level } = await loadLevel(userId);
+  const { xp, level, boosts } = await loadLevel(userId);
   const percent = Math.round(level.progress * 100);
 
   return (
@@ -41,6 +43,8 @@ export async function LevelDetail() {
           </div>
         </div>
       </Panel>
+
+      <BoostersPanel boosts={boosts} today={todayISO()} />
 
       <Panel label="Rank ladder">
         <ol className="flex flex-col divide-y border">
@@ -100,7 +104,12 @@ export async function LevelDetail() {
                   <span className="mt-1 block text-xs text-muted-foreground">{XP_SOURCE_HINTS[line.source]}</span>
                 </th>
                 <td className="tabular py-3 text-right">{line.count}</td>
-                <td className="tabular py-3 text-right">{line.xp}</td>
+                <td className="tabular py-3 text-right">
+                  {line.xp}
+                  {line.bonus > 0 && (
+                    <span className="block text-[10px] text-muted-foreground">{line.bonus} from boosts</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

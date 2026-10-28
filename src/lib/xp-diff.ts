@@ -16,6 +16,8 @@ export type XpSnapshot = {
   rank: Rank;
   /** XP per source, to name what was gained. */
   lines: { source: string; label: string; xp: number }[];
+  /** Today's XP is doubled by a boost. */
+  boostedToday?: boolean;
 };
 
 export type XpGain = {
@@ -26,6 +28,8 @@ export type XpGain = {
   to: { level: number; progress: number };
   leveledUp: boolean;
   rankedUp: boolean;
+  /** The XP was earned on a boosted day. */
+  boosted: boolean;
   /** The rank now. Shown as a badge when `rankedUp`. */
   rank: Rank;
 };
@@ -55,6 +59,7 @@ export function diffXp(before: XpSnapshot | null, after: XpSnapshot): XpGain | n
     to: { level: after.level, progress: after.progress },
     leveledUp: after.level > before.level,
     rankedUp: after.rank.id !== before.rank.id,
+    boosted: after.boostedToday === true,
     rank: after.rank,
   };
 }
@@ -73,6 +78,7 @@ export function mergeGains(first: XpGain, next: XpGain): XpGain {
     to: next.to,
     leveledUp: next.to.level > first.from.level,
     rankedUp: first.rankedUp || next.rankedUp,
+    boosted: first.boosted || next.boosted,
     rank: next.rank,
   };
 }

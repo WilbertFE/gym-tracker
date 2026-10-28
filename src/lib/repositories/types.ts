@@ -1,4 +1,4 @@
-import type { LogPhoto, ProgressPhoto, WorkoutSet } from "@/lib/types";
+import type { LogPhoto, ProgressPhoto, WorkoutSet, XpBoost } from "@/lib/types";
 
 /** Result shapes shared by the in-memory and Supabase repositories. */
 
@@ -11,6 +11,10 @@ export type CreatePhotoResult =
 export type AddSetResult =
   | { ok: true; set: WorkoutSet }
   | { ok: false; reason: "session_not_found" | "exercise_not_found" };
+
+export type CreateBoostResult =
+  | { ok: true; boost: XpBoost }
+  | { ok: false; reason: "already_boosted" };
 
 export type CreateLogPhotoResult =
   | { ok: true; photo: LogPhoto }

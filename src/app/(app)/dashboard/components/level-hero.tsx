@@ -9,7 +9,7 @@ import { loadLevel } from "@/lib/level";
  */
 export async function LevelHero() {
   const userId = await getCurrentUserId();
-  const { level } = await loadLevel(userId);
+  const { level, boosts } = await loadLevel(userId);
   const percent = Math.round(level.progress * 100);
 
   return (
@@ -46,6 +46,29 @@ export async function LevelHero() {
           </div>
         </div>
       </div>
+
+      {(boosts.activeToday || boosts.available > 0) && (
+        <ul className="mt-4 flex flex-wrap gap-2" aria-label="Boosts">
+          {boosts.activeToday && (
+            <li className="tabular border border-primary px-2 py-1 text-[11px] uppercase tracking-widest text-primary">
+              x2 XP today
+              {boosts.welcome?.active
+                ? `, welcome boost, ${boosts.welcome.daysLeft} day${boosts.welcome.daysLeft === 1 ? "" : "s"} left`
+                : ""}
+            </li>
+          )}
+          {boosts.available > 0 && (
+            <li>
+              <Link
+                href="/dashboard/level"
+                className="tabular inline-flex min-h-8 items-center border px-2 py-1 text-[11px] uppercase tracking-widest hover:border-primary"
+              >
+                {boosts.available} booster{boosts.available === 1 ? "" : "s"} ready
+              </Link>
+            </li>
+          )}
+        </ul>
+      )}
 
       <div className="mt-4 flex flex-col gap-2 border-t pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
         {level.nextRank ? (
