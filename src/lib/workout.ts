@@ -11,6 +11,31 @@ export function sessionVolume(sets: Pick<WorkoutSet, "reps" | "weight_kg">[]): n
   return sets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0);
 }
 
+/** The usual rest between sets. The rest timer turns to the accent color after this long. */
+export const REST_TARGET_SECONDS = 90;
+
+/** Latest completion time across a workout's sets, or null when none are logged yet. */
+export function lastSetCompletedAt(sets: Pick<WorkoutSet, "completed_at">[]): string | null {
+  let latest: string | null = null;
+  for (const s of sets) if (latest === null || s.completed_at > latest) latest = s.completed_at;
+  return latest;
+}
+
+/**
+ * Seconds of rest before each set: the gap since the previous set of the same workout, across
+ * exercises, in the order they were logged. The first set has none. A gap of zero or less, which is
+ * what sets logged before timestamps existed look like, is left out rather than shown as "0:00".
+ */
+export function restBeforeSets(sets: Pick<WorkoutSet, "id" | "completed_at">[]): Map<string, number> {
+  const ordered = [...sets].sort((a, b) => a.completed_at.localeCompare(b.completed_at));
+  const rest = new Map<string, number>();
+  for (let i = 1; i < ordered.length; i++) {
+    const gap = (new Date(ordered[i].completed_at).getTime() - new Date(ordered[i - 1].completed_at).getTime()) / 1000;
+    if (gap > 0) rest.set(ordered[i].id, Math.round(gap));
+  }
+  return rest;
+}
+
 /** Next set number for an exercise within one session (1 based). */
 export function nextSetNumber(sets: WorkoutSet[], exerciseId: string): number {
   return sets.filter((s) => s.exercise_id === exerciseId).length + 1;

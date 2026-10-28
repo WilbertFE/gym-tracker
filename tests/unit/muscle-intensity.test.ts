@@ -32,6 +32,7 @@ const sets = (session_id: string, exerciseName: string, count: number): WorkoutS
     reps: 8,
     weight_kg: 50,
     rpe: null,
+    completed_at: "2026-10-24T10:00:00.000Z",
   }));
 
 const stats = (sessions: WorkoutSession[], allSets: WorkoutSet[], exercises: Exercise[] = BUILT_IN_EXERCISES) =>

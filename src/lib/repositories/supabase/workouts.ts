@@ -7,7 +7,7 @@ import type { AddSetResult } from "../types";
 import { check, fetchAll, getDb, isUniqueViolation, isUuid, numOrNull } from "./db";
 
 const SESSION_COLUMNS = "id,user_id,date,started_at,ended_at,duration_minutes,notes";
-const SET_COLUMNS = "id,session_id,exercise_id,set_number,reps,weight_kg,rpe";
+const SET_COLUMNS = "id,session_id,exercise_id,set_number,reps,weight_kg,rpe,completed_at";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const toSession = (r: any): WorkoutSession => ({
@@ -29,6 +29,7 @@ const toSet = (r: any): WorkoutSet => ({
   reps: r.reps,
   weight_kg: Number(r.weight_kg),
   rpe: numOrNull(r.rpe),
+  completed_at: r.completed_at,
 });
 
 async function findSession(userId: string, id: string): Promise<WorkoutSession | null> {

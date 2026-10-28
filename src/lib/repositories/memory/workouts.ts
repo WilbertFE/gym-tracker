@@ -110,6 +110,7 @@ export async function addSet(
     reps: input.reps,
     weight_kg: input.weight_kg,
     rpe: input.rpe ?? null,
+    completed_at: new Date().toISOString(),
   };
   store.sets.push(set);
   return { ok: true, set };

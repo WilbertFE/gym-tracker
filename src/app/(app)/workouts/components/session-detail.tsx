@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ElapsedTimer } from "@/components/elapsed-timer";
 import { Panel } from "@/components/panel";
+import { RestTimer } from "@/components/rest-timer";
 import { Stat } from "@/components/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
@@ -12,7 +13,7 @@ import { getSessionWithSets, lastSetsByExercise } from "@/lib/repositories/worko
 import { displayVolume } from "@/lib/units";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
 import { pickFocusExercise } from "@/lib/suggestion";
-import { formatDuration, groupSetsByExercise, sessionVolume } from "@/lib/workout";
+import { formatDuration, groupSetsByExercise, lastSetCompletedAt, restBeforeSets, sessionVolume } from "@/lib/workout";
 import { SessionActions } from "./session-actions";
 import { SetList } from "./set-list";
 import { SetLogger } from "./set-logger";
@@ -35,6 +36,7 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
   const groups = groupSetsByExercise(sets, exercises);
   const focusExercise = focus ? pickFocusExercise(exercises, focus, Object.keys(lastSets)) : null;
   const volume = sessionVolume(sets);
+  const rest = Object.fromEntries(restBeforeSets(sets));
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,6 +66,9 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
               Focus: {MUSCLE_LABELS[focus]}. {focusExercise.name} is ready below. Pick another exercise any time.
             </p>
           )}
+          <div className="mb-4">
+            <RestTimer since={lastSetCompletedAt(sets)} />
+          </div>
           <SetLogger
             // Remount when the focus changes so the picked exercise is selected.
             key={focusExercise?.id ?? "none"}
@@ -82,7 +87,7 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
       </Suspense>
 
       <Panel label="Logged sets">
-        <SetList sessionId={id} groups={groups} editable={active} unit={unit} />
+        <SetList sessionId={id} groups={groups} editable={active} unit={unit} rest={rest} />
       </Panel>
 
       <SessionActions sessionId={id} active={active} />

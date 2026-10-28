@@ -110,6 +110,7 @@ describe("recommendUndertrained", () => {
       reps: 8,
       weight_kg: 60,
       rpe: null,
+      completed_at: "2026-10-24T10:00:00.000Z",
     }));
     const stats = buildMuscleStats({ sessions, sets, exercises: BUILT_IN_EXERCISES, today: "2026-10-24" });
     const recs = recommendUndertrained(stats, 16);

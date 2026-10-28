@@ -35,6 +35,7 @@ const setsOf = (name: string, count: number): WorkoutSet[] =>
     reps: 8,
     weight_kg: 20,
     rpe: null,
+    completed_at: "2026-10-24T10:00:00.000Z",
   }));
 
 describe("weeklyCoverage", () => {

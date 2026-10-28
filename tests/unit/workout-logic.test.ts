@@ -19,6 +19,7 @@ const set = (exercise_id: string, set_number: number, reps = 10, weight_kg = 50)
   reps,
   weight_kg,
   rpe: null,
+  completed_at: "2026-10-24T10:00:00.000Z",
 });
 
 describe("computeDurationMinutes", () => {

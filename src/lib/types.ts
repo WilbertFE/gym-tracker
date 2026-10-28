@@ -68,6 +68,8 @@ export type WorkoutSet = {
   reps: number;
   weight_kg: number;
   rpe: number | null;
+  /** When the set was logged. Drives the rest timer. */
+  completed_at: string;
 };
 
 export type PhotoPose = "front" | "side" | "back";

@@ -33,6 +33,7 @@ const set = (session_id: string, exerciseName: string, reps: number, weight_kg: 
   reps,
   weight_kg,
   rpe: null,
+  completed_at: "2026-10-24T10:00:00.000Z",
 });
 
 describe("weekRange", () => {

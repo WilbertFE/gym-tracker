@@ -4,19 +4,22 @@ import { TrashIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { LocalTime } from "@/components/local-time";
 import { apiRequest } from "@/lib/api-client";
 import { MUSCLE_LABELS } from "@/lib/muscles";
 import { displayWeight, type WeightUnit } from "@/lib/units";
-import type { ExerciseGroup } from "@/lib/workout";
+import { formatElapsed, type ExerciseGroup } from "@/lib/workout";
 
 type SetListProps = {
   sessionId: string;
   groups: ExerciseGroup[];
   editable: boolean;
   unit: WeightUnit;
+  /** Seconds of rest before each set, by set id. Missing for the first set of a workout. */
+  rest: Record<string, number>;
 };
 
-export function SetList({ sessionId, groups, editable, unit }: SetListProps) {
+export function SetList({ sessionId, groups, editable, unit, rest }: SetListProps) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -62,6 +65,10 @@ export function SetList({ sessionId, groups, editable, unit }: SetListProps) {
                   ) : (
                     <span className="text-muted-foreground">bodyweight</span>
                   )}
+                </span>
+                <span className="tabular flex flex-col items-end text-[11px] leading-tight text-muted-foreground">
+                  <LocalTime iso={set.completed_at} />
+                  {rest[set.id] !== undefined && <span>rest {formatElapsed(rest[set.id])}</span>}
                 </span>
                 {editable && (
                   <button

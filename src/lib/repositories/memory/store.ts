@@ -69,6 +69,8 @@ function seedWorkouts(userId: string, now: Date) {
       duration_minutes: minutes,
       notes: null,
     });
+    // About three minutes per set, from the start of the workout.
+    let setIndex = 0;
     for (const [name, work] of plan) {
       work.forEach(([reps, weight_kg], i) =>
         sets.push({
@@ -79,6 +81,7 @@ function seedWorkouts(userId: string, now: Date) {
           reps,
           weight_kg,
           rpe: null,
+          completed_at: new Date(start.getTime() + ++setIndex * 3 * 60_000).toISOString(),
         }),
       );
     }
