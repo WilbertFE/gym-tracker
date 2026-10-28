@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,13 @@ import { formatDuration } from "@/lib/workout";
 type SessionActionsProps = {
   sessionId: string;
   active: boolean;
+  /** At least one set was logged, so there is something to share. */
+  hasSets: boolean;
 };
 
-export function SessionActions({ sessionId, active }: SessionActionsProps) {
+export function SessionActions({ sessionId, active, hasSets }: SessionActionsProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [busy, setBusy] = useState<"finish" | "delete" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -29,7 +32,9 @@ export function SessionActions({ sessionId, active }: SessionActionsProps) {
     }
     const minutes = result.data.duration_minutes;
     toast.success(minutes ? `Workout finished: ${formatDuration(minutes)}` : "Workout finished");
-    router.refresh();
+    // A workout with sets has something to show, so offer the share image straight away.
+    if (hasSets) router.replace(`${pathname}?share=1`);
+    else router.refresh();
   }
 
   async function remove() {

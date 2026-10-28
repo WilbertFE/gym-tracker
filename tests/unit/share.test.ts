@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { BUILT_IN_EXERCISES, builtInId } from "@/lib/exercise-library";
 import type { MuscleGroup } from "@/lib/muscles";
-import { buildShareCard, workoutLocation, workoutMuscleLevels, workoutTitle } from "@/lib/share";
+import { rankForLevel } from "@/lib/ranks";
+import { buildShareCard, workoutLocation, workoutTitle } from "@/lib/share";
 import {
   drawShareCard,
   SHARE_FORMATS,
@@ -9,9 +10,18 @@ import {
   SHARE_TEMPLATES,
   shareFileName,
 } from "@/lib/share-render";
-import type { WorkoutSet } from "@/lib/types";
+import type { WorkoutSession, WorkoutSet } from "@/lib/types";
+import { workoutBody } from "@/lib/workout-body";
 
-const session = { date: "2026-10-28", duration_minutes: 65 };
+const session: WorkoutSession = {
+  id: "w",
+  user_id: "u",
+  date: "2026-10-28",
+  started_at: "2026-10-28T09:00:00.000Z",
+  ended_at: "2026-10-28T10:05:00.000Z",
+  duration_minutes: 65,
+  notes: null,
+};
 let n = 0;
 const set = (name: string, reps: number, weight_kg: number): WorkoutSet => ({
   id: `s${n++}`,
@@ -23,8 +33,11 @@ const set = (name: string, reps: number, weight_kg: number): WorkoutSet => ({
   rpe: null,
   completed_at: "2026-10-28T10:00:00.000Z",
 });
+/** The body picture for a workout that is the only one of its week, like a new user's first. */
+const bodyFor = (sets: WorkoutSet[]) =>
+  workoutBody({ allSessions: [session], allSets: sets, session, sets, exercises: BUILT_IN_EXERCISES });
 const card = (sets: WorkoutSet[], unit: "kg" | "lb" = "kg") =>
-  buildShareCard({ session, sets, exercises: BUILT_IN_EXERCISES, unit });
+  buildShareCard({ session, sets, exercises: BUILT_IN_EXERCISES, unit, body: bodyFor(sets) });
 
 const counts = (entries: [MuscleGroup, number][]) => new Map(entries);
 
@@ -92,32 +105,43 @@ describe("buildShareCard", () => {
 
   it("handles an unknown duration and keeps at most 5 muscles", () => {
     const many = BUILT_IN_EXERCISES.slice(0, 12).map((e) => ({ ...set("Pull Up", 5, 0), exercise_id: e.id }));
-    const c = buildShareCard({ session: { date: "2026-10-28", duration_minutes: null }, sets: many, exercises: BUILT_IN_EXERCISES, unit: "kg" });
+    const c = buildShareCard({ session: { date: "2026-10-28", duration_minutes: null }, sets: many, exercises: BUILT_IN_EXERCISES, unit: "kg", body: bodyFor(many) });
     expect(c.duration).toBeNull();
     expect(c.muscles.length).toBeLessThanOrEqual(5);
   });
 });
 
-describe("workoutMuscleLevels", () => {
-  it("colors the muscles this workout worked and leaves the rest", () => {
-    const levels = workoutMuscleLevels(
-      [...Array.from({ length: 6 }, () => set("Barbell Bench Press", 8, 60)), set("Lateral Raise", 12, 8)],
-      BUILT_IN_EXERCISES,
-    );
-    expect(levels.chest).toBe("high");
-    expect(levels.side_delts).toBe("low");
-    expect(levels.quads).toBe("none");
-    expect(Object.keys(levels)).toHaveLength(16);
+describe("the body picture", () => {
+  it("is the same data the workout page uses: the week's levels with this workout's muscles picked out", () => {
+    const sets = [...Array.from({ length: 6 }, () => set("Barbell Bench Press", 8, 60)), set("Lateral Raise", 12, 8)];
+    const c = card(sets);
+    expect(c.bodyLevels).toEqual(bodyFor(sets).levels);
+    expect(c.workedMuscles).toEqual(bodyFor(sets).worked);
+    expect(c.workedMuscles).toEqual(expect.arrayContaining(["chest", "side_delts"]));
+    expect(c.bodyLevels.chest).toBe("mid");
+    expect(c.bodyLevels.quads).toBe("none");
+    expect(Object.keys(c.bodyLevels)).toHaveLength(16);
   });
 
-  it("counts secondary muscles at half a set", () => {
-    // Bench press works the triceps and front delts as secondary muscles.
-    const levels = workoutMuscleLevels(Array.from({ length: 6 }, () => set("Barbell Bench Press", 8, 60)), BUILT_IN_EXERCISES);
-    expect(levels.triceps).toBe("mid");
+  it("counts earlier workouts of the same week in the colors, but only this one in the outline", () => {
+    const monday = { ...session, id: "m", date: "2026-10-26" };
+    const earlier = Array.from({ length: 6 }, () => ({ ...set("Barbell Back Squat", 5, 100), session_id: "m" }));
+    const mine = [set("Barbell Bench Press", 8, 60)];
+    const body = workoutBody({
+      allSessions: [monday, session],
+      allSets: [...earlier, ...mine],
+      session,
+      sets: mine,
+      exercises: BUILT_IN_EXERCISES,
+    });
+    expect(body.levels.quads).not.toBe("none");
+    expect(body.worked).not.toContain("quads");
+    expect(body.worked).toContain("chest");
   });
 
   it("is all none with no sets", () => {
-    expect(Object.values(workoutMuscleLevels([], BUILT_IN_EXERCISES)).every((l) => l === "none")).toBe(true);
+    expect(Object.values(bodyFor([]).levels).every((l) => l === "none")).toBe(true);
+    expect(bodyFor([]).worked).toEqual([]);
   });
 });
 
@@ -152,7 +176,7 @@ describe("workoutLocation", () => {
   });
 
   it("carries the location into the card and never any coordinates", () => {
-    const c = buildShareCard({ session, sets: [set("Pull Up", 8, 0)], exercises: BUILT_IN_EXERCISES, unit: "kg", location: "Iron Gym" });
+    const c = buildShareCard({ session, sets: [set("Pull Up", 8, 0)], exercises: BUILT_IN_EXERCISES, unit: "kg", body: bodyFor([]), location: "Iron Gym" });
     expect(c.location).toBe("Iron Gym");
     expect(JSON.stringify(c)).not.toMatch(/latitude|longitude/);
     expect(card([set("Pull Up", 8, 0)]).location).toBeNull();
@@ -163,10 +187,14 @@ describe("workoutLocation", () => {
 function fakeContext() {
   const drawn: string[] = [];
   const fills: string[] = [];
+  const strokes: string[] = [];
+  let images = 0;
   const placed: { text: string; x: number; size: number }[] = [];
   const fontSize = () => Number(/(\d+)px/.exec(String(target.font))?.[1] ?? 10);
   const target: Record<string, unknown> = {
     fill: () => void fills.push(String((target as { fillStyle?: string }).fillStyle)),
+    stroke: () => void strokes.push(String((target as { strokeStyle?: string }).strokeStyle)),
+    drawImage: () => void images++,
     // Monospace at 0.6 em a character, like the real font, so a bigger size measures wider.
     measureText: (s: string) => ({ width: s.length * fontSize() * 0.6 }),
     fillText: (s: string, x: number) => {
@@ -179,7 +207,7 @@ function fakeContext() {
     get: (t, key: string) => (key in t ? t[key] : () => {}),
     set: (t, key: string, value) => ((t[key] = value), true),
   }) as unknown as CanvasRenderingContext2D;
-  return { ctx, drawn, fills, placed };
+  return { ctx, drawn, fills, strokes, placed, images: () => images };
 }
 
 vi.stubGlobal("Path2D", class {});
@@ -199,16 +227,53 @@ describe("drawShareCard", () => {
     },
   );
 
-  it("draws the body in the accent color for worked muscles, front and back", () => {
-    const worked = card(Array.from({ length: 6 }, () => set("Barbell Bench Press", 8, 60)));
+  it("colors the body like the workout page: the app's green, yellow and red", () => {
+    const heavy = Array.from({ length: 14 }, () => set("Barbell Bench Press", 8, 60));
     const { ctx, fills } = fakeContext();
-    drawShareCard(ctx, worked, "classic", "story", fonts);
-    // The accent color is used for the chest on both views and both halves.
-    expect(fills.filter((f) => f === "#22d3ee").length).toBeGreaterThanOrEqual(4);
+    drawShareCard(ctx, card(heavy), "classic", "story", fonts);
+    // Chest is heavy (red) and shows on the front view, both halves. The legend dots add one of each color.
+    expect(fills.filter((f) => f === "#ef4444").length).toBeGreaterThanOrEqual(2);
+    expect(fills).toContain("#22c55e");
+    expect(fills).toContain("#eab308");
+
+    const idle = fakeContext();
+    drawShareCard(idle.ctx, card([]), "classic", "square", fonts);
+    // Square has no legend, and with nothing trained there is no color at all.
+    for (const color of ["#22c55e", "#eab308", "#ef4444"]) expect(idle.fills).not.toContain(color);
+  });
+
+  it("outlines this workout's muscles in the accent color and nothing else", () => {
+    const { ctx, strokes } = fakeContext();
+    drawShareCard(ctx, card([set("Barbell Bench Press", 8, 60)]), "classic", "story", fonts);
+    expect(strokes.filter((c) => c === "#22d3ee").length).toBeGreaterThanOrEqual(2);
 
     const idle = fakeContext();
     drawShareCard(idle.ctx, card([]), "classic", "story", fonts);
-    expect(idle.fills.filter((f) => f === "#22d3ee")).toHaveLength(0);
+    expect(idle.strokes).not.toContain("#22d3ee");
+  });
+
+  it("captions the two figures and explains the colors on the story size", () => {
+    const story = fakeContext();
+    drawShareCard(story.ctx, c, "classic", "story", fonts);
+    expect(story.drawn).toEqual(expect.arrayContaining(["FRONT", "BACK", "Light", "Moderate", "Heavy"]));
+
+    const square = fakeContext();
+    drawShareCard(square.ctx, c, "classic", "square", fonts);
+    expect(square.drawn).toEqual(expect.arrayContaining(["FRONT", "BACK"]));
+    expect(square.drawn).not.toContain("Moderate");
+  });
+
+  it("draws the rank badge and level when given, and leaves them out otherwise", () => {
+    const withRank = { ...c, progress: { level: 12, rank: rankForLevel(12) } };
+    const a = fakeContext();
+    drawShareCard(a.ctx, withRank, "classic", "story", fonts, { image: {} as CanvasImageSource, width: 148, height: 100 });
+    expect(a.images()).toBe(1);
+    expect(a.drawn).toEqual(expect.arrayContaining(["LV 12", "PLATE MOVER"]));
+
+    const b = fakeContext();
+    drawShareCard(b.ctx, withRank, "classic", "story", fonts, null);
+    expect(b.images()).toBe(0);
+    expect(b.drawn).not.toContain("LV 12");
   });
 
   it("draws the location only when there is one", () => {

@@ -63,6 +63,12 @@ async function WorkoutBody({
 }: Pick<PageProps<"/workouts/[id]">, "params" | "searchParams">) {
   const { id } = await params;
   // `?focus=calves` opens the workout with an exercise for that muscle ready. Anything else is ignored.
-  const { focus } = await searchParams;
-  return <SessionDetail id={id} focus={parseMuscle(Array.isArray(focus) ? focus[0] : focus)} />;
+  const { focus, share } = await searchParams;
+  return (
+    <SessionDetail
+      id={id}
+      focus={parseMuscle(Array.isArray(focus) ? focus[0] : focus)}
+      shareOnLoad={(Array.isArray(share) ? share[0] : share) === "1"}
+    />
+  );
 }

@@ -1,9 +1,8 @@
 import { BodySvg } from "@/components/body-map/body-svg";
 import { Panel } from "@/components/panel";
-import { weeklyCoverage, workedMuscles } from "@/lib/coverage";
-import { buildMuscleStats, type IntensityLevel } from "@/lib/muscle-intensity";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
+import { workoutBody } from "@/lib/workout-body";
 import type { Exercise, WorkoutSession, WorkoutSet } from "@/lib/types";
 
 type WorkoutMuscleMapProps = {
@@ -25,22 +24,14 @@ const names = (muscles: MuscleGroup[]) => muscles.map((m) => MUSCLE_LABELS[m]).j
 export async function WorkoutMuscleMap({ userId, session, sets, exercises, active }: WorkoutMuscleMapProps) {
   const [allSessions, allSets] = await Promise.all([listSessions(userId), listAllSets(userId)]);
 
-  // The workout's own week, whether it is happening now or was a while ago.
-  const week = buildMuscleStats({ sessions: allSessions, sets: allSets, exercises, today: session.date });
-  const mine = buildMuscleStats({ sessions: [session], sets, exercises, today: session.date });
-
-  const worked = workedMuscles(mine).map((w) => w.muscle);
-  const untouched = weeklyCoverage(week).untrained.map((u) => u.muscle);
+  const { levels, scores, worked, untouched } = workoutBody({
+    allSessions,
+    allSets,
+    session,
+    sets,
+    exercises,
+  });
   const highlight = new Set<MuscleGroup>(worked);
-
-  const levels = Object.fromEntries(week.map((s) => [s.muscle, s.weekly.level])) as Record<
-    MuscleGroup,
-    IntensityLevel
-  >;
-  const scores = Object.fromEntries(week.map((s) => [s.muscle, s.weekly.score])) as Record<
-    MuscleGroup,
-    number
-  >;
 
   return (
     <Panel label={active ? "Muscle map" : "Muscles trained"}>

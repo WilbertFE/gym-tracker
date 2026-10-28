@@ -128,21 +128,15 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
         </p>
       )}
 
-      <details open={Boolean(existing?.mood || existing?.energy || existing?.sleep_hours)} className="group">
-        <summary className="flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground hover:text-foreground">
-          Add mood, energy and sleep (optional)
-        </summary>
-        <div className="flex flex-col gap-4 pb-2 pt-2">
+      <div className="flex flex-col gap-4">
+        <p className="text-xs text-muted-foreground">How do you feel? All optional.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <ScaleSelect label="Mood" value={mood} onChange={setMood} />
           <ScaleSelect label="Energy" value={energy} onChange={setEnergy} />
         </div>
 
         <div className="flex flex-col gap-2 sm:max-w-40">
-          <Label
-            htmlFor="sleep"
-            className="text-[11px] uppercase tracking-widest text-muted-foreground"
-          >
+          <Label htmlFor="sleep" className="text-[11px] uppercase tracking-widest text-muted-foreground">
             Sleep (hours)
           </Label>
           <Input
@@ -157,8 +151,7 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
             onChange={(e) => setSleep(e.target.value)}
           />
         </div>
-        </div>
-      </details>
+      </div>
 
       {problem && (
         <p role="alert" className="border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">

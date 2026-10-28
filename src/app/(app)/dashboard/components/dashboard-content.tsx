@@ -4,15 +4,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
 import { listSessions } from "@/lib/repositories/workouts";
 import { CheckinPanel } from "./checkin-panel";
-import { LevelPanel } from "./level-panel";
+import { LevelHero } from "./level-hero";
 import { MembershipSnapshotPanel } from "./membership-snapshot-panel";
 import { NextWorkoutPanel } from "./next-workout-panel";
 import { WeekPanel } from "./week-panel";
 import { WeightSnapshotPanel } from "./weight-snapshot-panel";
 
 /**
- * Today first: check in, then train. The summary panels only appear once there is a workout to
- * summarise, so a new account sees two cards and a short guide and their level instead of a wall of empty charts.
+ * Level first, then today: check in, then train. The summary panels only appear once there is a workout to
+ * summarise, so a new account sees two cards and a short guide instead of a wall of empty charts.
  */
 export async function DashboardContent() {
   const userId = await getCurrentUserId();
@@ -20,6 +20,10 @@ export async function DashboardContent() {
 
   return (
     <>
+      <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+        <LevelHero />
+      </Suspense>
+
       {firstRun && (
         <Panel label="Welcome">
           <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm text-muted-foreground">
@@ -42,22 +46,13 @@ export async function DashboardContent() {
         </Suspense>
       </div>
 
-      {firstRun && (
-        <Suspense fallback={<Skeleton className="h-40 w-full" />}>
-          <LevelPanel />
-        </Suspense>
-      )}
-
       {!firstRun && (
         <>
           <Suspense fallback={<Skeleton className="h-64 w-full" />}>
             <WeekPanel />
           </Suspense>
 
-          <div className="grid items-start gap-6 lg:grid-cols-3">
-            <Suspense fallback={<Skeleton className="h-40 w-full" />}>
-              <LevelPanel />
-            </Suspense>
+          <div className="grid items-start gap-6 lg:grid-cols-2">
             <Suspense fallback={<Skeleton className="h-40 w-full" />}>
               <WeightSnapshotPanel />
             </Suspense>

@@ -1,8 +1,10 @@
 "use client";
 
 import { ShareNetworkIcon } from "@phosphor-icons/react";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { RankBadge } from "@/components/rank-badge";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +23,7 @@ import {
   SHARE_SIZES,
   SHARE_TEMPLATES,
   shareFileName,
+  type ShareBadge,
   type ShareFonts,
   type ShareFormat,
   type ShareTemplate,
@@ -40,10 +43,32 @@ function pageFonts(): ShareFonts {
 const toBlob = (canvas: HTMLCanvasElement) =>
   new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
 
-/** Opens a dialog with the workout as an image, in a few looks and two sizes, to share or save. */
-export function ShareWorkout({ card, date }: { card: ShareCard; date: string }) {
+/** Turns the rank badge on the page into an image the canvas can draw. Null if the browser refuses. */
+async function badgeImage(host: HTMLElement | null): Promise<ShareBadge | null> {
+  const svg = host?.querySelector("svg");
+  if (!svg) return null;
+  const markup = new XMLSerializer().serializeToString(svg);
+  const image = new Image();
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
+  try {
+    await image.decode();
+    return { image, width: image.naturalWidth, height: image.naturalHeight };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A dialog with the workout as an image, in a few looks and two sizes, to share or save. The image is
+ * drawn here in the browser when the dialog is open and is never stored. `defaultOpen` is for the
+ * moment right after finishing a workout.
+ */
+export function ShareWorkout({ card, date, defaultOpen = false }: { card: ShareCard; date: string; defaultOpen?: boolean }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [open, setOpen] = useState(false);
+  const badgeHost = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(defaultOpen);
   const [template, setTemplate] = useState<ShareTemplate>("classic");
   const [format, setFormat] = useState<ShareFormat>("story");
   const [busy, setBusy] = useState(false);
@@ -57,13 +82,14 @@ export function ShareWorkout({ card, date }: { card: ShareCard; date: string }) 
     let cancelled = false;
     (async () => {
       await document.fonts?.ready;
+      const badge = await badgeImage(badgeHost.current);
       const canvas = canvasRef.current;
       if (cancelled || !canvas) return;
       const { width, height } = SHARE_SIZES[format];
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
-      if (ctx) drawShareCard(ctx, shown, template, format, pageFonts());
+      if (ctx) drawShareCard(ctx, shown, template, format, pageFonts(), badge);
     })();
     return () => {
       cancelled = true;
@@ -121,7 +147,14 @@ export function ShareWorkout({ card, date }: { card: ShareCard; date: string }) 
   const { width, height } = SHARE_SIZES[format];
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // Opened by the finish redirect: drop ?share=1 so a refresh does not open it again.
+        if (!next && defaultOpen) router.replace(pathname, { scroll: false });
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline" className="h-12">
           <ShareNetworkIcon className="size-4" aria-hidden />
@@ -163,6 +196,13 @@ export function ShareWorkout({ card, date }: { card: ShareCard; date: string }) 
             />
             Show where I trained ({card.location})
           </label>
+        )}
+
+        {card.progress && (
+          // The badge is drawn into the image from this hidden copy, so it is the very same artwork.
+          <div ref={badgeHost} hidden aria-hidden>
+            <RankBadge rank={card.progress.rank} size={360} />
+          </div>
         )}
 
         <div className="flex justify-center bg-surface p-2">

@@ -1,6 +1,6 @@
 import { addDays, format } from "date-fns";
 import { describe, expect, it } from "vitest";
-import { computeXp, levelForXp, STREAK_MILESTONES, titleForLevel, XP_RULES, xpForLevel, type XpInput } from "@/lib/xp";
+import { computeXp, levelForXp, STREAK_MILESTONES, XP_RULES, xpForLevel, type XpInput } from "@/lib/xp";
 
 const empty: XpInput = { checkins: [], weights: [], measurements: [], photos: [], sessions: [], sets: [] };
 const line = (xp: ReturnType<typeof computeXp>, source: string) => xp.lines.find((l) => l.source === source)!;
@@ -135,45 +135,81 @@ describe("streak XP", () => {
 });
 
 describe("levels", () => {
-  it("starts at level 1 with 0 XP", () => {
-    expect(levelForXp(0)).toMatchObject({ level: 1, title: "Rookie", intoLevel: 0, toNext: 100, progress: 0 });
+  it("starts at level 1 with 0 XP, in the first rank", () => {
+    expect(levelForXp(0)).toMatchObject({ level: 1, intoLevel: 0, toNext: 13, progress: 0 });
+    expect(levelForXp(0).rank.name).toBe("Warm-Up");
   });
 
-  it("follows the curve at and around each boundary", () => {
-    const boundaries = [[2, 100], [3, 300], [4, 600], [5, 1000], [10, 4500]] as const;
-    for (const [level, xp] of boundaries) {
+  it("gives a first check-in a level straight away", () => {
+    expect(levelForXp(XP_RULES.gymCheckin).level).toBeGreaterThanOrEqual(2);
+  });
+
+  it("follows the curve: level L needs (L - 1)(L + 24) / 2 XP", () => {
+    const known = [[2, 13], [3, 27], [5, 58], [10, 153], [25, 588], [50, 1813], [100, 6138]] as const;
+    for (const [level, xp] of known) {
       expect(xpForLevel(level)).toBe(xp);
       expect(levelForXp(xp).level).toBe(level);
       expect(levelForXp(xp - 1).level).toBe(level - 1);
     }
   });
 
+  it("every level costs a whole number of XP and a little more than the one before", () => {
+    let previous = 0;
+    for (let level = 1; level < 1100; level++) {
+      const cost = xpForLevel(level + 1) - xpForLevel(level);
+      expect(Number.isInteger(cost)).toBe(true);
+      expect(cost).toBe(12 + level);
+      expect(cost).toBeGreaterThan(previous);
+      previous = cost;
+    }
+  });
+
+  it("round trips for every level up to 1,100", () => {
+    for (let level = 1; level <= 1100; level++) {
+      expect(levelForXp(xpForLevel(level)).level).toBe(level);
+      if (level > 1) expect(levelForXp(xpForLevel(level) - 1).level).toBe(level - 1);
+    }
+  });
+
   it("reports progress through a level", () => {
-    // Level 2 runs from 100 to 300 XP.
-    const l = levelForXp(200);
-    expect(l).toMatchObject({ level: 2, intoLevel: 100, levelSpan: 200, toNext: 100 });
-    expect(l.progress).toBeCloseTo(0.5);
+    // Level 5 runs from 58 to 75 XP (17 XP).
+    const l = levelForXp(66);
+    expect(l).toMatchObject({ level: 5, intoLevel: 8, levelSpan: 17, toNext: 9 });
+    expect(l.progress).toBeCloseTo(8 / 17);
+  });
+
+  it("points to the next rank and how far away it is", () => {
+    const l = levelForXp(xpForLevel(5) - 10);
+    expect(l.level).toBe(4);
+    expect(l.nextRank?.name).toBe("Iron Rookie");
+    expect(l.xpToNextRank).toBe(10);
+  });
+
+  it("has no next rank at the top", () => {
+    const top = levelForXp(xpForLevel(1000));
+    expect(top.rank.name).toBe("God of Gains");
+    expect(top.nextRank).toBeNull();
+    expect(top.xpToNextRank).toBeNull();
   });
 
   it("never goes below level 1 or crashes on odd input", () => {
     expect(levelForXp(-50).level).toBe(1);
     expect(levelForXp(0.9).total).toBe(0);
-    expect(levelForXp(10_000_000).level).toBeGreaterThan(100);
-  });
-
-  it("gets a new title at the thresholds", () => {
-    expect(titleForLevel(1)).toBe("Rookie");
-    expect(titleForLevel(4)).toBe("Rookie");
-    expect(titleForLevel(5)).toBe("Regular");
-    expect(titleForLevel(10)).toBe("Committed");
-    expect(titleForLevel(30)).toBe("Legend");
+    expect(levelForXp(10_000_000).level).toBeGreaterThan(1000);
   });
 
   it("is always consistent: the level's start is at or below the XP and the next is above", () => {
-    for (let xp = 0; xp < 20_000; xp += 37) {
+    for (let xp = 0; xp < 60_000; xp += 37) {
       const { level } = levelForXp(xp);
       expect(xpForLevel(level)).toBeLessThanOrEqual(xp);
       expect(xpForLevel(level + 1)).toBeGreaterThan(xp);
     }
+  });
+
+  it("lets a regular trainer reach level 100 in a few months", () => {
+    // About 420 XP a week for a 4 day a week trainer, so 14 to 15 weeks.
+    const weeks = Math.ceil(xpForLevel(100) / 420);
+    expect(weeks).toBeLessThanOrEqual(16);
+    expect(weeks).toBeGreaterThanOrEqual(10);
   });
 });

@@ -25,6 +25,9 @@ export const SHARE_SIZES: Record<ShareFormat, { width: number; height: number }>
 
 export type ShareFonts = { sans: string; mono: string };
 
+/** The rank badge ready to draw: the image and its natural size, so it is never stretched. */
+export type ShareBadge = { image: CanvasImageSource; width: number; height: number };
+
 type Palette = {
   bg: [string, string];
   text: string;
@@ -32,7 +35,7 @@ type Palette = {
   accent: string;
   surface: string;
   line: string;
-  /** Body picture: muscles not worked, and the color between muscles. */
+  /** Body picture: a muscle with no work this week, and the color between muscles. */
   bodyNone: string;
   bodyGap: string;
   /** Text on top of the accent color. */
@@ -48,7 +51,7 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     accent: "#22d3ee",
     surface: "#111317",
     line: "#23272e",
-    bodyNone: "#1b1f26",
+    bodyNone: "#2a2e36",
     bodyGap: "#0a0b0d",
     onAccent: "#0a0b0d",
     grid: true,
@@ -60,7 +63,7 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     accent: "#a5f3fc",
     surface: "rgba(10, 11, 13, 0.35)",
     line: "rgba(255, 255, 255, 0.25)",
-    bodyNone: "rgba(255, 255, 255, 0.16)",
+    bodyNone: "rgba(255, 255, 255, 0.2)",
     bodyGap: "rgba(10, 11, 13, 0.6)",
     onAccent: "#0a0b0d",
     grid: false,
@@ -72,7 +75,7 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     accent: "#0891b2",
     surface: "#ffffff",
     line: "#d9dde3",
-    bodyNone: "#dfe3e8",
+    bodyNone: "#cfd4da",
     bodyGap: "#f4f5f7",
     onAccent: "#ffffff",
     grid: false,
@@ -181,14 +184,27 @@ function statTiles(
   });
 }
 
-/** How much of the accent color each level gets. */
-const LEVEL_ALPHA: Record<IntensityLevel, number> = { none: 0, low: 0.4, mid: 0.7, high: 1 };
+/**
+ * The same colors as the muscle map in the app (see --intensity-* in globals.css), so a share image
+ * and the workout page tell the same story: green light, yellow moderate, red heavy.
+ */
+const INTENSITY_COLORS = { low: "#22c55e", mid: "#eab308", high: "#ef4444" } as const;
 
-/** One body, front or back, with the worked muscles in the accent color. The box is 200 by 410. */
+const LEVEL_NAMES: [IntensityLevel & keyof typeof INTENSITY_COLORS, string][] = [
+  ["low", "Light"],
+  ["mid", "Moderate"],
+  ["high", "Heavy"],
+];
+
+/**
+ * One body, front or back, drawn like the workout page: each muscle in its weekly color, with the
+ * muscles this workout worked outlined in the accent color. The box is 200 by 410.
+ */
 function drawBody(
   ctx: CanvasRenderingContext2D,
   p: Palette,
   levels: Record<MuscleGroup, IntensityLevel>,
+  worked: ReadonlySet<MuscleGroup>,
   view: BodyView,
   x: number,
   y: number,
@@ -199,22 +215,16 @@ function drawBody(
   ctx.translate(x, y);
   ctx.scale(scale, scale);
 
-  const drawHalf = (path: Path2D, mirror: boolean, level: IntensityLevel) => {
+  const drawHalf = (path: Path2D, mirror: boolean, fill: string, outline: boolean) => {
     ctx.save();
     if (mirror) {
       ctx.translate(200, 0);
       ctx.scale(-1, 1);
     }
-    ctx.fillStyle = p.bodyNone;
+    ctx.fillStyle = fill;
     ctx.fill(path);
-    if (level !== "none") {
-      ctx.globalAlpha = LEVEL_ALPHA[level];
-      ctx.fillStyle = p.accent;
-      ctx.fill(path);
-      ctx.globalAlpha = 1;
-    }
-    ctx.strokeStyle = p.bodyGap;
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = outline ? p.accent : p.bodyGap;
+    ctx.lineWidth = outline ? 2.5 : 1.5;
     ctx.stroke(path);
     ctx.restore();
   };
@@ -225,15 +235,33 @@ function drawBody(
   ctx.arc(head.cx, head.cy, head.r, 0, Math.PI * 2);
   ctx.fill();
   for (const part of [neck, hands, feet]) {
-    drawHalf(new Path2D(part), false, "none");
-    if (part !== neck) drawHalf(new Path2D(part), true, "none");
+    drawHalf(new Path2D(part), false, p.bodyNone, false);
+    if (part !== neck) drawHalf(new Path2D(part), true, p.bodyNone, false);
   }
-  for (const { muscle, d } of SHAPES_BY_VIEW[view]) {
+  // Outlined muscles last, so a neighbor never paints over their outline.
+  const shapes = [...SHAPES_BY_VIEW[view]].sort((a, b) => Number(worked.has(a.muscle)) - Number(worked.has(b.muscle)));
+  for (const { muscle, d } of shapes) {
+    const level = levels[muscle];
+    const fill = level === "none" ? p.bodyNone : INTENSITY_COLORS[level];
     const path = new Path2D(d);
-    drawHalf(path, false, levels[muscle]);
-    drawHalf(path, true, levels[muscle]);
+    drawHalf(path, false, fill, worked.has(muscle));
+    drawHalf(path, true, fill, worked.has(muscle));
   }
   ctx.restore();
+}
+
+/** "Light, Moderate, Heavy" with a colored dot each, so the colors can be read. */
+function legend(ctx: CanvasRenderingContext2D, f: ShareFonts, p: Palette, x: number, y: number) {
+  let cursor = x;
+  for (const [level, name] of LEVEL_NAMES) {
+    ctx.fillStyle = INTENSITY_COLORS[level];
+    ctx.beginPath();
+    ctx.arc(cursor + 10, y - 8, 10, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, f, name, cursor + 30, y, { size: 24, color: p.muted, mono: true });
+    ctx.font = `400 24px ${f.mono}`;
+    cursor += 30 + ctx.measureText(name).width + 36;
+  }
 }
 
 /** A small map pin: a ring with a dot. */
@@ -303,6 +331,8 @@ export function drawShareCard(
   template: ShareTemplate,
   format: ShareFormat,
   fonts: ShareFonts,
+  /** The rank badge as an image with its natural size, drawn top right. Left out when not given. */
+  badge: ShareBadge | null = null,
 ) {
   const p = PALETTES[template];
   const { width: w, height: h } = SHARE_SIZES[format];
@@ -317,7 +347,36 @@ export function drawShareCard(
 
   // Title.
   const titleY = story ? 360 : 260;
-  text(ctx, fonts, card.title, MARGIN, titleY, { size: story ? 150 : 116, color: p.text, weight: 700, maxWidth: inner });
+  const badgeSize = story ? 190 : 150;
+  const showBadge = badge !== null && card.progress !== null;
+  text(ctx, fonts, card.title, MARGIN, titleY, {
+    size: showBadge ? (story ? 128 : 100) : story ? 150 : 116,
+    color: p.text,
+    weight: 700,
+    maxWidth: showBadge ? inner - badgeSize - 24 : inner,
+  });
+  if (showBadge && card.progress) {
+    const bx = w - MARGIN - badgeSize;
+    const by = titleY - (story ? 150 : 118);
+    const badgeHeight = (badgeSize * badge.height) / badge.width;
+    ctx.drawImage(badge.image, bx, by, badgeSize, badgeHeight);
+    text(ctx, fonts, `LV ${card.progress.level}`, bx + badgeSize / 2, by + badgeHeight + 34, {
+      size: 28,
+      color: p.accent,
+      mono: true,
+      weight: 700,
+      align: "center",
+      spacing: 3,
+    });
+    text(ctx, fonts, card.progress.rank.name.toUpperCase(), bx + badgeSize / 2, by + badgeHeight + 66, {
+      size: 20,
+      color: p.muted,
+      mono: true,
+      align: "center",
+      spacing: 2,
+      maxWidth: badgeSize + 40,
+    });
+  }
   ctx.fillStyle = p.accent;
   ctx.fillRect(MARGIN, titleY + 36, 140, 10);
 
@@ -325,7 +384,9 @@ export function drawShareCard(
   if (card.location) {
     const y = titleY + (story ? 108 : 96);
     pin(ctx, MARGIN, y, p.accent);
-    text(ctx, fonts, card.location, MARGIN + 40, y, { size: 32, color: p.muted, maxWidth: inner - 40 });
+    // Leave the badge's column free.
+    const room = showBadge ? inner - 40 - badgeSize - 24 : inner - 40;
+    text(ctx, fonts, card.location, MARGIN + 40, y, { size: 32, color: p.muted, maxWidth: room });
   }
 
   // Headline numbers.
@@ -335,16 +396,22 @@ export function drawShareCard(
 
   const sectionY = tilesY + tileHeight + (story ? 110 : 70);
   // The body, front and back, next to the muscles it is made of. Square keeps the picture and the bars,
-  // story has room for the top lifts as well.
-  const bodyScale = story ? 1.2 : 0.82;
+  // story has room for the legend and the top lifts as well.
+  const bodyScale = story ? 1.2 : 0.74;
   const figure = 200 * bodyScale;
-  drawBody(ctx, p, card.bodyLevels, "front", MARGIN, sectionY, bodyScale);
-  drawBody(ctx, p, card.bodyLevels, "back", MARGIN + figure, sectionY, bodyScale);
+  const worked = new Set(card.workedMuscles);
+  drawBody(ctx, p, card.bodyLevels, worked, "front", MARGIN, sectionY, bodyScale);
+  drawBody(ctx, p, card.bodyLevels, worked, "back", MARGIN + figure, sectionY, bodyScale);
+  const captionY = sectionY + 410 * bodyScale + 32;
+  text(ctx, fonts, "FRONT", MARGIN + figure / 2, captionY, { size: 22, color: p.muted, mono: true, align: "center", spacing: 4 });
+  text(ctx, fonts, "BACK", MARGIN + figure * 1.5, captionY, { size: 22, color: p.muted, mono: true, align: "center", spacing: 4 });
+
   const barsX = MARGIN + figure * 2 + 48;
   const barsW = w - MARGIN - barsX;
   if (story) {
     muscleBars(ctx, fonts, p, card, barsX, sectionY, barsW, 92, 5);
-    liftList(ctx, fonts, p, card, MARGIN, sectionY + 410 * bodyScale + 70, inner, 118, 3);
+    legend(ctx, fonts, p, MARGIN, captionY + 52);
+    liftList(ctx, fonts, p, card, MARGIN, captionY + 112, inner, 108, 3);
   } else {
     muscleBars(ctx, fonts, p, card, barsX, sectionY, barsW, 74, 4);
   }

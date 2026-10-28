@@ -1,3 +1,4 @@
+import { nextRankAfter, rankForLevel, type Rank } from "@/lib/ranks";
 import { longestStreak } from "@/lib/streak";
 import type {
   BodyMeasurement,
@@ -127,23 +128,20 @@ export function computeXp(input: XpInput): XpSummary {
   return { total: lines.reduce((sum, l) => sum + l.xp, 0), lines };
 }
 
-/** Total XP needed to reach a level: 0 for level 1, 100 for level 2, 300 for 3, 600 for 4, and so on. */
-export const xpForLevel = (level: number): number => 50 * level * (level - 1);
-
-const TITLES: [minLevel: number, title: string][] = [
-  [30, "Legend"],
-  [20, "Veteran"],
-  [15, "Athlete"],
-  [10, "Committed"],
-  [5, "Regular"],
-  [1, "Rookie"],
-];
-
-export const titleForLevel = (level: number): string => TITLES.find(([min]) => level >= min)![1];
+/**
+ * Going from level n to n + 1 costs 12 + n XP, so the first levels fly by and each one is a little
+ * longer than the last. Total XP to reach level L is (L - 1)(L + 24) / 2: level 2 at 13, level 10
+ * at 153, level 50 at 1,813 and level 100 at 6,138.
+ */
+export const xpForLevel = (level: number): number => ((level - 1) * (level + 24)) / 2;
 
 export type LevelInfo = {
   level: number;
-  title: string;
+  rank: Rank;
+  /** The next rank up, or null at the top. */
+  nextRank: Rank | null;
+  /** XP still missing for the next rank, or null at the top. */
+  xpToNextRank: number | null;
   total: number;
   /** XP earned since this level began. */
   intoLevel: number;
@@ -157,16 +155,19 @@ export type LevelInfo = {
 
 export function levelForXp(total: number): LevelInfo {
   const xp = Math.max(0, Math.floor(total));
-  // Largest n with 50 n (n - 1) <= xp. The estimate can be off by one at the edges, so correct it.
-  let level = Math.max(1, Math.floor((1 + Math.sqrt(1 + xp / 12.5)) / 2));
+  // Solves (L - 1)(L + 24) / 2 <= xp. The estimate can be off by one at the edges, so correct it.
+  let level = Math.max(1, Math.floor(-11.5 + Math.sqrt(132.25 + 2 * (12 + xp))));
   while (xpForLevel(level + 1) <= xp) level += 1;
   while (level > 1 && xpForLevel(level) > xp) level -= 1;
 
   const start = xpForLevel(level);
   const next = xpForLevel(level + 1);
+  const nextRank = nextRankAfter(level);
   return {
     level,
-    title: titleForLevel(level),
+    rank: rankForLevel(level),
+    nextRank,
+    xpToNextRank: nextRank ? xpForLevel(nextRank.minLevel) - xp : null,
     total: xp,
     intoLevel: xp - start,
     levelSpan: next - start,

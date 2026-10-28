@@ -7,35 +7,39 @@ import { RestTimer } from "@/components/rest-timer";
 import { Stat } from "@/components/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
-import { getCheckinByDate } from "@/lib/repositories/checkins";
 import { listExercises } from "@/lib/repositories/exercises";
-import { listMemberships } from "@/lib/repositories/memberships";
 import { getSettings } from "@/lib/repositories/settings";
 import { getSessionWithSets, lastSetsByExercise } from "@/lib/repositories/workouts";
 import { displayVolume } from "@/lib/units";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
-import { buildShareCard, workoutLocation } from "@/lib/share";
 import { pickFocusExercise } from "@/lib/suggestion";
 import { elapsedAtSets, formatDuration, groupSetsByExercise, lastSetCompletedAt, restBeforeSets, sessionVolume } from "@/lib/workout";
 import { SessionActions } from "./session-actions";
 import { SetList } from "./set-list";
 import { SetLogger } from "./set-logger";
-import { ShareWorkout } from "./share-workout";
+import { WorkoutShare } from "./workout-share";
 import { WorkoutMuscleMap } from "./workout-muscle-map";
 
-export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGroup | null }) {
+export async function SessionDetail({
+  id,
+  focus,
+  shareOnLoad,
+}: {
+  id: string;
+  focus: MuscleGroup | null;
+  /** Open the share dialog straight away, after a workout was just finished. */
+  shareOnLoad: boolean;
+}) {
   const userId = await getCurrentUserId();
   const found = await getSessionWithSets(userId, id);
   if (!found) notFound();
 
   const { session, sets } = found;
   const active = session.ended_at === null;
-  const [exercises, lastSets, settings, checkin, [membership]] = await Promise.all([
+  const [exercises, lastSets, settings] = await Promise.all([
     listExercises(userId),
     lastSetsByExercise(userId, id),
     getSettings(userId),
-    getCheckinByDate(userId, session.date),
-    listMemberships(userId),
   ]);
   const unit = settings.weight_unit;
 
@@ -101,23 +105,19 @@ export async function SessionDetail({ id, focus }: { id: string; focus: MuscleGr
       </Panel>
 
       {!active && sets.length > 0 && (
-        <ShareWorkout
-          card={buildShareCard({
-            session,
-            sets,
-            exercises,
-            unit,
-            location: workoutLocation({
-              kind: checkin?.kind ?? null,
-              gymName: membership?.gym_name ?? null,
-              gymLocation: membership?.location ?? null,
-            }),
-          })}
-          date={session.date}
-        />
+        <Suspense fallback={null}>
+          <WorkoutShare
+            userId={userId}
+            session={session}
+            sets={sets}
+            exercises={exercises}
+            unit={unit}
+            shareOnLoad={shareOnLoad}
+          />
+        </Suspense>
       )}
 
-      <SessionActions sessionId={id} active={active} />
+      <SessionActions sessionId={id} active={active} hasSets={sets.length > 0} />
     </div>
   );
 }
