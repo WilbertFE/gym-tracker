@@ -4,11 +4,12 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
+import { ProfilePanel } from "./components/profile-panel";
 import { SettingsPanel } from "./components/settings-panel";
 
 export const metadata: Metadata = buildMetadata({
   title: "Settings",
-  description: "Choose your country, weight unit (kg or lb) and currency.",
+  description: "Choose your country, weight unit (kg or lb) and currency, and set up your player profile.",
   path: "/settings",
   keywords: ["gym tracker settings", "kg or lb", "currency"],
 });
@@ -20,6 +21,10 @@ export default function SettingsPage() {
 
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
         <SettingsPanel />
+      </Suspense>
+
+      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+        <ProfilePanel />
       </Suspense>
 
       <nav aria-label="Account pages">

@@ -11,6 +11,7 @@ import {
   PersonSimpleIcon,
   SignOutIcon,
   TreasureChestIcon,
+  UserCircleIcon,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -24,6 +25,8 @@ type NavItem = {
   icon: typeof GaugeIcon;
   /** Also highlighted for these paths. */
   alsoActive?: string;
+  /** Highlighted on every page under this prefix too, on desktop and phones. */
+  matchPrefix?: string;
   /** Phones have room for five tabs, so Membership is reached from Settings there. */
   desktopOnly?: boolean;
   /** Hidden until this feature has opened. */
@@ -38,12 +41,15 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/status", label: "Status", icon: SealCheckIcon, desktopOnly: true, feature: "status" },
   { href: "/collection", label: "Collection", icon: TreasureChestIcon, desktopOnly: true, feature: "chests" },
   { href: "/leaderboard", label: "Leaderboard", icon: RankingIcon, desktopOnly: true, feature: "leaderboard" },
+  { href: "/profile", label: "Profile", icon: UserCircleIcon, desktopOnly: true, matchPrefix: "/u/" },
   { href: "/membership", label: "Membership", icon: IdentificationCardIcon, desktopOnly: true },
   { href: "/settings", label: "Settings", icon: GearSixIcon, alsoActive: "/membership" },
 ];
 
 const isActive = (pathname: string, item: NavItem, desktop: boolean) =>
-  pathname.startsWith(item.href) || (!desktop && !!item.alsoActive && pathname.startsWith(item.alsoActive));
+  pathname.startsWith(item.href) ||
+  (!!item.matchPrefix && pathname.startsWith(item.matchPrefix)) ||
+  (!desktop && !!item.alsoActive && pathname.startsWith(item.alsoActive));
 
 function useSignOut() {
   const router = useRouter();

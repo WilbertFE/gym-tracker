@@ -119,6 +119,12 @@ export async function LevelHero() {
           </Link>
         )}
         <Link
+          href="/profile"
+          className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Profile
+        </Link>
+        <Link
           href="/guide"
           className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >

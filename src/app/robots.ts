@@ -18,6 +18,8 @@ export default function robots(): MetadataRoute.Robots {
         "/guide/",
         "/status/",
         "/collection/",
+        "/profile/",
+        "/u/",
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

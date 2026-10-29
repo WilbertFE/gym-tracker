@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Panel } from "@/components/panel";
 import { RankBadge } from "@/components/rank-badge";
 import { countryName } from "@/lib/countries";
@@ -27,7 +28,13 @@ function Row({ row, pinned = false }: { row: PublicRow; pinned?: boolean }) {
       <RankBadge rank={rankForLevel(row.level)} size={40} />
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="truncate text-sm font-medium">
-          {row.display_name}
+          {row.username ? (
+            <Link href={`/u/${row.username}`} className="underline-offset-4 hover:text-primary hover:underline">
+              {row.display_name}
+            </Link>
+          ) : (
+            row.display_name
+          )}
           {row.plate && (
             <span className="font-display ml-2 border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-primary">
               {row.plate}

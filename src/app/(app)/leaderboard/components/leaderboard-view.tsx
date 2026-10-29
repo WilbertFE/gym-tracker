@@ -10,6 +10,7 @@ import { weekEnd, isBoardPeriod, isBoardScope } from "@/lib/leaderboard";
 import { buildBoard } from "@/lib/leaderboard-board";
 import { syncLeaderboardEntry } from "@/lib/leaderboard-sync";
 import { getEntry } from "@/lib/repositories/leaderboard";
+import { getProfile } from "@/lib/repositories/profiles";
 import { BoardControls } from "./board-controls";
 import { BoardList } from "./board-list";
 import { JoinCard } from "./join-card";
@@ -25,11 +26,11 @@ export async function LeaderboardView({ scope: rawScope, period: rawPeriod }: { 
 
   // Bring your own score up to date before it is read, so you never see yourself behind.
   if (await getEntry(userId)) await syncLeaderboardEntry(userId);
-  const board = await buildBoard(userId, scope, period);
+  const [board, { profile }] = await Promise.all([buildBoard(userId, scope, period), getProfile(userId)]);
 
   return (
     <div className="flex flex-col gap-6">
-      <JoinCard joined={board.joined} displayName={board.displayName} />
+      <JoinCard joined={board.joined} displayName={board.displayName} profileName={profile?.display_name ?? null} />
 
       <BoardControls scope={scope} period={period} />
 

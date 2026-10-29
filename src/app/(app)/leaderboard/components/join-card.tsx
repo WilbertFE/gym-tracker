@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,10 +11,15 @@ import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/api-client";
 import { LEADERBOARD, validateDisplayName } from "@/lib/leaderboard";
 
-type JoinCardProps = { joined: boolean; displayName: string | null };
+type JoinCardProps = {
+  joined: boolean;
+  displayName: string | null;
+  /** The display name of the profile, when there is one. It is then the one name, set in Settings. */
+  profileName: string | null;
+};
 
 /** Join, rename or leave. Joining is a choice: until then you are not listed. */
-export function JoinCard({ joined, displayName }: JoinCardProps) {
+export function JoinCard({ joined, displayName, profileName }: JoinCardProps) {
   const router = useRouter();
   const [name, setName] = useState(displayName ?? "");
   const [editing, setEditing] = useState(false);
@@ -42,6 +48,20 @@ export function JoinCard({ joined, displayName }: JoinCardProps) {
     router.refresh();
   }
 
+  async function joinWithProfileName() {
+    if (busy) return;
+    setBusy(true);
+    // The server uses the name of the profile, whatever is sent here.
+    const result = await apiRequest("/api/leaderboard/profile", "PUT", { display_name: profileName });
+    setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("You are on the leaderboard");
+    router.refresh();
+  }
+
   async function leave() {
     if (busy) return;
     setBusy(true);
@@ -57,6 +77,23 @@ export function JoinCard({ joined, displayName }: JoinCardProps) {
     router.refresh();
   }
 
+  // With a profile there is one name for everything, so joining is one tap and renaming happens in Settings.
+  if (profileName && !joined) {
+    return (
+      <Panel label="Join the leaderboard">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm">
+            You would be listed as <span className="font-medium">{profileName}</span>, the display name of your profile.
+            Others see that name, your country, level, rank and XP, nothing else. You can leave any time.
+          </p>
+          <Button type="button" className="h-11" onClick={joinWithProfileName} disabled={busy}>
+            {busy ? "Joining" : "Join the leaderboard"}
+          </Button>
+        </div>
+      </Panel>
+    );
+  }
+
   if (joined && !editing) {
     return (
       <Panel label="Your entry">
@@ -66,9 +103,18 @@ export function JoinCard({ joined, displayName }: JoinCardProps) {
             level, rank and XP, nothing else.
           </p>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" className="h-11" onClick={() => setEditing(true)}>
-              Change nickname
-            </Button>
+            {profileName ? (
+              <Link
+                href="/settings#profile"
+                className="font-display inline-flex h-11 items-center border border-primary/40 px-4 text-xs font-semibold tracking-wide hover:border-primary/70 hover:bg-primary/10"
+              >
+                Change in Settings
+              </Link>
+            ) : (
+              <Button type="button" variant="outline" className="h-11" onClick={() => setEditing(true)}>
+                Change nickname
+              </Button>
+            )}
             {confirmLeave ? (
               <>
                 <Button type="button" variant="destructive" className="h-11" onClick={leave} disabled={busy}>

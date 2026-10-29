@@ -37,6 +37,10 @@ const CARDS = [
     body: "New accounts get double XP for the first week. After that, training earns Double XP Day boosters that you use on a day you choose.",
   },
   {
+    title: "Profile",
+    body: "Make a player page in Settings with your rank, stats and the items you found. It starts private. You choose who can open it and which parts they see.",
+  },
+  {
     title: "Leaderboard",
     body: "Join with a nickname to compare XP with others, worldwide or in your country, all time or this week. You stay hidden until you join.",
   },

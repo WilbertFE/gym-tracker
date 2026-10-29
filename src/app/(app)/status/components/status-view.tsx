@@ -1,6 +1,7 @@
 import { LockedFeature } from "@/components/locked-feature";
 import { Panel } from "@/components/panel";
 import { RankBadge } from "@/components/rank-badge";
+import { StatsRadar } from "@/components/stats-radar";
 import { SystemTip } from "@/components/system-tip";
 import { getCurrentUserId } from "@/lib/auth";
 import { itemById, type FrameStyle } from "@/lib/items";
@@ -10,7 +11,7 @@ import { totalStats } from "@/lib/stats";
 import { isUnlocked } from "@/lib/unlocks";
 import { getShowAll } from "@/lib/unlock-state";
 import { MuscleLevels, Titles } from "./collection";
-import { StatsRadar } from "./stats-radar";
+
 
 /** The status window: rank letter, level, and five stats with a radar and a line each. */
 export async function StatusView() {

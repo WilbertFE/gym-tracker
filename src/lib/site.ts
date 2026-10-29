@@ -19,6 +19,8 @@ export const PROTECTED_PREFIXES = [
   "/guide",
   "/status",
   "/collection",
+  "/profile",
+  "/u",
 ] as const;
 
 /** API routes that do not require a session. */
