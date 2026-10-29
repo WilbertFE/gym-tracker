@@ -245,11 +245,11 @@ describe("drawShareCard", () => {
   it("outlines this workout's muscles in the accent color and nothing else", () => {
     const { ctx, strokes } = fakeContext();
     drawShareCard(ctx, card([set("Barbell Bench Press", 8, 60)]), "classic", "story", fonts);
-    expect(strokes.filter((c) => c === "#22d3ee").length).toBeGreaterThanOrEqual(2);
+    expect(strokes.filter((c) => c === "#4aa8ff").length).toBeGreaterThanOrEqual(2);
 
     const idle = fakeContext();
     drawShareCard(idle.ctx, card([]), "classic", "story", fonts);
-    expect(idle.strokes).not.toContain("#22d3ee");
+    expect(idle.strokes).not.toContain("#4aa8ff");
   });
 
   it("captions the two figures and explains the colors on the story size", () => {

@@ -35,7 +35,9 @@ function pageFonts(): ShareFonts {
   const css = getComputedStyle(document.documentElement);
   const sans = css.getPropertyValue("--font-plex-sans").trim();
   const mono = css.getPropertyValue("--font-jetbrains-mono").trim();
+  const display = css.getPropertyValue("--font-chakra").trim();
   return {
+    display: `${display ? `${display}, ` : ""}system-ui, sans-serif`,
     sans: `${sans ? `${sans}, ` : ""}system-ui, sans-serif`,
     mono: `${mono ? `${mono}, ` : ""}ui-monospace, monospace`,
   };
@@ -83,6 +85,9 @@ export function ShareWorkout({ card, date, defaultOpen = false }: { card: ShareC
     let cancelled = false;
     (async () => {
       await document.fonts?.ready;
+      // The display face loads only for the weights the page uses, so ask for the one the title needs.
+      const display = getComputedStyle(document.documentElement).getPropertyValue("--font-chakra").trim();
+      if (display) await document.fonts?.load(`700 100px ${display}`).catch(() => []);
       const badge = await badgeImage(badgeHost.current);
       const canvas = canvasRef.current;
       if (cancelled || !canvas) return;

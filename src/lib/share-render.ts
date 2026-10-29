@@ -23,7 +23,8 @@ export const SHARE_SIZES: Record<ShareFormat, { width: number; height: number }>
   square: { width: 1080, height: 1080 },
 };
 
-export type ShareFonts = { sans: string; mono: string };
+/** `display` is for the title and the big numbers. It falls back to the sans font when not given. */
+export type ShareFonts = { sans: string; mono: string; display?: string };
 
 /** The rank badge ready to draw: the image and its natural size, so it is never stretched. */
 export type ShareBadge = { image: CanvasImageSource; width: number; height: number };
@@ -41,44 +42,53 @@ type Palette = {
   /** Text on top of the accent color. */
   onAccent: string;
   grid: boolean;
+  /** The System look: a soft blue bloom at the top and glowing accents. Off for the light card. */
+  glowing: boolean;
+  glow: string;
 };
 
 const PALETTES: Record<ShareTemplate, Palette> = {
   classic: {
-    bg: ["#0a0b0d", "#0a0b0d"],
-    text: "#e6e8eb",
-    muted: "#8b919a",
-    accent: "#22d3ee",
-    surface: "#111317",
-    line: "#23272e",
-    bodyNone: "#2a2e36",
-    bodyGap: "#0a0b0d",
-    onAccent: "#0a0b0d",
+    bg: ["#0a1426", "#05070d"],
+    text: "#dbe6f7",
+    muted: "#8593b0",
+    accent: "#4aa8ff",
+    surface: "#0a1222",
+    line: "#1a2a46",
+    bodyNone: "#1f2b42",
+    bodyGap: "#05070d",
+    onAccent: "#04101f",
     grid: true,
+    glowing: true,
+    glow: "rgba(74, 168, 255, 0.22)",
   },
   bold: {
-    bg: ["#0e7490", "#0a0b0d"],
+    bg: ["#0b4a8f", "#05070d"],
     text: "#ffffff",
-    muted: "#a5d8e4",
-    accent: "#a5f3fc",
-    surface: "rgba(10, 11, 13, 0.35)",
+    muted: "#b3d3f5",
+    accent: "#a8d4ff",
+    surface: "rgba(5, 7, 13, 0.4)",
     line: "rgba(255, 255, 255, 0.25)",
     bodyNone: "rgba(255, 255, 255, 0.2)",
-    bodyGap: "rgba(10, 11, 13, 0.6)",
-    onAccent: "#0a0b0d",
+    bodyGap: "rgba(5, 7, 13, 0.6)",
+    onAccent: "#05070d",
     grid: false,
+    glowing: true,
+    glow: "rgba(168, 212, 255, 0.16)",
   },
   light: {
-    bg: ["#f4f5f7", "#f4f5f7"],
-    text: "#0a0b0d",
-    muted: "#5b626c",
-    accent: "#0891b2",
+    bg: ["#f3f6fb", "#f3f6fb"],
+    text: "#07101f",
+    muted: "#55627a",
+    accent: "#1b6fd1",
     surface: "#ffffff",
-    line: "#d9dde3",
-    bodyNone: "#cfd4da",
-    bodyGap: "#f4f5f7",
+    line: "#d5deec",
+    bodyNone: "#c9d3e3",
+    bodyGap: "#f3f6fb",
     onAccent: "#ffffff",
     grid: false,
+    glowing: false,
+    glow: "rgba(27, 111, 209, 0)",
   },
 };
 
@@ -89,6 +99,10 @@ type TextOptions = {
   color: string;
   weight?: number;
   mono?: boolean;
+  /** The display face, for the title and the big numbers. */
+  display?: boolean;
+  /** A soft glow of this color behind the text. */
+  glow?: string;
   align?: CanvasTextAlign;
   /** Letter spacing in px, for the small uppercase labels. */
   spacing?: number;
@@ -97,7 +111,8 @@ type TextOptions = {
 
 /** Draws one line of text and returns its baseline y, shortening it with an ellipsis if it is too wide. */
 function text(ctx: CanvasRenderingContext2D, fonts: ShareFonts, value: string, x: number, y: number, o: TextOptions) {
-  ctx.font = `${o.weight ?? 400} ${o.size}px ${o.mono ? fonts.mono : fonts.sans}`;
+  const face = o.mono ? fonts.mono : o.display ? (fonts.display ?? fonts.sans) : fonts.sans;
+  ctx.font = `${o.weight ?? 400} ${o.size}px ${face}`;
   ctx.fillStyle = o.color;
   ctx.textAlign = o.align ?? "left";
   ctx.textBaseline = "alphabetic";
@@ -108,12 +123,17 @@ function text(ctx: CanvasRenderingContext2D, fonts: ShareFonts, value: string, x
     while (shown.length > 1 && ctx.measureText(shown).width > o.maxWidth) shown = shown.slice(0, -1);
     if (shown !== value) shown = `${shown.trimEnd()}...`;
   }
+  if (o.glow) {
+    ctx.shadowColor = o.glow;
+    ctx.shadowBlur = 24;
+  }
   ctx.fillText(shown, x, y);
+  ctx.shadowBlur = 0;
   return y;
 }
 
 const label = (ctx: CanvasRenderingContext2D, f: ShareFonts, p: Palette, v: string, x: number, y: number) =>
-  text(ctx, f, v.toUpperCase(), x, y, { size: 26, color: p.muted, mono: true, spacing: 4 });
+  text(ctx, f, `[ ${v.toUpperCase()} ]`, x, y, { size: 26, color: p.muted, mono: true, spacing: 4 });
 
 function background(ctx: CanvasRenderingContext2D, p: Palette, w: number, h: number) {
   const g = ctx.createLinearGradient(0, 0, w * 0.4, h);
@@ -121,6 +141,14 @@ function background(ctx: CanvasRenderingContext2D, p: Palette, w: number, h: num
   g.addColorStop(1, p.bg[1]);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
+
+  if (p.glowing) {
+    const bloom = ctx.createLinearGradient(0, 0, 0, h * 0.4);
+    bloom.addColorStop(0, p.glow);
+    bloom.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = bloom;
+    ctx.fillRect(0, 0, w, h * 0.4);
+  }
 
   if (p.grid) {
     ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
@@ -136,6 +164,15 @@ function background(ctx: CanvasRenderingContext2D, p: Palette, w: number, h: num
     }
     ctx.stroke();
   }
+}
+
+/** The System window's corner brackets: top left and bottom right. Filled, so they never count as an outline. */
+function brackets(ctx: CanvasRenderingContext2D, p: Palette, x: number, y: number, w: number, h: number) {
+  ctx.fillStyle = p.accent;
+  ctx.fillRect(x - 3, y - 3, 34, 6);
+  ctx.fillRect(x - 3, y - 3, 6, 34);
+  ctx.fillRect(x + w - 31, y + h - 3, 34, 6);
+  ctx.fillRect(x + w - 3, y + h - 31, 6, 34);
 }
 
 /** The three headline numbers, as tiles in a row. */
@@ -162,6 +199,7 @@ function statTiles(
     ctx.strokeStyle = p.line;
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, tileW, tileHeight);
+    brackets(ctx, p, x, y, tileW, tileHeight);
     label(ctx, f, p, s.name, x + 28, y + 56);
     // The unit sits after the number, so the number gets what is left of the tile. Shrink it until it fits.
     // Measuring must not inherit the letter spacing of the label drawn just before.
@@ -175,7 +213,7 @@ function statTiles(
       if (ctx.measureText(s.value).width <= room) break;
     }
     const baseline = y + tileHeight - 40;
-    text(ctx, f, s.value, x + 28, baseline, { size, color: p.text, mono: true, weight: 500, maxWidth: room });
+    text(ctx, f, s.value, x + 28, baseline, { size, color: p.text, mono: true, weight: 500, maxWidth: room, glow: p.glowing ? p.accent : undefined });
     if (s.unit) {
       ctx.font = `500 ${size}px ${f.mono}`;
       const valueWidth = Math.min(ctx.measureText(s.value).width, room);
@@ -296,7 +334,11 @@ function muscleBars(
     ctx.fillStyle = p.line;
     ctx.fillRect(x, top + 46, width, 10);
     ctx.fillStyle = p.accent;
-    ctx.fillRect(x, top + 46, Math.max(10, width * m.ratio), 10);
+    const bar = Math.max(10, width * m.ratio);
+    ctx.fillRect(x, top + 46, bar, 10);
+    // A bright leading edge, like the bars in the app.
+    ctx.fillStyle = p.text;
+    ctx.fillRect(x + bar - 4, top + 46, 4, 10);
   });
 }
 
@@ -342,8 +384,13 @@ export function drawShareCard(
   background(ctx, p, w, h);
 
   // Header: brand and date.
-  text(ctx, fonts, "MUSCLES LEVELING", MARGIN, 120, { size: 30, color: p.accent, mono: true, weight: 700, spacing: 6 });
+  text(ctx, fonts, "MUSCLES LEVELING", MARGIN, 120, { size: 30, color: p.accent, mono: true, weight: 700, spacing: 6, glow: p.glowing ? p.accent : undefined });
   text(ctx, fonts, card.dateLabel, w - MARGIN, 120, { size: 28, color: p.muted, mono: true, align: "right" });
+  // A thin rule under the header with a short bright segment, like the top edge of a System window.
+  ctx.fillStyle = p.line;
+  ctx.fillRect(MARGIN, 148, inner, 2);
+  ctx.fillStyle = p.accent;
+  ctx.fillRect(MARGIN, 147, 140, 4);
 
   // Title.
   const titleY = story ? 360 : 260;
@@ -353,6 +400,7 @@ export function drawShareCard(
     size: showBadge ? (story ? 128 : 100) : story ? 150 : 116,
     color: p.text,
     weight: 700,
+    display: true,
     maxWidth: showBadge ? inner - badgeSize - 24 : inner,
   });
   if (showBadge && card.progress) {
@@ -367,6 +415,7 @@ export function drawShareCard(
       weight: 700,
       align: "center",
       spacing: 3,
+      glow: p.glowing ? p.accent : undefined,
     });
     text(ctx, fonts, card.progress.rank.name.toUpperCase(), bx + badgeSize / 2, by + badgeHeight + 66, {
       size: 20,
@@ -378,7 +427,12 @@ export function drawShareCard(
     });
   }
   ctx.fillStyle = p.accent;
+  if (p.glowing) {
+    ctx.shadowColor = p.accent;
+    ctx.shadowBlur = 22;
+  }
   ctx.fillRect(MARGIN, titleY + 36, 140, 10);
+  ctx.shadowBlur = 0;
 
   // Where it happened.
   if (card.location) {
