@@ -3,13 +3,19 @@ import type { IntensityLevel } from "@/lib/muscle-intensity";
 import type { MuscleGroup } from "@/lib/muscles";
 import type { ShareCard } from "@/lib/share";
 
-export type ShareTemplate = "classic" | "bold" | "light";
+export type ShareTemplate = "classic" | "bold" | "light" | "status" | "shadow" | "mono";
+
+/** How the three headline numbers are laid out: three tiles, a list in one window, or the volume big with the rest beside it. */
+export type ShareLayout = "tiles" | "list" | "split";
 export type ShareFormat = "story" | "square";
 
 export const SHARE_TEMPLATES: { value: ShareTemplate; label: string }[] = [
   { value: "classic", label: "Classic" },
   { value: "bold", label: "Bold" },
   { value: "light", label: "Light" },
+  { value: "status", label: "Status" },
+  { value: "shadow", label: "Shadow" },
+  { value: "mono", label: "Mono" },
 ];
 
 export const SHARE_FORMATS: { value: ShareFormat; label: string; hint: string }[] = [
@@ -45,6 +51,7 @@ type Palette = {
   /** The System look: a soft blue bloom at the top and glowing accents. Off for the light card. */
   glowing: boolean;
   glow: string;
+  layout: ShareLayout;
 };
 
 const PALETTES: Record<ShareTemplate, Palette> = {
@@ -61,6 +68,7 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     grid: true,
     glowing: true,
     glow: "rgba(74, 168, 255, 0.22)",
+    layout: "tiles",
   },
   bold: {
     bg: ["#0b4a8f", "#05070d"],
@@ -75,6 +83,7 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     grid: false,
     glowing: true,
     glow: "rgba(168, 212, 255, 0.16)",
+    layout: "tiles",
   },
   light: {
     bg: ["#f3f6fb", "#f3f6fb"],
@@ -89,6 +98,55 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     grid: false,
     glowing: false,
     glow: "rgba(27, 111, 209, 0)",
+    layout: "tiles",
+  },
+  // The status window: the numbers as a list inside one System window.
+  status: {
+    bg: ["#071327", "#04060b"],
+    text: "#e4efff",
+    muted: "#8aa0c4",
+    accent: "#5cc8ff",
+    surface: "rgba(10, 24, 48, 0.7)",
+    line: "#1d3a66",
+    bodyNone: "#22324f",
+    bodyGap: "#04060b",
+    onAccent: "#04101f",
+    grid: true,
+    glowing: true,
+    glow: "rgba(92, 200, 255, 0.28)",
+    layout: "list",
+  },
+  // Deep violet, with the volume as the big number.
+  shadow: {
+    bg: ["#150a2e", "#05030d"],
+    text: "#ece6ff",
+    muted: "#9a8fc0",
+    accent: "#a98bff",
+    surface: "rgba(24, 12, 52, 0.7)",
+    line: "#2f1f5c",
+    bodyNone: "#2b2250",
+    bodyGap: "#05030d",
+    onAccent: "#0d0620",
+    grid: true,
+    glowing: true,
+    glow: "rgba(169, 139, 255, 0.26)",
+    layout: "split",
+  },
+  // Black and white. The white outline reads on every muscle color.
+  mono: {
+    bg: ["#000000", "#0b0b0f"],
+    text: "#ffffff",
+    muted: "#9a9aa5",
+    accent: "#ffffff",
+    surface: "#0b0b0f",
+    line: "#2a2a33",
+    bodyNone: "#26262e",
+    bodyGap: "#000000",
+    onAccent: "#000000",
+    grid: false,
+    glowing: false,
+    glow: "rgba(255, 255, 255, 0)",
+    layout: "split",
   },
 };
 
@@ -173,6 +231,111 @@ function brackets(ctx: CanvasRenderingContext2D, p: Palette, x: number, y: numbe
   ctx.fillRect(x - 3, y - 3, 6, 34);
   ctx.fillRect(x + w - 31, y + h - 3, 34, 6);
   ctx.fillRect(x + w - 3, y + h - 31, 6, 34);
+}
+
+type Headline = { name: string; value: string; unit: string };
+
+const headlineStats = (card: ShareCard): Headline[] => [
+  { name: "Time", value: card.duration ?? "n/a", unit: "" },
+  { name: "Volume", value: card.volume, unit: card.unit },
+  { name: "Sets", value: String(card.sets), unit: "" },
+];
+
+const noSpacing = (ctx: CanvasRenderingContext2D) => {
+  (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "0px";
+};
+
+/** A System window the numbers sit in: surface, frame and corner brackets. */
+function numbersWindow(ctx: CanvasRenderingContext2D, p: Palette, x: number, y: number, w: number, h: number) {
+  ctx.fillStyle = p.surface;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = p.line;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, w, h);
+  brackets(ctx, p, x, y, w, h);
+}
+
+/** The three numbers as rows of one window: the name on the left, the value and unit on the right. */
+function statList(ctx: CanvasRenderingContext2D, f: ShareFonts, p: Palette, card: ShareCard, y: number, w: number, h: number) {
+  const x = MARGIN;
+  const width = w - MARGIN * 2;
+  numbersWindow(ctx, p, x, y, width, h);
+  const rowH = h / 3;
+  const size = h >= 190 ? 48 : 40;
+  headlineStats(card).forEach((s, i) => {
+    const top = y + rowH * i;
+    if (i > 0) {
+      ctx.fillStyle = p.line;
+      ctx.fillRect(x + 28, top, width - 56, 2);
+    }
+    const base = top + rowH / 2 + size * 0.34;
+    label(ctx, f, p, s.name, x + 28, top + rowH / 2 + 9);
+    noSpacing(ctx);
+    ctx.font = `400 26px ${f.mono}`;
+    const unitWidth = s.unit ? ctx.measureText(s.unit).width + 12 : 0;
+    const right = x + width - 28;
+    if (s.unit) text(ctx, f, s.unit, right, base, { size: 26, color: p.muted, mono: true, align: "right" });
+    text(ctx, f, s.value, right - unitWidth, base, {
+      size,
+      color: p.text,
+      mono: true,
+      weight: 500,
+      align: "right",
+      maxWidth: width * 0.5,
+      glow: p.glowing ? p.accent : undefined,
+    });
+  });
+}
+
+/** The volume as the big number on the left, time and sets stacked beside it. */
+function statSplit(ctx: CanvasRenderingContext2D, f: ShareFonts, p: Palette, card: ShareCard, y: number, w: number, h: number) {
+  const x = MARGIN;
+  const width = w - MARGIN * 2;
+  numbersWindow(ctx, p, x, y, width, h);
+  const [time, volume, sets] = headlineStats(card);
+  const leftWidth = width * 0.58;
+
+  label(ctx, f, p, volume.name, x + 28, y + 56);
+  noSpacing(ctx);
+  ctx.font = `400 26px ${f.mono}`;
+  const unitWidth = ctx.measureText(volume.unit).width + 12;
+  const room = leftWidth - 56 - unitWidth;
+  let size = h >= 190 ? 104 : 84;
+  for (; size > 40; size -= 2) {
+    ctx.font = `700 ${size}px ${f.display ?? f.sans}`;
+    if (ctx.measureText(volume.value).width <= room) break;
+  }
+  const baseline = y + h - 36;
+  text(ctx, f, volume.value, x + 28, baseline, {
+    size,
+    color: p.text,
+    weight: 700,
+    display: true,
+    maxWidth: room,
+    glow: p.glowing ? p.accent : undefined,
+  });
+  ctx.font = `700 ${size}px ${f.display ?? f.sans}`;
+  const valueWidth = Math.min(ctx.measureText(volume.value).width, room);
+  text(ctx, f, volume.unit, x + 28 + valueWidth + 12, baseline, { size: 26, color: p.muted, mono: true });
+
+  ctx.fillStyle = p.line;
+  ctx.fillRect(x + leftWidth, y + 24, 2, h - 48);
+
+  const rx = x + leftWidth + 28;
+  const rw = width - leftWidth - 56;
+  const valueSize = h >= 190 ? 40 : 32;
+  [time, sets].forEach((s, i) => {
+    const labelY = y + h * (i === 0 ? 0.19 : 0.62);
+    label(ctx, f, p, s.name, rx, labelY);
+    text(ctx, f, s.value, rx, labelY + h * 0.2, { size: valueSize, color: p.text, mono: true, weight: 500, maxWidth: rw });
+  });
+}
+
+/** The headline numbers in the layout of the chosen template. All three take the same height. */
+function headline(ctx: CanvasRenderingContext2D, f: ShareFonts, p: Palette, card: ShareCard, y: number, w: number, h: number) {
+  if (p.layout === "list") return statList(ctx, f, p, card, y, w, h);
+  if (p.layout === "split") return statSplit(ctx, f, p, card, y, w, h);
+  return statTiles(ctx, f, p, card, y, w, h);
 }
 
 /** The three headline numbers, as tiles in a row. */
@@ -446,7 +609,7 @@ export function drawShareCard(
   // Headline numbers.
   const tilesY = titleY + (story ? (card.location ? 180 : 130) : card.location ? 140 : 90);
   const tileHeight = story ? 190 : 160;
-  statTiles(ctx, fonts, p, card, tilesY, w, tileHeight);
+  headline(ctx, fonts, p, card, tilesY, w, tileHeight);
 
   const sectionY = tilesY + tileHeight + (story ? 110 : 70);
   // The body, front and back, next to the muscles it is made of. Square keeps the picture and the bars,

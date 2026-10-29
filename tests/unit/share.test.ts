@@ -318,6 +318,39 @@ describe("drawShareCard", () => {
     expect(unit.x).toBeGreaterThanOrEqual(value.x + value.text.length * value.size * 0.6);
   });
 
+  it("has six looks, and the new ones draw the same facts as the first three", () => {
+    expect(SHARE_TEMPLATES.map((t) => t.value)).toEqual(["classic", "bold", "light", "status", "shadow", "mono"]);
+    for (const template of ["status", "shadow", "mono"] as const) {
+      for (const format of ["story", "square"] as const) {
+        const { ctx, drawn } = fakeContext();
+        drawShareCard(ctx, c, template, format, fonts);
+        expect(drawn, `${template} ${format}`).toEqual(expect.arrayContaining(["MUSCLES LEVELING", c.title, c.volume, String(c.sets)]));
+      }
+    }
+  });
+
+  it("lists the numbers inside one window in the status look, value and unit at the right edge", () => {
+    const { ctx, placed } = fakeContext();
+    drawShareCard(ctx, { ...c, volume: "12,340" }, "status", "story", fonts);
+    const unit = placed.find((p) => p.text === "kg")!;
+    const value = placed.find((p) => p.text === "12,340")!;
+    // Both are right aligned, the unit at the window's inner edge and the value just before it.
+    expect(unit.x).toBe(1080 - 80 - 28);
+    expect(value.x).toBeLessThan(unit.x);
+  });
+
+  it("makes the volume the big number in the split looks and shrinks it to fit", () => {
+    const small = fakeContext();
+    drawShareCard(small.ctx, { ...c, volume: "12,340" }, "shadow", "story", fonts);
+    const big = fakeContext();
+    drawShareCard(big.ctx, { ...c, volume: "123,456,789" }, "shadow", "story", fonts);
+    const sizeOf = (r: ReturnType<typeof fakeContext>, v: string) => r.placed.find((p) => p.text === v)!.size;
+    expect(sizeOf(small, "12,340")).toBeGreaterThan(sizeOf(big, "123,456,789"));
+    // The left side of the window is 58% of 920 px, minus padding and the unit.
+    const v = big.placed.find((p) => p.text === "123,456,789")!;
+    expect(v.x + v.text.length * v.size * 0.6).toBeLessThanOrEqual(80 + 0.58 * 920 - 28);
+  });
+
   it("never uses an em dash", () => {
     const { ctx, drawn } = fakeContext();
     drawShareCard(ctx, c, "classic", "story", fonts);

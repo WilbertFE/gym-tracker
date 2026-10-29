@@ -10,6 +10,8 @@ type SegmentedControlProps<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   className?: string;
+  /** Lay the options out in this many columns and wrap, instead of one row. */
+  columns?: number;
 };
 
 /** Small mutually exclusive toggle with 44px tap targets. */
@@ -19,12 +21,14 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   className,
+  columns,
 }: SegmentedControlProps<T>) {
   return (
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn("inline-grid auto-cols-fr grid-flow-col gap-1", className)}
+      className={cn("inline-grid gap-1", columns ? "" : "auto-cols-fr grid-flow-col", className)}
+      style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
     >
       {options.map((opt) => {
         const selected = opt.value === value;

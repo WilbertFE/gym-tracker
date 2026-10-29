@@ -179,6 +179,7 @@ export function ShareWorkout({ card, date, defaultOpen = false }: { card: ShareC
           <SegmentedControl
             label="Look"
             className="w-full"
+            columns={3}
             value={template}
             onChange={setTemplate}
             options={SHARE_TEMPLATES}
