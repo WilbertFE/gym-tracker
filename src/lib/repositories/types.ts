@@ -1,4 +1,5 @@
 import type { Opening } from "@/lib/chests";
+import type { Profile } from "@/lib/profile";
 import type { LeaderboardEntry } from "@/lib/leaderboard";
 import type { LogPhoto, ProgressPhoto, WorkoutSet, XpBoost } from "@/lib/types";
 
@@ -21,6 +22,10 @@ export type UpsertEntryResult =
 export type RecordOpeningResult =
   | { ok: true; opening: Opening }
   | { ok: false; reason: "already_opened" | "unavailable" };
+
+export type SaveProfileResult =
+  | { ok: true; profile: Profile }
+  | { ok: false; reason: "username_taken" | "name_taken" | "unavailable" };
 
 export type CreateBoostResult =
   | { ok: true; boost: XpBoost }

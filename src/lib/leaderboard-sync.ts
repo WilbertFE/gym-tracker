@@ -4,6 +4,7 @@ import { boardXp, currentWeekStart } from "@/lib/leaderboard";
 import { itemById } from "@/lib/items";
 import { loadLevel } from "@/lib/level";
 import { getEntry, upsertEntry } from "@/lib/repositories/leaderboard";
+import { getProfile } from "@/lib/repositories/profiles";
 import { getSettings } from "@/lib/repositories/settings";
 import type { UpsertEntryResult } from "@/lib/repositories/types";
 
@@ -13,10 +14,11 @@ import type { UpsertEntryResult } from "@/lib/repositories/types";
  */
 export async function writeEntry(userId: string, displayName: string): Promise<UpsertEntryResult> {
   const today = todayISO();
-  const [{ xp, level, title, collection }, settings] = await Promise.all([loadLevel(userId), getSettings(userId)]);
+  const [{ xp, level, title, collection }, settings, { profile }] = await Promise.all([loadLevel(userId), getSettings(userId), getProfile(userId)]);
   const score = boardXp(xp, today);
   return upsertEntry(userId, {
-    display_name: displayName,
+    // A profile has the one name for everything, so the board follows it.
+    display_name: profile?.display_name ?? displayName,
     country: settings.country,
     total_xp: score.total,
     week_xp: score.week,

@@ -9,6 +9,7 @@ import {
   type LeaderboardEntry,
 } from "@/lib/leaderboard";
 import { getEntry, listBoard, rankOf } from "@/lib/repositories/leaderboard";
+import { visibleUsernames } from "@/lib/repositories/profiles";
 import { getSettings } from "@/lib/repositories/settings";
 
 /** A row as it is sent to the browser: no user id, just what everyone may see. */
@@ -19,6 +20,8 @@ export type PublicRow = {
   level: number;
   title: string | null;
   plate: string | null;
+  /** The username of a profile other people can open, or null when there is none to open. */
+  username: string | null;
   xp: number;
   is_me: boolean;
 };
@@ -40,13 +43,21 @@ export type Board = {
   problem: "no_country" | null;
 };
 
-const toRow = (entry: LeaderboardEntry, rank: number, period: BoardPeriod, weekStart: string, myId: string): PublicRow => ({
+const toRow = (
+  entry: LeaderboardEntry,
+  rank: number,
+  period: BoardPeriod,
+  weekStart: string,
+  myId: string,
+  usernames: Record<string, string>,
+): PublicRow => ({
   rank,
   display_name: entry.display_name,
   country: entry.country,
   level: entry.level,
   title: entry.title,
   plate: entry.plate,
+  username: usernames[entry.user_id] ?? null,
   xp: entryXp(entry, period, weekStart),
   is_me: entry.user_id === myId,
 });
@@ -70,12 +81,14 @@ export async function buildBoard(userId: string, scope: BoardScope, period: Boar
 
   const args = { scope, country: settings.country, period, weekStart };
   const entries = await listBoard({ ...args, limit: LEADERBOARD.top });
-  const rows = entries.map((e, i) => toRow(e, i + 1, period, weekStart, userId));
+  // A row links to a profile only when that profile is open to other users.
+  const usernames = await visibleUsernames([...entries.map((e) => e.user_id), userId]);
+  const rows = entries.map((e, i) => toRow(e, i + 1, period, weekStart, userId, usernames));
 
   let me: PublicRow | null = rows.find((r) => r.is_me) ?? null;
   if (!me && mine) {
     const rank = await rankOf(userId, args);
-    me = rank === null ? null : toRow(mine, rank, period, weekStart, userId);
+    me = rank === null ? null : toRow(mine, rank, period, weekStart, userId, usernames);
   }
   return { ...base, rows, me, problem: null };
 }

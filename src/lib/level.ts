@@ -5,6 +5,7 @@ import { chestState, earnedChests, type AvailableChest, type Chest, type Opening
 import { itemById, NO_EQUIPMENT, SLOTS, type Equipment } from "@/lib/items";
 import { todayISO } from "@/lib/dates";
 import { listBoosts } from "@/lib/repositories/boosts";
+import type { ProfileActivity } from "@/lib/profile";
 import { getEquipment, listExtraChests, listOpenings } from "@/lib/repositories/chests";
 import { listCheckins } from "@/lib/repositories/checkins";
 import { listExercises } from "@/lib/repositories/exercises";
@@ -48,6 +49,8 @@ export type GameState = {
   chests: { enabled: boolean; available: AvailableChest[]; expired: Chest[]; openings: Opening[] };
   /** The cosmetic items owned (ids) and the ones worn, one per slot. */
   collection: { owned: string[]; equipment: Equipment };
+  /** Plain counts of what the user has done, for the profile. */
+  activity: ProfileActivity;
 };
 
 /**
@@ -173,5 +176,12 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     trial,
     chests: { enabled: openingRows.available, ...chestInfo, openings: openingRows.openings },
     collection: { owned, equipment },
+    activity: {
+      workouts: titleInput.workouts,
+      longestStreak: titleInput.longestStreak,
+      questsCompleted: titleInput.questsCompleted,
+      gatesCleared: titleInput.gatesCleared,
+      volumeKg: Math.round(titleInput.volumeKg),
+    },
   };
 });

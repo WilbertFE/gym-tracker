@@ -68,6 +68,12 @@ export async function rankOf(userId: string, args: BoardArgs): Promise<number | 
   return positionOf(rankRows(inScope(rows(), args), args.period, args.weekStart), userId);
 }
 
+/** Whether another user's leaderboard entry already has this name, whatever the capitals. */
+export function nameTakenOnBoard(name: string, exceptUserId: string): boolean {
+  const wanted = name.toLowerCase();
+  return rows().some((r) => r.user_id !== exceptUserId && r.display_name.toLowerCase() === wanted);
+}
+
 export async function getEntry(userId: string): Promise<LeaderboardEntry | null> {
   return rows().find((r) => r.user_id === userId) ?? null;
 }
