@@ -37,6 +37,7 @@ export function Stage({ script, onReply, onClose }: StageProps) {
   const primary = useRef<HTMLButtonElement>(null);
   const last = script.beats.length - 1;
   const atEnd = beat >= last;
+  const full = script.body === "full";
   const mood = atEnd && script.endMood ? script.endMood : script.mood;
   const text = script.beats[beat];
   const quirk = useQuirk(!talking && !script.auto);
@@ -145,14 +146,38 @@ export function Stage({ script, onReply, onClose }: StageProps) {
         </div>
       </div>
 
-      {/* Sera: waist up, from the bottom edge. */}
+      {/* Sera. Waist up from the bottom edge, or in full for the rarest moments: then she stands above the buttons, between the card and them. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-0 left-1/2 h-[min(52dvh,440px)] -translate-x-1/2 md:left-auto md:right-8 md:h-[min(72dvh,540px)] md:translate-x-0 [@media(max-height:520px)]:right-4 [@media(max-height:520px)]:left-auto [@media(max-height:520px)]:h-[min(64dvh,260px)] [@media(max-height:520px)]:translate-x-0"
+        className={cn(
+          "pointer-events-none absolute left-1/2 -translate-x-1/2 md:left-auto md:right-8 md:translate-x-0 [@media(max-height:520px)]:right-4 [@media(max-height:520px)]:left-auto [@media(max-height:520px)]:translate-x-0",
+          full
+            ? "bottom-[8.5rem] h-[clamp(240px,calc(100dvh-21rem),620px)] md:bottom-4 md:h-[min(88dvh,720px)] [@media(max-height:520px)]:bottom-0 [@media(max-height:520px)]:h-[min(64dvh,260px)]"
+            : "bottom-0 h-[min(52dvh,440px)] md:h-[min(72dvh,540px)] [@media(max-height:520px)]:h-[min(64dvh,260px)]",
+        )}
       >
         <div className={cn("absolute -inset-x-[70%] bottom-0 h-[105%] blur-2xl motion-safe:animate-[stage-halo_3.4s_ease-in-out_infinite]", HALO[script.halo])} />
         <div className="relative h-full motion-safe:animate-[stage-rise_0.7s_cubic-bezier(0.2,0.9,0.3,1)_both]">
-          <SeraArt view="half" pose={script.pose} mood={mood} quirk={quirk} talking={talking} fluid className="h-full w-auto max-w-none" />
+          {full && (
+            <SeraArt
+              view="full"
+              pose={script.pose}
+              mood={mood}
+              quirk={quirk}
+              talking={talking}
+              fluid
+              className="h-full w-auto max-w-none [@media(max-height:520px)]:hidden"
+            />
+          )}
+          <SeraArt
+            view="half"
+            pose={script.pose}
+            mood={mood}
+            quirk={quirk}
+            talking={talking}
+            fluid
+            className={cn("h-full w-auto max-w-none", full && "hidden [@media(max-height:520px)]:block")}
+          />
         </div>
       </div>
 

@@ -4,7 +4,7 @@ import { PLAY_EVENT } from "@/components/mascot/prefs";
 import { STAGE_IDS } from "@/lib/mascot/beats";
 import { TOUR_IDS } from "@/lib/mascot/tours";
 
-const play = (detail: { stage?: string; tour?: string }) => window.dispatchEvent(new CustomEvent(PLAY_EVENT, { detail }));
+const play = (detail: { stage?: string; tour?: string; days?: number }) => window.dispatchEvent(new CustomEvent(PLAY_EVENT, { detail }));
 
 const button = "min-h-11 border border-primary/40 bg-background/60 px-3 text-sm hover:border-primary hover:bg-primary/10";
 
@@ -22,6 +22,11 @@ export function PlayButtons() {
               </button>
             </li>
           ))}
+          <li>
+            <button type="button" className={button} onClick={() => play({ stage: "streak", days: 30 })}>
+              streak (30 days, full body)
+            </button>
+          </li>
         </ul>
       </div>
       <div className="flex flex-col gap-2">

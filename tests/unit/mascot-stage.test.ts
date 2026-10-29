@@ -8,6 +8,7 @@ import { DEFAULT_PREFS, emptyMemory, markTold, MAX_STAGES_PER_DAY, parseMemory, 
 import { TOUR_IDS, TOUR_TARGETS, TOURS, tourById, tourForFeature, tourForPath, tourHref } from "@/lib/mascot/tours";
 import { pickMoment, STREAK_MILESTONES } from "@/lib/mascot/triggers";
 import { MOODS, POSES, type Moment, type SeraContext } from "@/lib/mascot/types";
+import { RANKS, rankForLevel } from "@/lib/ranks";
 import { FEATURES } from "@/lib/unlocks";
 import { xpForLevel } from "@/lib/xp";
 
@@ -130,6 +131,33 @@ describe("when she appears big", () => {
     expect(renderStage("welcome", fresh).replies[0]).toEqual({ label: "Show me around", tour: "dashboard" });
   });
 
+  it("stands up in full for the welcome, a new rank and a 30 day streak, and only for those", () => {
+    const fullOnes = STAGE_IDS.filter((id) => renderStage(id, ctx(), { features: ["body"], days: 14 }).body === "full");
+    expect(fullOnes.sort()).toEqual(["rankUp", "welcome"]);
+    expect(renderStage("streak", ctx(), { days: 30 }).body).toBe("full");
+    expect(renderStage("streak", ctx(), { days: 14 }).body).toBe("half");
+    expect(renderStage("streak", ctx(), { days: 30 }).beats.length).toBe(3);
+  });
+
+  it("celebrates a new rank once, with the unlocks it brings", () => {
+    // Level 24 is Iron Rookie's neighbour: pick the first level of a later rank.
+    const before = rankForLevel(24);
+    const after = RANKS.find((r) => r.minLevel > 24)!;
+    expect(after.id).not.toBe(before.id);
+    const c = ctx({ level: after.minLevel, totalXp: xpForLevel(after.minLevel) });
+    const memory = told({ lastLevel: after.minLevel - 1 }, "intro", `daily:${TODAY}`);
+    expect(pick(c, memory)).toMatchObject({ key: `rank:${after.id}`, kind: "stage", node: "rankUp" });
+    expect(pick(c, told({ lastLevel: after.minLevel - 1 }, "intro", `daily:${TODAY}`, `rank:${after.id}`))?.node).not.toBe("rankUp");
+    // A level inside the same rank is not a rank up.
+    const within = ctx({ level: after.minLevel + 1, totalXp: xpForLevel(after.minLevel + 1) });
+    expect(pick(within, told({ lastLevel: after.minLevel }, "intro", `daily:${TODAY}`))?.node ?? null).not.toBe("rankUp");
+    const stage = renderStage("rankUp", c, { features: ["body", "quests"] });
+    expect(stage.beats[0]).toContain(after.name);
+    expect(stage.facts).toContain(`Rank ${after.letter}`);
+    expect(stage.facts).toContain("2 new unlocks");
+    expect(stage.halo).toBe("gold");
+  });
+
   it("celebrates a gate boss once per week", () => {
     const cleared = ctx({ gate: { ...input().gate, cleared: true } });
     const memory = told({}, "intro", `daily:${TODAY}`);
@@ -182,19 +210,19 @@ describe("when she appears big", () => {
     expect(pick(c, told({}, "intro"), "/dashboard", { mode: "quiet", quietUntil: null })).toBeNull();
   });
 
-  it("keeps the order: welcome, unlock, boss, first workout, streak, welcome back, daily", () => {
+  it("keeps the order: welcome, rank up, unlock, boss, first workout, streak, welcome back, daily", () => {
     const memory = { ...told({ lastLevel: 4 }, "welcome") };
     // Everything is due at once: it unlocks first, then the boss, and so on.
     let c = ctx({ level: 33, totalXp: xpForLevel(33), finishedWorkouts: 1, checkinDates: days(7), lastActivity: "2026-11-05", gate: { ...input().gate, cleared: true } });
     let m: Memory = { ...memory };
     const order: string[] = [];
-    for (let i = 0; i < 6; i += 1) {
+    for (let i = 0; i < 7; i += 1) {
       const moment = pick(c, { ...m, stagesToday: 0 });
       if (!moment) break;
       order.push(moment.node);
       m = { ...m, told: { ...m.told, [moment.key]: TODAY } };
     }
-    expect(order).toEqual(["unlock", "boss", "firstWorkout", "streak", "comeback", "daily"]);
+    expect(order).toEqual(["rankUp", "unlock", "boss", "firstWorkout", "streak", "comeback", "daily"]);
     c = ctx();
     expect(pick(c, told({}, "welcome", "firstWorkout", `daily:${TODAY}`))).toBeNull();
   });

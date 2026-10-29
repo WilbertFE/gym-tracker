@@ -1,3 +1,4 @@
+import { rankForLevel } from "@/lib/ranks";
 import { unlockedBetween, type FeatureId } from "@/lib/unlocks";
 import { isSilenced, MAX_MOMENTS_PER_DAY, MAX_STAGES_PER_DAY, rollDay, type Memory, type Prefs } from "./state";
 import { tourForPath } from "./tours";
@@ -30,7 +31,7 @@ export type PickInput = {
  * Whether Sera speaks up on her own right now, and about what. At most one thing per page load, each moment once
  * (a daily one once a day), never while you log a workout, never while the chat is open, and never in Quiet or Off.
  *
- * Big appearances (stages) come first, most important first: the welcome, something unlocked, a gate boss defeated,
+ * Big appearances (stages) come first, most important first: the welcome, a new rank, something unlocked, a gate boss defeated,
  * the first workout, a streak milestone, coming back after days away, and last the short daily hello. At most
  * {@link MAX_STAGES_PER_DAY} stages a day, and the daily hello only when nothing else has appeared that day. Small
  * things (the quiet hello for veterans, a waiting chest, a check-in nudge, an offer of a tour) are speech bubbles,
@@ -52,9 +53,13 @@ export function pickMoment(input: PickInput): Moment | null {
     // An existing account gets one quiet hello, as a bubble, instead of a big appearance.
     if (!ctx.isNew && !told("intro") && !told("welcome") && memory.shownToday < MAX_MOMENTS_PER_DAY) return bubble("intro", "intro");
 
-    // A level up that opened something.
+    // A level up that crossed into a new rank (she stands up in full, and mentions what it opened), or that opened something.
     if (memory.lastLevel !== null && ctx.level > memory.lastLevel) {
       const opened = unlockedBetween(memory.lastLevel, ctx.level);
+      const rank = rankForLevel(ctx.level);
+      if (rank.id !== rankForLevel(memory.lastLevel).id && !told(`rank:${rank.id}`)) {
+        return stage(`rank:${rank.id}`, "rankUp", { features: opened.map((f) => f.id) });
+      }
       const key = `unlock:${ctx.level}`;
       if (opened.length > 0 && !told(key)) return stage(key, "unlock", { features: opened.map((f) => f.id) });
     }

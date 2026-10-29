@@ -121,4 +121,6 @@ export type StageScript = {
   endMood?: Mood;
   /** It closes by itself after a few seconds, like the daily hello. */
   auto: boolean;
+  /** How much of her is shown: `half` (the default) from the waist up, `full` the whole body, kept for the rarest moments. */
+  body?: "half" | "full";
 };

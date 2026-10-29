@@ -218,10 +218,10 @@ export function Mascot({ context, today }: { context: SeraContext; today: string
   // The demo sheet can play any stage or tour on purpose.
   useEffect(() => {
     const onPlay = (event: Event) => {
-      const detail = (event as CustomEvent<{ stage?: string; tour?: string }>).detail;
+      const detail = (event as CustomEvent<{ stage?: string; tour?: string; days?: number }>).detail;
       if (detail?.stage) {
         const demoGate = { weekStart: "2026-11-09", name: "Gate of Iron", boss: "Stone Warden", rank: "A", xp: 90, booster: true, cleared: true };
-        void showStage("demo", detail.stage, { features: ["body", "quests"], days: 14 }, { ...context, gate: context.gate ?? demoGate });
+        void showStage("demo", detail.stage, { features: ["body", "quests"], days: detail.days ?? 14 }, { ...context, gate: context.gate ?? demoGate });
       } else if (detail?.tour) {
         startTour(detail.tour);
       }

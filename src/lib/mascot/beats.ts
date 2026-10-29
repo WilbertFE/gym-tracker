@@ -1,3 +1,4 @@
+import { rankForLevel } from "@/lib/ranks";
 import { featureById } from "@/lib/unlocks";
 import { tourForFeature } from "./tours";
 import type { NodeArgs, Reply, SeraContext, StageScript } from "./types";
@@ -21,6 +22,7 @@ const STAGES: Record<string, StageDef> = {
     pose: "hairflip",
     mood: "smug",
     halo: "blue",
+    body: "full",
     tag: "System guide",
     beats: ["Hmph. So you finally showed up.", "I am Sera. I will show you around, only because you would get lost otherwise.", "Check in, train, level up. The rest opens as you earn it."],
     facts: [],
@@ -44,6 +46,25 @@ const STAGES: Record<string, StageDef> = {
         ...(first ? [{ label: tour ? "Show me" : "Take me there", href: first.href, ...(tour ? { tour: tour.id } : {}) } as Reply] : []),
         CLOSE("Later"),
       ],
+      auto: false,
+    };
+  },
+
+  // A new rank: rarer than a level, so she stands up in full.
+  rankUp: (ctx, args) => {
+    const rank = rankForLevel(ctx.level);
+    const features = (args.features ?? []).map((id) => featureById(id));
+    const first = features[0];
+    return {
+      pose: "cheer",
+      mood: "flustered",
+      endMood: "smug",
+      halo: "gold",
+      body: "full",
+      tag: "Rank up",
+      beats: [`Rank up. You are ${rank.name} now.`, rank.tagline, "Hmph. I expected nothing less. ...Congratulations."],
+      facts: [`Rank ${rank.letter}`, ...(features.length > 0 ? [`${features.length} new unlock${features.length === 1 ? "" : "s"}`] : [])],
+      replies: [...(first ? [{ label: "See what opened", href: first.href } as Reply] : []), CLOSE("Thanks")],
       auto: false,
     };
   },
@@ -74,17 +95,25 @@ const STAGES: Record<string, StageDef> = {
     auto: false,
   }),
 
-  streak: (_ctx, args) => ({
-    pose: "smug",
-    mood: "smug",
-    endMood: "flustered",
-    halo: "gold",
-    tag: `${args.days ?? 7} day streak`,
-    beats: [`${args.days ?? 7} days in a row.`, "Hmph. So it is a habit now. Do not stop, I am watching."],
-    facts: [`${args.days ?? 7} days of check-ins`],
-    replies: [CLOSE("Thanks")],
-    auto: false,
-  }),
+  // A month in a row is the biggest streak, so she stands up in full for it.
+  streak: (_ctx, args) => {
+    const days = args.days ?? 7;
+    const month = days >= 30;
+    return {
+      pose: "smug",
+      mood: "smug",
+      endMood: "flustered",
+      halo: "gold",
+      body: month ? "full" : "half",
+      tag: `${days} day streak`,
+      beats: month
+        ? [`${days} days in a row.`, "A whole month. Hmph. Fine, that is impressive.", "Do not let it go to your head. Keep going."]
+        : [`${days} days in a row.`, "Hmph. So it is a habit now. Do not stop, I am watching."],
+      facts: [`${days} days of check-ins`],
+      replies: [CLOSE("Thanks")],
+      auto: false,
+    };
+  },
 
   comeback: (ctx) => ({
     pose: "crossed",
