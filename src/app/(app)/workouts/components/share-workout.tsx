@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { ShareCard } from "@/lib/share";
+import { pageFonts } from "@/lib/share-fonts";
 import { SITE_NAME } from "@/lib/site";
 import {
   drawShareCard,
@@ -25,23 +26,9 @@ import {
   shareFileName,
   templatesFor,
   type ShareBadge,
-  type ShareFonts,
   type ShareFormat,
   type ShareTemplate,
 } from "@/lib/share-render";
-
-/** The fonts the page already loaded, so the image matches the app. Falls back to system fonts. */
-function pageFonts(): ShareFonts {
-  const css = getComputedStyle(document.documentElement);
-  const sans = css.getPropertyValue("--font-plex-sans").trim();
-  const mono = css.getPropertyValue("--font-jetbrains-mono").trim();
-  const display = css.getPropertyValue("--font-chakra").trim();
-  return {
-    display: `${display ? `${display}, ` : ""}system-ui, sans-serif`,
-    sans: `${sans ? `${sans}, ` : ""}system-ui, sans-serif`,
-    mono: `${mono ? `${mono}, ` : ""}ui-monospace, monospace`,
-  };
-}
 
 const toBlob = (canvas: HTMLCanvasElement) =>
   new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));

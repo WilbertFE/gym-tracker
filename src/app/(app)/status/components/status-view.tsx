@@ -4,6 +4,9 @@ import { RankBadge } from "@/components/rank-badge";
 import { StatsRadar } from "@/components/stats-radar";
 import { SystemTip } from "@/components/system-tip";
 import { getCurrentUserId } from "@/lib/auth";
+import { AuraArt } from "@/components/items/aura-art";
+import { Nameplate } from "@/components/items/nameplate";
+import { auraKindFor } from "@/lib/item-art";
 import { itemById, type FrameStyle } from "@/lib/items";
 import { loadLevel } from "@/lib/level";
 import { notice } from "@/lib/system-voice";
@@ -36,7 +39,15 @@ export async function StatusView() {
 
       <Panel label="Rank" variant="system">
         <div className="flex items-center gap-5">
-          <RankBadge rank={level.rank} size={104} decor={(frame?.value as FrameStyle | undefined) ?? null} />
+          {aura ? (
+            <span className="flex size-[140px] shrink-0 items-center justify-center">
+              <AuraArt color={aura.value} kind={auraKindFor(aura.id)} size={104} animated>
+                <RankBadge rank={level.rank} size={104} decor={(frame?.value as FrameStyle | undefined) ?? null} />
+              </AuraArt>
+            </span>
+          ) : (
+            <RankBadge rank={level.rank} size={104} decor={(frame?.value as FrameStyle | undefined) ?? null} />
+          )}
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <p className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">{level.rank.name}</p>
             <p className="tabular text-6xl font-bold leading-none text-primary [text-shadow:0_0_22px_var(--primary)]" aria-label={`Rank ${level.rank.letter}`} style={aura ? { color: aura.value, textShadow: `0 0 22px ${aura.value}` } : undefined}>
@@ -46,7 +57,9 @@ export async function StatusView() {
               Level {level.level}, {level.total.toLocaleString("en-US")} XP
             </p>
             {plate && (
-              <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">{plate.value}</p>
+              <p>
+                <Nameplate text={plate.value} grade={plate.grade} />
+              </p>
             )}
           </div>
         </div>

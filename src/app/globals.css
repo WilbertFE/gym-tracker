@@ -295,6 +295,359 @@ body {
   .chest-shimmer { animation: chest-shimmer 5s linear infinite; }
 }
 
+/*
+ * Item art. A card shows its grade through its frame: Common is flat, Rare glows inside, Epic has a gradient
+ * edge and corner brackets, Legendary has a double gold edge and a gem. `--grade` is set on the element.
+ * Auras and nameplates follow below. Anything that moves is inside the reduced motion query at the end.
+ */
+.item-card {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid color-mix(in srgb, var(--grade) 45%, transparent);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+}
+
+.item-card[data-grade="rare"] {
+  border-color: color-mix(in srgb, var(--grade) 72%, transparent);
+  box-shadow: inset 0 0 20px -8px var(--grade);
+}
+
+.item-card[data-grade="epic"] {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(135deg, var(--grade), color-mix(in srgb, var(--grade) 25%, white) 50%, var(--grade)) border-box;
+  box-shadow:
+    inset 0 0 26px -10px var(--grade),
+    0 0 18px -10px var(--grade);
+}
+
+.item-card[data-grade="legendary"] {
+  border-color: var(--grade);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--grade) 10%, var(--card)), var(--card) 60%);
+  box-shadow:
+    inset 0 0 0 3px var(--card),
+    inset 0 0 0 4px color-mix(in srgb, var(--grade) 55%, transparent),
+    inset 0 0 30px -10px var(--grade),
+    0 0 26px -8px var(--grade);
+}
+
+/* Corner marks: two pips on a Rare card, brackets on Epic and Legendary. */
+.item-card[data-grade="rare"]::before,
+.item-card[data-grade="rare"]::after {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--grade);
+  box-shadow: 0 0 8px var(--grade);
+  pointer-events: none;
+}
+
+.item-card[data-grade="epic"]::before,
+.item-card[data-grade="epic"]::after,
+.item-card[data-grade="legendary"]::before,
+.item-card[data-grade="legendary"]::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 0 solid var(--grade);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.item-card[data-grade]::before {
+  top: 4px;
+  left: 4px;
+}
+
+.item-card[data-grade]::after {
+  right: 4px;
+  bottom: 4px;
+}
+
+.item-card[data-grade="epic"]::before,
+.item-card[data-grade="legendary"]::before {
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.item-card[data-grade="epic"]::after,
+.item-card[data-grade="legendary"]::after {
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+
+/* A gem on the top edge of a Legendary card. */
+.item-gem {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  z-index: 2;
+  width: 10px;
+  height: 10px;
+  background: var(--grade);
+  box-shadow:
+    0 0 10px var(--grade),
+    0 0 22px color-mix(in srgb, var(--grade) 60%, transparent);
+  transform: translateX(-50%) rotate(45deg);
+  pointer-events: none;
+}
+
+/* A band of light that crosses an Epic or Legendary card. Its wrapper clips it to the card, so the gem can still stick out. */
+.item-shine-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.item-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.2) 50%, transparent 62%);
+  transform: translateX(-130%);
+  pointer-events: none;
+}
+
+.item-pips {
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.item-pips > span {
+  width: 6px;
+  height: 6px;
+  background: var(--grade);
+  box-shadow: 0 0 6px var(--grade);
+  transform: rotate(45deg);
+}
+
+/* The round badge an item's icon sits in. */
+.item-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--grade) 60%, transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--grade) 24%, transparent), transparent 75%);
+  color: var(--grade);
+  border-radius: 9999px;
+}
+
+/* Auras: layers behind a badge. --aura-c is the colour of the item. */
+.aura {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  --aura-c: var(--primary);
+}
+
+.aura > .aura-body {
+  position: relative;
+  z-index: 1;
+}
+
+.aura-layer {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+}
+
+.aura-halo {
+  inset: -28%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--aura-c) 50%, transparent) 0%, transparent 68%);
+}
+
+.aura-ring {
+  inset: -6%;
+  border: 1.5px solid color-mix(in srgb, var(--aura-c) 85%, transparent);
+  box-shadow:
+    0 0 14px var(--aura-c),
+    inset 0 0 14px color-mix(in srgb, var(--aura-c) 55%, transparent);
+}
+
+.aura-ring-outer {
+  inset: -18%;
+  border: 1px solid color-mix(in srgb, var(--aura-c) 45%, transparent);
+}
+
+.aura-dashed {
+  inset: -14%;
+  border: 1.5px dashed color-mix(in srgb, var(--aura-c) 80%, transparent);
+}
+
+.aura-rays {
+  inset: -42%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--aura-c) 70%, transparent) 0deg 5deg, transparent 5deg 22.5deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 26%, #000 34%, transparent 70%);
+  mask-image: radial-gradient(circle, transparent 26%, #000 34%, transparent 70%);
+}
+
+/* A small diamond that sits on a ring at an angle (set with --a) and a distance (--r, a percentage of the aura). */
+.aura-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--aura-c);
+  box-shadow: 0 0 8px var(--aura-c);
+  transform: rotate(var(--a)) translateY(calc(var(--r) * -1)) rotate(45deg);
+  pointer-events: none;
+}
+
+/* Nameplates. The outer element is the edge, the inner one the face. --grade is set on the element. */
+.nameplate {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--grade);
+  font-size: 0.75rem;
+}
+
+.nameplate[data-size="sm"] {
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+}
+
+.nameplate-inner {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0.28em 0.7em;
+  white-space: nowrap;
+}
+
+.nameplate[data-style="plain"] {
+  border: 1px solid color-mix(in srgb, var(--grade) 55%, transparent);
+}
+
+.nameplate[data-style="bracket"] {
+  background: color-mix(in srgb, var(--grade) 9%, transparent);
+  box-shadow: 0 0 14px -6px var(--grade);
+}
+
+.nameplate[data-style="bracket"] .nameplate-inner::before,
+.nameplate[data-style="bracket"] .nameplate-inner::after {
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+.nameplate[data-style="bracket"] .nameplate-inner::before {
+  content: "[";
+  margin-right: 0.55em;
+}
+
+.nameplate[data-style="bracket"] .nameplate-inner::after {
+  content: "]";
+  margin-left: 0.55em;
+}
+
+.nameplate[data-style="gradient"] {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(120deg, var(--grade), color-mix(in srgb, var(--grade) 25%, white) 50%, var(--grade)) border-box;
+  box-shadow: 0 0 16px -6px var(--grade);
+}
+
+/* The crest has notched corners, so its edge is a second shape one pixel larger behind the face. */
+.nameplate[data-style="crest"] {
+  padding: 1px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--grade) 40%, white), var(--grade));
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 9px 100%, 0 50%);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--grade) 60%, transparent));
+}
+
+.nameplate[data-style="crest"] .nameplate-inner {
+  padding: 0.3em 1.5em;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--grade) 22%, #0a0805), #0a0805);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
+}
+
+.nameplate[data-style="crest"] .nameplate-text {
+  background: linear-gradient(180deg, #fff6d0, var(--grade));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nameplate-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+  transform: translateX(-130%);
+  pointer-events: none;
+}
+
+@keyframes item-shine {
+  from { transform: translateX(-130%); }
+  to { transform: translateX(130%); }
+}
+
+@keyframes item-shine-again {
+  from { transform: translateX(-130%); }
+  to { transform: translateX(130%); }
+}
+
+@keyframes aura-turn {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes aura-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* One sweep when a card appears, and another each time it is hovered or focused. */
+  .item-card[data-grade="epic"] .item-shine,
+  .item-card[data-grade="legendary"] .item-shine {
+    animation: item-shine 1.1s ease-out 0.25s 1 both;
+  }
+
+  .item-card[data-grade="epic"]:hover .item-shine,
+  .item-card[data-grade="epic"]:focus-within .item-shine,
+  .item-card[data-grade="legendary"]:hover .item-shine,
+  .item-card[data-grade="legendary"]:focus-within .item-shine {
+    animation: item-shine-again 0.9s ease-out 1 both;
+  }
+
+  .nameplate[data-style="gradient"] .nameplate-shine,
+  .nameplate[data-style="crest"] .nameplate-shine {
+    animation: item-shine 1.2s ease-out 0.3s 1 both;
+  }
+
+  .nameplate[data-style="gradient"]:hover .nameplate-shine,
+  .nameplate[data-style="crest"]:hover .nameplate-shine {
+    animation: item-shine-again 0.9s ease-out 1 both;
+  }
+
+  /* Only an aura that is shown large moves: the rays turn slowly and the sparks twinkle in turn. */
+  .aura[data-animated] .aura-rays {
+    animation: aura-turn 40s linear infinite;
+  }
+
+  .aura[data-animated] .aura-spark {
+    animation: aura-twinkle 2.4s ease-in-out infinite;
+    animation-delay: var(--d, 0s);
+  }
+
+  .aura[data-animated] .aura-dashed {
+    animation: aura-turn 60s linear infinite;
+  }
+}
+
 /* XP pop-up: slides up, and the rank badge pops in. Only used with `motion-safe`. */
 @keyframes xp-in {
   from {

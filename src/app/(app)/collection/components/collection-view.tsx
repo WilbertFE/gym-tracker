@@ -1,30 +1,32 @@
 import { LockedFeature } from "@/components/locked-feature";
 import { ChestStrip } from "@/components/chest/chest-strip";
-import { ItemPreview } from "@/components/chest/item-preview";
 import { Panel } from "@/components/panel";
-import { RankBadge } from "@/components/rank-badge";
 import { getCurrentUserId } from "@/lib/auth";
 import { CHEST_EXPIRY_DAYS, CHEST_ODDS, CHEST_PITY, chestKind } from "@/lib/chests";
-import { GRADE_ORDER, GRADES, itemById, ITEMS, itemsOfGrade, SLOTS, type FrameStyle, type Grade } from "@/lib/items";
+import { GRADE_ORDER, GRADES, itemById, ITEMS, type Grade } from "@/lib/items";
 import { loadLevel } from "@/lib/level";
+import { getProfile } from "@/lib/repositories/profiles";
 import { isUnlocked } from "@/lib/unlocks";
 import { getQuickChests, getShowAll } from "@/lib/unlock-state";
-import { EquipButton } from "./equip-button";
+import { CollectionClient } from "./collection-client";
 
 const gradeStyle = (grade: Grade) => ({ color: GRADES[grade].color });
 
 /** Chests waiting, what is worn, every item by grade, the odds and what was opened. */
 export async function CollectionView() {
   const userId = await getCurrentUserId();
-  const [{ level, chests, collection, quests }, showAll, quick] = await Promise.all([loadLevel(userId), getShowAll(), getQuickChests()]);
+  const [{ level, chests, collection, quests, title }, showAll, quick, { profile }] = await Promise.all([
+    loadLevel(userId),
+    getShowAll(),
+    getQuickChests(),
+    getProfile(userId),
+  ]);
   if (!isUnlocked("chests", level.level, showAll)) {
     return <LockedFeature id="chests" level={level.level} totalXp={level.total} />;
   }
 
-  const owned = new Set(collection.owned);
   const worn = collection.equipment;
-  const wornFrame = worn.frame ? itemById(worn.frame) : null;
-  const wornAura = worn.aura ? itemById(worn.aura) : null;
+  const displayName = profile?.display_name ?? "You";
   const history = [...chests.openings].sort((a, b) => b.opened_at.localeCompare(a.opened_at)).slice(0, 8);
   const strip = (kind: "daily" | "weekly") => {
     const set = kind === "daily" ? quests.daily : quests.weekly;
@@ -43,97 +45,27 @@ export async function CollectionView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Panel label="Chests" variant="system">
-          {chests.enabled ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                Finish all three quests of a day for a daily chest, all three of a week for a weekly chest. A chest can be opened for {CHEST_EXPIRY_DAYS.daily} days (daily) or{" "}
-                {CHEST_EXPIRY_DAYS.weekly} days (weekly) after you earn it.
+      <Panel label="Chests" variant="system">
+        {chests.enabled ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Finish all three quests of a day for a daily chest, all three of a week for a weekly chest. A chest can be opened for {CHEST_EXPIRY_DAYS.daily} days (daily) or{" "}
+              {CHEST_EXPIRY_DAYS.weekly} days (weekly) after you earn it.
+            </p>
+            {strip("daily")}
+            {strip("weekly")}
+            {chests.expired.length > 0 && (
+              <p className="tabular mt-3 text-xs text-muted-foreground">
+                {chests.expired.length} chest{chests.expired.length === 1 ? "" : "es"} ran out before they were opened.
               </p>
-              {strip("daily")}
-              {strip("weekly")}
-              {chests.expired.length > 0 && (
-                <p className="tabular mt-3 text-xs text-muted-foreground">
-                  {chests.expired.length} chest{chests.expired.length === 1 ? "" : "es"} ran out before they were opened.
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">Chests are not set up yet. They appear here as soon as the database is updated.</p>
-          )}
-        </Panel>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Chests are not set up yet. They appear here as soon as the database is updated.</p>
+        )}
+      </Panel>
 
-        <Panel label="Worn" variant="system">
-          <div className="flex items-center gap-5">
-            <RankBadge rank={level.rank} size={96} decor={(wornFrame?.value as FrameStyle | undefined) ?? null} />
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p
-                className="tabular text-4xl font-bold leading-none"
-                style={wornAura ? { color: wornAura.value, textShadow: `0 0 18px ${wornAura.value}` } : undefined}
-              >
-                {level.level}
-              </p>
-              <p className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">{level.rank.name}</p>
-              {worn.plate && itemById(worn.plate) && (
-                <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">{itemById(worn.plate)!.value}</p>
-              )}
-            </div>
-          </div>
-          <ul className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
-            {SLOTS.map((slot) => {
-              const item = worn[slot.id] ? itemById(worn[slot.id]!) : null;
-              return (
-                <li key={slot.id} className="flex flex-col gap-0.5 border border-dashed px-3 py-2">
-                  <span className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">{slot.name}</span>
-                  <span className="text-sm" style={item ? gradeStyle(item.grade) : undefined}>
-                    {item ? item.name : "None"}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </Panel>
-      </div>
-
-      {[...GRADE_ORDER].reverse().map((grade) => {
-        const items = itemsOfGrade(grade);
-        const have = items.filter((i) => owned.has(i.id)).length;
-        return (
-          <Panel key={grade} label={`${GRADES[grade].name}, ${have} of ${items.length}`} variant="plain">
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {items.map((item) => {
-                const has = owned.has(item.id);
-                const isWorn = worn[item.slot] === item.id;
-                return (
-                  <li
-                    key={item.id}
-                    className={
-                      "flex flex-col items-center gap-2 border p-3 text-center " + (has ? "bg-surface" : "border-dashed opacity-60")
-                    }
-                    style={has ? { borderColor: `${GRADES[grade].color}88` } : undefined}
-                  >
-                    <div className="flex h-[88px] items-center justify-center">
-                      {has ? (
-                        <ItemPreview item={item} rank={level.rank} size={80} />
-                      ) : (
-                        <span aria-hidden className="font-display text-4xl font-bold text-muted-foreground">
-                          ?
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm font-medium">{has ? item.name : "Not found yet"}</p>
-                    <p className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">
-                      {SLOTS.find((s) => s.id === item.slot)?.name}
-                    </p>
-                    {has && <EquipButton slot={item.slot} itemId={item.id} name={item.name} worn={isWorn} />}
-                  </li>
-                );
-              })}
-            </ul>
-          </Panel>
-        );
-      })}
+      <CollectionClient rank={level.rank} level={level.level} name={displayName} title={title} owned={collection.owned} worn={worn} />
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Panel label="The odds" variant="plain">

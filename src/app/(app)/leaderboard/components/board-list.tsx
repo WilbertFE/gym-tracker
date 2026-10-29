@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NameplateWord } from "@/components/items/nameplate";
 import { Panel } from "@/components/panel";
 import { RankBadge } from "@/components/rank-badge";
 import { countryName } from "@/lib/countries";
@@ -35,11 +36,7 @@ function Row({ row, pinned = false }: { row: PublicRow; pinned?: boolean }) {
           ) : (
             row.display_name
           )}
-          {row.plate && (
-            <span className="font-display ml-2 border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-primary">
-              {row.plate}
-            </span>
-          )}
+          {row.plate && <NameplateWord word={row.plate} className="ml-2" />}
           {row.is_me && (
             <span className="tabular ml-2 border border-primary px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-primary">
               You

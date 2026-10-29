@@ -2,7 +2,7 @@ import "server-only";
 import { addDays, format, subDays } from "date-fns";
 import { CHEST_EXPIRY_DAYS, chestId, type Chest, type Opening } from "@/lib/chests";
 import { DEMO_USER_ID } from "@/lib/demo";
-import { NO_EQUIPMENT, type Equipment } from "@/lib/items";
+import { ITEMS, NO_EQUIPMENT, type Equipment } from "@/lib/items";
 import { ISO_FORMAT } from "@/lib/dates";
 import { builtInId } from "@/lib/exercise-library";
 import { resetLeaderboard } from "./leaderboard";
@@ -65,6 +65,18 @@ const iso = (d: Date) => format(d, ISO_FORMAT);
 
 /** [exercise name, [reps, kg] per set] */
 type Plan = [string, [number, number][]][];
+
+/**
+ * Demo mode only, and only with `NEXT_PUBLIC_DEMO_ITEMS=all`: the demo user already owns every item, so each grade
+ * and style can be looked at. Without the switch nobody owns anything, which is what the tests rely on.
+ */
+function seedItems(now: Date): Opening[] {
+  if (process.env.NEXT_PUBLIC_DEMO_ITEMS !== "all") return [];
+  return ITEMS.map((item, i) => {
+    const day = iso(subDays(now, 40 + i));
+    return { chest_id: `d:${day}`, item_id: item.id, grade: item.grade, duplicate: false, bonus_xp: 0, opened_at: `${day}T12:00:00.000Z`, opened_on: day };
+  });
+}
 
 /** Five daily chests and two weekly ones, earned on recent days, each with some days left. */
 function seedChests(now: Date): Chest[] {
@@ -302,7 +314,7 @@ function seed(userId: string): Store {
     settings: null,
     boosts: [],
     trials: [],
-    chestOpenings: [],
+    chestOpenings: seedItems(now),
     equipment: { ...NO_EQUIPMENT },
     demoChests: seedChests(now),
   };

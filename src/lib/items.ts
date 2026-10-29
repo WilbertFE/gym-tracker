@@ -95,6 +95,10 @@ const byId = new Map(ITEMS.map((item) => [item.id, item]));
 
 export const itemById = (id: string): Item | null => byId.get(id) ?? null;
 
+/** The nameplate whose word this is. Plate words are unique, so a word on the leaderboard names its item. */
+export const plateByWord = (word: string | null | undefined): Item | null =>
+  word ? (ITEMS.find((i) => i.slot === "plate" && i.value === word) ?? null) : null;
+
 export const itemsOfGrade = (grade: Grade): Item[] => ITEMS.filter((item) => item.grade === grade);
 
 export const itemsOfSlot = (slot: Slot): Item[] => ITEMS.filter((item) => item.slot === slot);

@@ -1,11 +1,16 @@
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { ItemPreview } from "@/components/chest/item-preview";
+import { AuraArt } from "@/components/items/aura-art";
+import { GradeCard, GradeLabel } from "@/components/items/grade-card";
+import { ItemArt } from "@/components/items/item-art";
+import { ItemMedal } from "@/components/items/item-icon";
+import { Nameplate } from "@/components/items/nameplate";
 import { Panel } from "@/components/panel";
 import { RankBadge } from "@/components/rank-badge";
 import { StatsRadar } from "@/components/stats-radar";
 import { getCurrentUserId } from "@/lib/auth";
+import { auraKindFor } from "@/lib/item-art";
 import { GRADE_ORDER, GRADES, ITEMS, gradeRank, type FrameStyle } from "@/lib/items";
 import type { PublicProfile, SectionId } from "@/lib/profile";
 import { loadProfileView } from "@/lib/profile-view";
@@ -32,7 +37,15 @@ function Header({ view }: { view: PublicProfile }) {
     <section aria-label="Player" className="system-window p-4 sm:p-6" data-glow style={style}>
       <div className="flex items-center gap-4 sm:gap-6">
         {rank ? (
-          <RankBadge rank={rank} size={112} decor={(worn.frame?.value as FrameStyle | undefined) ?? null} />
+          worn.aura ? (
+            <span className="flex size-[150px] shrink-0 items-center justify-center">
+              <AuraArt color={worn.aura.value} kind={auraKindFor(worn.aura.id)} size={112} animated>
+                <RankBadge rank={rank} size={112} decor={(worn.frame?.value as FrameStyle | undefined) ?? null} />
+              </AuraArt>
+            </span>
+          ) : (
+            <RankBadge rank={rank} size={112} decor={(worn.frame?.value as FrameStyle | undefined) ?? null} />
+          )
         ) : (
           <span
             aria-hidden
@@ -47,11 +60,7 @@ function Header({ view }: { view: PublicProfile }) {
           <h1 className="break-words text-3xl font-bold leading-tight">{view.displayName}</h1>
           {(worn.plate || view.level?.title) && (
             <p className="flex flex-wrap items-center gap-2">
-              {worn.plate && (
-                <span className="font-display border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-primary">
-                  {worn.plate.value}
-                </span>
-              )}
+              {worn.plate && <Nameplate text={worn.plate.value} grade={worn.plate.grade} />}
               {view.level?.title && <span className="text-sm text-muted-foreground">{view.level.title}</span>}
             </p>
           )}
@@ -132,16 +141,17 @@ function Collection({ view }: { view: PublicProfile }) {
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {sorted.map((item) => (
-            <li key={item.id} className="flex flex-col items-center gap-1.5 border bg-surface p-3 text-center" style={{ borderColor: `${GRADES[item.grade].color}88` }}>
-              <div className="flex h-[72px] items-center justify-center">
-                <ItemPreview item={item} rank={rank} size={64} />
+            <GradeCard key={item.id} as="li" grade={item.grade} className="flex flex-col items-center gap-1.5 p-3 text-center">
+              <div className="flex w-full items-center justify-between gap-2">
+                <ItemMedal item={item} size={24} />
+                <GradeLabel grade={item.grade} />
+              </div>
+              <div className="flex min-h-[88px] items-center justify-center">
+                <ItemArt item={item} rank={rank} size={72} />
               </div>
               <p className="text-sm font-medium">{item.name}</p>
-              <p className="tabular text-[10px] uppercase tracking-widest" style={{ color: GRADES[item.grade].color }}>
-                {GRADES[item.grade].name}
-                {wornIds.has(item.id) ? ", worn" : ""}
-              </p>
-            </li>
+              {wornIds.has(item.id) && <p className="tabular text-[10px] uppercase tracking-widest text-primary">Worn</p>}
+            </GradeCard>
           ))}
         </ul>
       )}

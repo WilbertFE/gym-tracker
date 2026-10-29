@@ -11,7 +11,9 @@ import type { Rank } from "@/lib/ranks";
 import { SYSTEM } from "@/lib/system-voice";
 import { XP_CHECK_EVENT } from "@/lib/xp-diff";
 import { ChestArt, type ChestPhase } from "./chest-art";
-import { ItemPreview } from "./item-preview";
+import { GradeLabel } from "@/components/items/grade-card";
+import { ItemArt } from "@/components/items/item-art";
+import { ItemMedal } from "@/components/items/item-icon";
 
 /** What `POST /api/chests/open` returns. */
 type OpenResult = {
@@ -319,11 +321,12 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
                   data-glow
                   style={{ "--primary": gradeColor } as CSSProperties}
                 >
-                  <p className="font-display text-[11px] font-semibold uppercase tracking-[0.3em]" style={{ color: gradeColor }}>
-                    [ {result.gradeName} ]
-                  </p>
-                  <div className="flex min-h-[88px] items-center justify-center">
-                    <ItemPreview item={result.item} rank={rank} />
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <ItemMedal item={result.item} size={28} />
+                    <GradeLabel grade={result.grade} />
+                  </div>
+                  <div className="flex min-h-[96px] items-center justify-center">
+                    <ItemArt item={result.item} rank={rank} size={96} animated />
                   </div>
                   <h2 className="text-2xl font-bold leading-tight">{result.item.name}</h2>
                   <p className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">{slotName(result.item)}</p>

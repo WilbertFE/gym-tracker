@@ -2,6 +2,8 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { RankBadge } from "@/components/rank-badge";
 import { getCurrentUserId } from "@/lib/auth";
+import { AuraArt } from "@/components/items/aura-art";
+import { auraKindFor } from "@/lib/item-art";
 import { itemById, type FrameStyle } from "@/lib/items";
 import { loadLevel } from "@/lib/level";
 import { isUnlocked } from "@/lib/unlocks";
@@ -24,7 +26,15 @@ export async function LevelHero() {
   return (
     <section aria-label="Your level" className="system-window p-4 sm:p-6" data-glow style={aura ? ({ "--aura": aura.value } as CSSProperties) : undefined}>
       <div className="flex items-center gap-4 sm:gap-6">
-        <RankBadge rank={level.rank} size={104} className="sm:w-32" decor={(frame?.value as FrameStyle | undefined) ?? null} />
+        {aura ? (
+          <span className="flex size-[136px] shrink-0 items-center justify-center sm:size-[150px]">
+            <AuraArt color={aura.value} kind={auraKindFor(aura.id)} size={104} animated>
+              <RankBadge rank={level.rank} size={104} decor={(frame?.value as FrameStyle | undefined) ?? null} />
+            </AuraArt>
+          </span>
+        ) : (
+          <RankBadge rank={level.rank} size={104} className="sm:w-32" decor={(frame?.value as FrameStyle | undefined) ?? null} />
+        )}
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div>
