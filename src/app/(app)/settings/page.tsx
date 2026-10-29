@@ -25,7 +25,7 @@ export default function SettingsPage() {
       <nav aria-label="Account pages">
         <Link
           href="/membership"
-          className="flex min-h-12 items-center justify-between border bg-card px-4 text-sm hover:bg-surface-raised"
+          className="flex min-h-12 items-center justify-between border border-primary/25 bg-card px-4 text-sm hover:border-primary/60 hover:bg-surface-raised"
         >
           Gym membership
           <span aria-hidden className="text-muted-foreground">&rarr;</span>

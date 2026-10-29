@@ -121,50 +121,54 @@ The owner cannot choose a style, so the agent must choose one that fits the Dark
 
 ---
 
-## 6. Design System: Dark Technical HUD
+## 6. Design System: The System
 
-The look is a dark body scanner or athlete analytics dashboard, with Swiss style typography: strict grid, clear hierarchy, lots of whitespace, almost no decoration. Read and follow the `frontend-design` skill whenever UI changes.
+The look is a cold, translucent interface floating over darkness, like the heads-up display a game "System" projects for its Player. Every card is a System window. Mood only: no characters, quotes, logos or art from any franchise. Read and follow the design skill whenever UI changes.
+
+This design lives on the branch `feat/system-ui`. The earlier "dark technical HUD" look (cyan accent, plain cards, IBM Plex headings) is still on `main` until the branch is merged.
 
 ### 6.1 Principles
 
-- The **3D body model is the hero** of the app. Everything else is calm and neutral so the heatmap colors stand out.
-- Green, yellow, and red are **reserved for muscle intensity and status**. Never use them for decoration or branding.
-- Data first: numbers are large, labels are small and uppercase, units are muted.
-- Sharp corners and thin borders. No heavy shadows, no glassmorphism, no purple or blue gradients, no emoji icons.
-- Mobile first. The app is used between sets, so tap targets are at least 44px and logging a set takes as few taps as possible.
+- The **3D body model is the hero** of the muscle screens. Heatmap colors stay as they are, because they are data.
+- Green, yellow, and red are **reserved for muscle intensity and status**. The boss red is used only for open weekly gates and destructive actions.
+- Data first: numbers are large, labels are small and uppercase, units are muted. Logging a set must stay fast, so the logging screens get the same frame and colors but no extra decoration.
+- Sharp corners, thin glowing borders. The glow is soft and static. The page ground (a blue bloom and a faint grid) never animates.
+- Mobile first. The app is used between sets, so tap targets are at least 44px.
 
 ### 6.2 Color tokens
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `background` | `#0A0B0D` | page background |
-| `surface` | `#111317` | cards, panels |
-| `surface-raised` | `#171A1F` | hover, dialogs |
-| `border` | `#23262D` | 1px borders |
-| `foreground` | `#E6E8EB` | main text |
-| `muted` | `#8A8F98` | secondary text, units |
-| `accent` | `#22D3EE` | single UI accent (focus, primary action, active nav) |
-| `intensity-none` | `#2A2E36` | untrained muscle |
+| `background` | `#05070D` | page background, blue-black |
+| `card` / `surface` | `#0A1222` | System windows, panels |
+| `surface-raised` | `#0F1A2E` | hover, raised rows |
+| `border` | `#1A2A46` | 1px borders |
+| `foreground` | `#DBE6F7` | main text |
+| `muted-foreground` | `#8593B0` | secondary text, units |
+| `primary` | `#4AA8FF` | System blue: focus, primary action, active nav, glow |
+| `danger` | `#FF4D5E` | open gates and bosses, destructive actions |
+| `intensity-none` | `#1F2B42` | untrained muscle, empty bars |
 | `intensity-low` | `#22C55E` | heatmap green |
 | `intensity-mid` | `#EAB308` | heatmap yellow |
 | `intensity-high` | `#EF4444` | heatmap red |
 
-Map these onto shadcn's CSS variables (`--background`, `--card`, `--border`, `--primary`, and so on) in `globals.css`. The accent must stay distinct from the three intensity colors.
+The tokens are mapped onto shadcn's CSS variables in `src/app/globals.css`.
 
 ### 6.3 Typography
 
-- Sans: **IBM Plex Sans** (UI text and headings).
-- Mono: **JetBrains Mono** (all numbers, timers, units, and small uppercase labels), with tabular numerals enabled.
-- Load both with `next/font`. Do not use Inter, Roboto, or system default stacks.
-- Type scale: big stat numbers 40 to 64px mono, section labels 11 to 12px uppercase with letter spacing, body 14 to 16px.
+- Display: **Chakra Petch** (angular, HUD-like). Used for headings, bracketed panel labels, buttons, the site name and big level and rank numbers.
+- Sans: **IBM Plex Sans** for running text.
+- Mono: **JetBrains Mono** for numbers, timers and units, with tabular numerals (`.tabular`).
+- All three load through `next/font`. Headings (`h1` to `h3`) use the display face by default.
 
 ### 6.4 Layout and components
 
-- 12 column grid on desktop, single column on mobile, consistent 4px spacing scale.
-- Cards: 1px border, `surface` background, radius `2px`, small uppercase label at top left, optional status dot at top right.
-- Optional HUD details, used sparingly: thin corner brackets on the body model panel, subtle grid background behind the model, a faint scanline overlay on the hero panel only.
-- Navigation: bottom tab bar on mobile (Dashboard, Workouts, Body, Schedule, Settings), left rail on desktop (the same plus Membership). On phones Membership is reached from the Settings page, and the Settings tab stays highlighted on the Membership page.
-- Motion: short (150 to 250ms), functional only (state changes, heatmap color transitions). Respect `prefers-reduced-motion`.
+- **System window** (`.system-window` in `globals.css`): thin glowing border, faint top gradient, corner brackets top left and bottom right. `data-glow` is the stronger kind and `data-danger` turns it red. It materializes once on load (a 220 ms clip and fade, off under reduced motion).
+- `Panel` (`src/components/panel.tsx`) renders every card as a System window with a bracketed label such as `[ STATUS ]`. Variants: `plain` (quiet), `system` (glowing), `danger` (red, open gates).
+- Bars (XP, quests, boss HP, stats) are thin glowing bars with a bright leading edge (`Progress` and the `.system-bar` utility).
+- Navigation: bottom tab bar on mobile (Dashboard, Workouts, Body, Schedule, Settings), left rail on desktop (the same plus Status, Leaderboard and Membership once unlocked). The rail and the bar glow in the System blue.
+- Landing and sign in are System windows too: "You have been chosen as a Player."
+- Motion: short (150 to 250ms), functional only. Respect `prefers-reduced-motion`.
 
 ---
 
@@ -323,7 +327,7 @@ Create `.env.local` with the variables in section 10 (never commit it). Apply `s
 | Phase 7: Scheduling and recommendations | Done on dummy data. All roadmap phases are complete; the remaining work is connecting Supabase (section 20) |
 | shadcn setup | Style `radix-lyra` (boxy, sharp), neutral base, CSS variables, dark only |
 | Design tokens | HUD palette mapped to shadcn variables in `globals.css`, plus `surface`, `surface-raised`, `intensity-*` tokens |
-| Fonts | IBM Plex Sans and JetBrains Mono via `next/font`; `.tabular` utility for mono tabular numerals |
+| Fonts | Chakra Petch (display), IBM Plex Sans and JetBrains Mono via `next/font`; `.tabular` utility for mono tabular numerals |
 | Auth | Email and password via Supabase; login, signup, logout API routes |
 | Route protection | `src/proxy.ts` (see below) |
 | App shell | Mobile bottom tab bar, desktop left rail |
@@ -513,6 +517,7 @@ Red meaning: defaults to "heavily trained, needs rest" (open question in section
 
 ## 19. Changelog
 
+- 2026-10-29: Full System restyle on the branch `feat/system-ui`: new blue-black palette, Chakra Petch display face, every card a glowing System window with bracketed labels, glowing bars, a red boss window, new landing and sign in. Also fixed a horizontal overflow of the content area between about 770 and 1250 px wide.
 - 2026-10-29: Muscle levels, titles (also on the leaderboard), rank trials from level 25 and a comeback quest after a quiet day, with a Settings switch. Needs migration `20261029000000_rank_trials_titles.sql`; until it runs, trials do not hold anyone back and titles are not saved on the leaderboard.
 - 2026-10-29: Weekly gates and bosses with XP and booster rewards, unlocking at level 12.
 - 2026-10-29: Status window with a rank letter (E to SSS), five stats and a radar chart, unlocking at level 8.

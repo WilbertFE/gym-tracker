@@ -16,7 +16,7 @@ type NumberStepperProps = {
 };
 
 const btn =
-  "flex size-12 shrink-0 items-center justify-center border bg-surface text-muted-foreground transition-colors hover:text-foreground active:bg-surface-raised disabled:opacity-40";
+  "flex size-12 shrink-0 items-center justify-center border border-primary/30 bg-surface text-muted-foreground transition-colors hover:text-foreground active:bg-surface-raised disabled:opacity-40";
 
 /** Big tap targets for use between sets: minus, typed value, plus. */
 export function NumberStepper({

@@ -168,7 +168,7 @@ function XpToast({ gain, onClose }: { gain: XpGain; onClose: () => void }) {
         type="button"
         onClick={onClose}
         aria-label={`Plus ${gain.gained} XP. Tap to dismiss.`}
-        className="pointer-events-auto flex w-full max-w-sm items-center gap-3 border border-primary/60 bg-card p-3 text-left shadow-lg motion-safe:animate-[xp-in_0.25s_ease-out]"
+        className="pointer-events-auto flex w-full max-w-sm items-center gap-3 border border-primary/60 bg-card p-3 text-left shadow-[0_0_24px_-6px_var(--primary)] motion-safe:animate-[xp-in_0.25s_ease-out]"
       >
         {gain.rankedUp && (
           <span className="motion-safe:animate-[xp-pop_0.6s_ease-out]">

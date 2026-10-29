@@ -33,7 +33,7 @@ export async function StatusView() {
           <RankBadge rank={level.rank} size={104} />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <p className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">{level.rank.name}</p>
-            <p className="tabular text-6xl font-semibold leading-none text-primary" aria-label={`Rank ${level.rank.letter}`}>
+            <p className="tabular text-6xl font-bold leading-none text-primary [text-shadow:0_0_22px_var(--primary)]" aria-label={`Rank ${level.rank.letter}`}>
               {level.rank.letter}
             </p>
             <p className="tabular text-sm text-muted-foreground">
@@ -60,7 +60,7 @@ export async function StatusView() {
                   aria-valuenow={Math.min(stat.value, ceiling)}
                   className="h-1.5 w-full bg-intensity-none"
                 >
-                  <div className="h-full bg-primary" style={{ width: `${Math.min(100, (stat.value / ceiling) * 100)}%` }} />
+                  <div className="h-full bg-primary shadow-[0_0_10px_var(--primary)]" style={{ width: `${Math.min(100, (stat.value / ceiling) * 100)}%` }} />
                 </div>
                 <p className="text-xs text-muted-foreground">{stat.raisedBy}</p>
                 <p className="tabular text-[11px] text-muted-foreground">{stat.detail}</p>

@@ -12,8 +12,8 @@ export function LockedFeature({ id, level, totalXp }: { id: FeatureId; level: nu
   const away = Math.max(0, xpForLevel(feature.level) - totalXp);
 
   return (
-    <section aria-label={`${feature.name}, locked`} className="flex flex-col items-center gap-4 border bg-card p-8 text-center">
-      <span aria-hidden className="flex size-16 items-center justify-center border border-primary/60 text-primary">
+    <section aria-label={`${feature.name}, locked`} className="system-window flex flex-col items-center gap-4 p-8 text-center" data-glow>
+      <span aria-hidden className="flex size-16 items-center justify-center border border-primary/60 text-primary shadow-[0_0_18px_-4px_var(--primary)]">
         <LockSimpleIcon className="size-8" />
       </span>
       <div className="flex flex-col gap-1">

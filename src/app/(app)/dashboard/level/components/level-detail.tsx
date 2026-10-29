@@ -36,7 +36,7 @@ export async function LevelDetail() {
               aria-valuenow={percent}
               className="h-2.5 w-full bg-intensity-none"
             >
-              <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
+              <div className="h-full bg-primary shadow-[0_0_10px_var(--primary)]" style={{ width: `${percent}%` }} />
             </div>
             <p className="tabular text-xs text-muted-foreground">
               {level.intoLevel} / {level.levelSpan} XP in this level, {level.toNext} to go.{" "}

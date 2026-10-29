@@ -17,12 +17,12 @@ async function Nav() {
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="flex-1">
+    <div className="flex-1 md:pl-56">
       {/* usePathname() and cookies are runtime data on dynamic routes, so the nav streams in. */}
       <Suspense fallback={null}>
         <Nav />
       </Suspense>
-      <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 md:ml-56 md:pb-8">
+      <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 md:pb-8">
         {isDemoMode() && (
           <p
             role="status"

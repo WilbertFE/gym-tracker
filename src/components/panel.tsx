@@ -3,19 +3,28 @@ import { cn } from "@/lib/utils";
 
 type PanelProps = {
   label: string;
-  /** `system` is the glowing System window, for the cards that speak as the System. */
-  variant?: "plain" | "system";
+  /** `plain` is the quiet System window, `system` the glowing one for cards that speak as the System, `danger` the red one for bosses. */
+  variant?: "plain" | "system" | "danger";
   children: ReactNode;
   className?: string;
 };
 
-/** HUD card: 1px border, surface background, small uppercase label top left. */
+/** HUD card: a System window with a bracketed label in the display face. */
 export function Panel({ label, children, className, variant = "plain" }: PanelProps) {
-  const system = variant === "system";
+  const plain = variant === "plain";
   return (
-    <section className={cn(system ? "system-window p-4" : "border bg-card p-4", className)}>
-      <h2 className={cn("tabular mb-3 text-[11px] uppercase tracking-widest", system ? "text-primary" : "text-muted-foreground")}>
-        {label}
+    <section
+      className={cn("system-window p-4", className)}
+      data-glow={plain ? undefined : ""}
+      data-danger={variant === "danger" ? "" : undefined}
+    >
+      <h2
+        className={cn(
+          "font-display mb-3 text-[11px] font-semibold uppercase tracking-[0.2em]",
+          plain ? "text-muted-foreground" : "text-primary",
+        )}
+      >
+        [ {label} ]
       </h2>
       {children}
     </section>

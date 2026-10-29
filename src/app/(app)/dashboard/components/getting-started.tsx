@@ -28,7 +28,7 @@ export function GettingStarted({ steps }: { steps: GuideStep[] }) {
             aria-valuenow={done}
             className="mt-1 h-1.5 w-full bg-intensity-none"
           >
-            <div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${(done / steps.length) * 100}%` }} />
+            <div className="h-full bg-primary shadow-[0_0_10px_var(--primary)] transition-[width] duration-500" style={{ width: `${(done / steps.length) * 100}%` }} />
           </div>
           <p className="tabular text-xs text-muted-foreground">
             {done} of {steps.length} done

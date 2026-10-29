@@ -39,7 +39,7 @@ function QuestRow({ status }: { status: QuestStatus }) {
           aria-valuenow={shown}
           className="h-1 w-full bg-intensity-none"
         >
-          <div className={cn("h-full transition-[width] duration-500", done ? "bg-primary" : "bg-primary/60")} style={{ width: `${percent}%` }} />
+          <div className={cn("h-full transition-[width] duration-500", done ? "bg-primary shadow-[0_0_10px_var(--primary)]" : "bg-primary/60")} style={{ width: `${percent}%` }} />
         </div>
         <p className="text-xs text-muted-foreground">{quest.hint}</p>
       </div>

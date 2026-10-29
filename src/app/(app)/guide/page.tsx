@@ -45,7 +45,7 @@ export default function GuidePage() {
 
       <ul className="grid gap-4 sm:grid-cols-2">
         {CARDS.map((card, i) => (
-          <li key={card.title} className="flex flex-col gap-2 border bg-card p-4">
+          <li key={card.title} className="system-window flex flex-col gap-2 p-4">
             <p className="tabular text-[11px] uppercase tracking-widest text-primary">Step {i + 1}</p>
             <h2 className="text-lg font-semibold">{card.title}</h2>
             <p className="text-sm text-muted-foreground">{card.body}</p>
@@ -53,7 +53,7 @@ export default function GuidePage() {
         ))}
       </ul>
 
-      <section aria-label="What opens when" className="border bg-card p-4">
+      <section aria-label="What opens when" className="system-window p-4">
         <h2 className="mb-1 text-lg font-semibold">What opens when</h2>
         <p className="mb-3 text-sm text-muted-foreground">
           The app shows itself in steps. Each of these opens when you reach the level, so the first days stay simple.

@@ -20,7 +20,7 @@ export function RestTimer({ since }: { since: string | null }) {
 
   if (since === null) {
     return (
-      <div className="flex flex-col gap-1 border bg-surface p-3">
+      <div className="flex flex-col gap-1 border border-primary/25 bg-surface p-3">
         <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Rest timer</span>
         <p className="text-sm text-muted-foreground">Starts when you log your first set.</p>
       </div>
@@ -31,7 +31,7 @@ export function RestTimer({ since }: { since: string | null }) {
   const ready = seconds !== null && seconds >= REST_TARGET_SECONDS;
 
   return (
-    <div className="flex items-end justify-between gap-4 border bg-surface p-3" role="timer" aria-label="Rest since the last set">
+    <div className="flex items-end justify-between gap-4 border border-primary/25 bg-surface p-3" role="timer" aria-label="Rest since the last set">
       <div className="flex flex-col gap-1">
         <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Rest since last set</span>
         <time

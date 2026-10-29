@@ -23,12 +23,12 @@ export async function GatePanel() {
         Every week a boss appears. Each set you log hurts it, and clearing it before Sunday earns XP and sometimes a booster.
       </SystemTip>
 
-      <Panel label={`${gate.name}, rank ${gate.rank.letter}`} variant="system">
+      <Panel label={`${gate.name}, rank ${gate.rank.letter}`} variant={status.cleared ? "system" : "danger"}>
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <span
               aria-hidden
-              className="tabular flex size-16 shrink-0 items-center justify-center border border-primary/60 text-3xl font-semibold text-primary"
+              className="tabular flex size-16 shrink-0 items-center justify-center border border-primary/60 text-3xl font-semibold text-primary [text-shadow:0_0_14px_var(--primary)]"
             >
               {gate.rank.letter}
             </span>
@@ -60,7 +60,7 @@ export async function GatePanel() {
               className="h-3 w-full bg-intensity-none"
             >
               <div
-                className={cn("h-full transition-[width] duration-700", status.cleared ? "bg-intensity-low" : "bg-intensity-high")}
+                className={cn("h-full border-r-2 border-white/60 transition-[width] duration-700", status.cleared ? "bg-intensity-low shadow-[0_0_10px_var(--intensity-low)]" : "bg-intensity-high shadow-[0_0_10px_var(--intensity-high)]")}
                 style={{ width: `${percentLeft}%` }}
               />
             </div>

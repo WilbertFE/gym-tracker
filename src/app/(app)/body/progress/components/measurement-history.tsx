@@ -47,7 +47,7 @@ export function MeasurementHistory({ rowsDesc }: { rowsDesc: BodyMeasurement[] }
       {/* Phones: one card per day, because eight table columns do not fit. */}
       <ul className="flex flex-col gap-3 sm:hidden">
         {rowsDesc.map((row, index) => (
-          <li key={row.id} className="border bg-surface p-3">
+          <li key={row.id} className="border border-primary/25 bg-surface p-3">
             <div className="mb-3 flex items-center justify-between">
               <p className="tabular text-sm font-medium">{format(parseISO(row.date), "d MMM yyyy")}</p>
               <button
