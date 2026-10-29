@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/api-client";
 import { getBestPosition } from "@/lib/browser-location";
 import { CHECKIN_KIND_LABELS, CHECKIN_KINDS, type CheckinKind } from "@/lib/checkin-kind";
 import { GYM_RADIUS_METERS } from "@/lib/gym-location";
+import { playSound } from "@/lib/sound";
 import type { Checkin } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { checkinSchema } from "@/lib/validation/checkin";
@@ -82,6 +83,7 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
       return;
     }
     toast.success(existing ? "Check-in updated" : "Checked in");
+    if (!existing) playSound("checkIn");
     router.refresh();
   }
 

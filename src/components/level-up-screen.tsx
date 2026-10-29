@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { RankBadge } from "@/components/rank-badge";
 import { Button } from "@/components/ui/button";
+import { playSound } from "@/lib/sound";
 import type { Feature } from "@/lib/unlocks";
 import { SYSTEM } from "@/lib/system-voice";
 import { levelsGained, type XpGain } from "@/lib/xp-diff";
@@ -16,10 +17,16 @@ const MAX_UNLOCKS = 3;
 /**
  * The big moment: a level up of several levels, a new rank, or something that just unlocked. A card in
  * the middle of a dimmed screen, closed by a tap, Escape or the button, and on its own after a few
- * seconds. No sound, and with reduced motion it simply appears.
+ * seconds. It plays a short fanfare (Settings can turn sound off), and with reduced motion it simply appears.
  */
 export function LevelUpScreen({ gain, unlocked, onClose }: { gain: XpGain; unlocked: Feature[]; onClose: () => void }) {
   const button = useRef<HTMLButtonElement>(null);
+
+  // The fanfare: a bigger one for a new rank.
+  const rankedUp = gain.rankedUp;
+  useEffect(() => {
+    playSound(rankedUp ? "rankUp" : "levelUp");
+  }, [rankedUp]);
 
   useEffect(() => {
     button.current?.focus();

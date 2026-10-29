@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/api-client";
+import { playSound } from "@/lib/sound";
 import { isBodyweightExercise } from "@/lib/load";
 import { searchExercises } from "@/lib/exercise-search";
 import { MUSCLE_GROUPS, MUSCLE_LABELS } from "@/lib/muscles";
@@ -97,6 +98,7 @@ export function SetLogger({
       return;
     }
     // Inputs stay as they are so the next identical set is a single tap.
+    playSound("setLogged");
     router.refresh();
   }
 

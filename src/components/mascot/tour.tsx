@@ -3,6 +3,7 @@
 import { XIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Tour, TourStep } from "@/lib/mascot/tours";
+import { playSound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 import { SeraArt } from "./sera-art";
 import { useReducedMotion } from "./typed-text";
@@ -49,6 +50,11 @@ export function TourOverlay({ tour, steps, onFinish }: TourProps) {
   const next = useRef<HTMLButtonElement>(null);
   const frame = useRef(0);
   const step = steps[index];
+
+  // A soft tick each time she moves to the next part of the page.
+  useEffect(() => {
+    playSound("tourStep");
+  }, [index]);
   const lastStep = index === steps.length - 1;
 
   const measure = useCallback(() => {

@@ -3,6 +3,7 @@
 import { XIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Reply, StageScript } from "@/lib/mascot/types";
+import { playSound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 import { SeraArt } from "./sera-art";
 import { useQuirk } from "./use-quirk";
@@ -59,6 +60,11 @@ export function Stage({ script, onReply, onClose }: StageProps) {
     const timer = setTimeout(() => (beat < last ? go(beat + 1) : onClose()), beat < last ? AUTO_BEAT_MS : AUTO_END_MS);
     return () => clearTimeout(timer);
   }, [script.auto, beat, last, go, onClose]);
+
+  // A small chime when she steps onto the screen.
+  useEffect(() => {
+    playSound("stageAppear");
+  }, []);
 
   useEffect(() => {
     primary.current?.focus();
@@ -117,7 +123,7 @@ export function Stage({ script, onReply, onClose }: StageProps) {
             />
           )}
           <p className="min-h-[3.5rem] text-lg leading-snug" aria-live="polite">
-            <TypedText key={beat} text={text} />
+            <TypedText key={beat} text={text} blip={mood} />
           </p>
           {atEnd && script.facts.length > 0 && (
             <ul className="flex flex-wrap gap-2">

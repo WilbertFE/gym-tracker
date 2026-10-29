@@ -20,6 +20,7 @@ import { NO_RECOVERY_COOKIE, QUICK_CHESTS_COOKIE, SHOW_ALL_COOKIE, writeCookie }
 import { CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currency";
 import type { UserSettings } from "@/lib/types";
 import { UNIT_LABELS, WEIGHT_UNITS, type WeightUnit } from "@/lib/units";
+import { playSound, setSoundEnabled, soundEnabled } from "@/lib/sound";
 import { levelUpScreenEnabled, setLevelUpScreenEnabled, setXpPopupsEnabled, xpPopupsEnabled } from "@/lib/xp-popup-pref";
 
 const labelClass = "text-[11px] uppercase tracking-widest text-muted-foreground";
@@ -55,6 +56,7 @@ export function SettingsForm({
   const popups = useSyncExternalStore(subscribePref, xpPopupsEnabled, () => true);
   const seraMode = parsePrefs(useSyncExternalStore(subscribePrefs, prefsSnapshot, prefsServerSnapshot)).mode;
   const levelScreen = useSyncExternalStore(subscribePref, levelUpScreenEnabled, () => true);
+  const sound = useSyncExternalStore(subscribePref, soundEnabled, () => true);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -232,6 +234,27 @@ export function SettingsForm({
           />
           Full screen for big level ups, new ranks and unlocks
         </label>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className={labelClass}>Sound</span>
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={sound}
+            onChange={(e) => {
+              setSoundEnabled(e.target.checked);
+              window.dispatchEvent(new Event(PREF_EVENT));
+              // Let the person hear it right away, from a tap, which is what browsers need.
+              if (e.target.checked) playSound("xpTick");
+            }}
+            className="size-4 accent-[var(--primary)]"
+          />
+          Play sounds for chests, XP, level ups and Sera
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Short synthesized sounds, no files. Applies on this device only. Sera&apos;s soft talking blips are part of it, and none of it plays until you have tapped the page once.
+        </p>
       </div>
 
       <Button type="submit" className="h-11 sm:w-48" disabled={saving}>

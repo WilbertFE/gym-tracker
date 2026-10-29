@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api-client";
+import { playSound } from "@/lib/sound";
 import type { WorkoutSession } from "@/lib/types";
 import { formatDuration } from "@/lib/workout";
 
@@ -32,6 +33,7 @@ export function SessionActions({ sessionId, active, hasSets }: SessionActionsPro
     }
     const minutes = result.data.duration_minutes;
     toast.success(minutes ? `Workout finished: ${formatDuration(minutes)}` : "Workout finished");
+    playSound("workoutDone");
     // A workout with sets has something to show, so offer the share image straight away.
     if (hasSets) router.replace(`${pathname}?share=1`);
     else router.refresh();

@@ -1,5 +1,6 @@
 "use client";
 
+import { playSound } from "@/lib/sound";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { LevelUpScreen } from "@/components/level-up-screen";
@@ -132,6 +133,7 @@ function XpToast({ gain, onClose }: { gain: XpGain; onClose: () => void }) {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const later = (fn: () => void, ms: number) => timers.push(setTimeout(fn, ms));
 
+    playSound("xpTick");
     if (!reduced) {
       // Fill toward the end of the level, or straight to the new position when no level was gained.
       later(() => {
@@ -141,6 +143,7 @@ function XpToast({ gain, onClose }: { gain: XpGain; onClose: () => void }) {
       if (jumps) {
         later(() => {
           // Level up: flash the new level, empty the bar without animating, then fill it to its place.
+          playSound("levelUp");
           setCelebrate(true);
           setLevel(gain.to.level);
           setAnimate(false);

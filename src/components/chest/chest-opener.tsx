@@ -10,6 +10,7 @@ import { GRADE_ORDER, GRADES, gradeRank, SLOTS, type Equipment, type Grade, type
 import type { Rank } from "@/lib/ranks";
 import { SYSTEM } from "@/lib/system-voice";
 import { XP_CHECK_EVENT } from "@/lib/xp-diff";
+import { playSound } from "@/lib/sound";
 import { ChestArt, type ChestPhase } from "./chest-art";
 import { GradeLabel } from "@/components/items/grade-card";
 import { ItemArt } from "@/components/items/item-art";
@@ -76,7 +77,8 @@ type Props = {
 
 /**
  * The chest opening. A tap starts it, the chest shakes while the server rolls, the lid opens with a beam in
- * the color of what was won, and the item turns up out of the chest. It stays short, plays once, can be
+ * the color of what was won, and the item turns up out of the chest. Each part has a short sound (Settings can turn
+ * sound off), and the reveal climbs one note for every diamond of the grade. It stays short, plays once, can be
  * skipped with a tap anywhere, and with reduced motion (or the quick setting) it is a fade.
  */
 export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
@@ -144,6 +146,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
     setWaiting(false);
     setGlow(chestColor(chest.kind));
     setPhase("shaking");
+    if (!calmNow) playSound("chestShake");
 
     // The server rolls while the chest shakes, so the animation never waits for it and it never waits for the animation.
     const request = apiRequest<OpenResult>("/api/chests/open", "POST", { chestId: chest.id });
@@ -168,6 +171,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
 
     if (!calmNow && !skipped.current) {
       setPhase("opening");
+      playSound("chestOpen");
       // The light runs through the lower grades for a moment and settles on the real one.
       GRADE_ORDER.slice(0, gradeRank(data.grade) + 1).forEach((grade, i) => {
         setTimeout(() => alive.current && setGlow(GRADES[grade].color), i * 90);
@@ -177,6 +181,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
     }
     setGlow(color);
     setPhase("reveal");
+    playSound("reveal", { grade: data.grade });
   }
 
   function next() {

@@ -13,6 +13,7 @@ import { isWorkoutScreen, pickLockedPageMoment, pickMoment } from "@/lib/mascot/
 import type { Mood, Moment, NodeArgs, Reply, SeraContext, StageScript } from "@/lib/mascot/types";
 import type { FeatureId } from "@/lib/unlocks";
 import { cn } from "@/lib/utils";
+import { playSound } from "@/lib/sound";
 import { ChatPanel, type Message } from "./chat-panel";
 import {
   CUE_EVENT,
@@ -102,6 +103,7 @@ export function Mascot({ context, today }: { context: SeraContext; today: string
   const showBubble = useCallback(
     (moment: Moment) => {
       const node = renderNode(moment.node, context, { path: pathname, ...moment.args });
+      playSound("tourStep");
       setBubble({
         key: moment.key,
         text: node.lines.slice(0, 2).join(" "),
