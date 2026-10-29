@@ -3,6 +3,8 @@ import { Panel } from "@/components/panel";
 import { SystemTip } from "@/components/system-tip";
 import { getCurrentUserId } from "@/lib/auth";
 import { loadLevel } from "@/lib/level";
+import { getQuickChests } from "@/lib/unlock-state";
+import { ChestStrip } from "@/components/chest/chest-strip";
 import type { QuestStatus } from "@/lib/quests";
 import { SYSTEM, notice } from "@/lib/system-voice";
 import { cn } from "@/lib/utils";
@@ -73,13 +75,32 @@ function Sweep({ done, xp }: { done: boolean; xp: number }) {
 /** Today's three quests and this week's three, with progress. Quests earn XP on their own, nothing to claim. */
 export async function QuestsPanel() {
   const userId = await getCurrentUserId();
-  const { quests } = await loadLevel(userId);
+  const [{ quests, chests, level, collection }, quick] = await Promise.all([loadLevel(userId), getQuickChests()]);
+  const strip = (kind: "daily" | "weekly") => {
+    const set = kind === "daily" ? quests.daily : quests.weekly;
+    return (
+      <ChestStrip
+        kind={kind}
+        available={chests.available.filter((c) => c.kind === kind)}
+        done={set.filter((s) => s.done).length}
+        total={set.length}
+        rank={level.rank}
+        worn={collection.equipment}
+        quick={quick}
+      />
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4">
       <SystemTip id="quests" title={notice("Quests unlocked")}>
         Three small goals every day and week. They tick themselves as you log, and finishing them earns bonus XP.
       </SystemTip>
+      {chests.enabled && (
+        <SystemTip id="chests" title={notice("Chests unlocked")}>
+          Finish all three quests of a day for a chest with a random item. A weekly chest has better odds for rare ones.
+        </SystemTip>
+      )}
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Panel label="Daily quests" variant="system">
           <ul className="flex flex-col divide-y" aria-label="Daily quests">
@@ -89,6 +110,7 @@ export async function QuestsPanel() {
             ))}
           </ul>
           <Sweep done={quests.dailySweep.done} xp={quests.dailySweep.xp} />
+          {chests.enabled && strip("daily")}
           <p className="mt-2 text-xs text-muted-foreground">New quests tomorrow.</p>
         </Panel>
 
@@ -99,6 +121,7 @@ export async function QuestsPanel() {
             ))}
           </ul>
           <Sweep done={quests.weeklySweep.done} xp={quests.weeklySweep.xp} />
+          {chests.enabled && strip("weekly")}
           <p className="mt-2 text-xs text-muted-foreground">
             {quests.daysLeft} day{quests.daysLeft === 1 ? "" : "s"} left this week.
           </p>

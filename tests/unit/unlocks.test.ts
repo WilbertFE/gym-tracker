@@ -49,7 +49,7 @@ describe("the unlock table", () => {
 
   it("says what opened between two levels, for the unlock message", () => {
     expect(unlockedBetween(1, 4)).toEqual([]);
-    expect(unlockedBetween(4, 8).map((f) => f.id)).toEqual(["quests", "boosters", "status"]);
+    expect(unlockedBetween(4, 8).map((f) => f.id)).toEqual(["quests", "boosters", "chests", "status"]);
     expect(unlockedBetween(8, 8)).toEqual([]);
     expect(unlockedBetween(14, 20).map((f) => f.id)).toEqual(["muscleLevels", "trials"]);
   });

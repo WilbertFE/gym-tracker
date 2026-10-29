@@ -4,7 +4,7 @@
  * every level something to look forward to. Everything is decided by level, so an account that is
  * already past a level never loses anything, and "Show all features" in Settings opens everything.
  */
-export type FeatureId = "quests" | "boosters" | "status" | "leaderboard" | "titles" | "gates" | "muscleLevels" | "trials";
+export type FeatureId = "quests" | "chests" | "boosters" | "status" | "leaderboard" | "titles" | "gates" | "muscleLevels" | "trials";
 
 export type Feature = {
   id: FeatureId;
@@ -21,6 +21,7 @@ export type Feature = {
 export const FEATURES: readonly Feature[] = [
   { id: "quests", name: "Daily and weekly quests", level: 5, blurb: "Small goals every day and week for bonus XP.", href: "/dashboard" },
   { id: "boosters", name: "XP boosters", level: 5, blurb: "Double the XP of a day. Earn them by training.", href: "/dashboard/level" },
+  { id: "chests", name: "Quest chests", level: 5, blurb: "Finish a day or week of quests to open a chest with a random item.", href: "/collection" },
   { id: "status", name: "Status window", level: 8, blurb: "Your rank letter and five stats, worked out from your training.", href: "/status" },
   { id: "leaderboard", name: "Leaderboard", level: 10, blurb: "Compare your XP with others, worldwide and at home.", href: "/leaderboard" },
   { id: "titles", name: "Titles", level: 10, blurb: "Earn titles for streaks and milestones and wear one.", href: "/status" },

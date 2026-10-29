@@ -1,3 +1,4 @@
+import type { FrameStyle } from "@/lib/items";
 import { cn } from "@/lib/utils";
 import type { Rank, RankGlyph } from "@/lib/ranks";
 
@@ -143,6 +144,65 @@ function Frame({ rank, gradient }: { rank: Rank; gradient: string }) {
   }
 }
 
+/** The points of a hexagon around the badge's center, point up. */
+const hexagon = (radius: number) =>
+  Array.from({ length: 6 }, (_, i) => {
+    const angle = ((-90 + i * 60) * Math.PI) / 180;
+    return `${(50 + radius * Math.cos(angle)).toFixed(2)},${(52 + radius * Math.sin(angle)).toFixed(2)}`;
+  }).join(" ");
+
+/**
+ * A cosmetic frame from a quest chest, drawn behind the badge so wings and shields paint over it. It sits
+ * in a margin around the badge, so the badge itself is never changed.
+ */
+function Decor({ style }: { style: FrameStyle }) {
+  const center = { cx: 50, cy: 52 };
+  switch (style) {
+    case "steel":
+      return (
+        <g fill="none">
+          <circle {...center} r={52} stroke="#b9c5d8" strokeWidth={3} />
+          <circle {...center} r={47.5} stroke="#5f6f8c" strokeWidth={1.5} />
+        </g>
+      );
+    case "cobalt":
+      return (
+        <g fill="none" style={{ filter: "drop-shadow(0 0 3px #4aa8ff)" }}>
+          <circle {...center} r={52} stroke="#4aa8ff" strokeWidth={3} />
+          <circle {...center} r={47} stroke="#9fd2ff" strokeWidth={1.5} strokeDasharray="3 3" />
+        </g>
+      );
+    case "runic":
+      return (
+        <g fill="none" stroke="#b07cff" strokeLinecap="round">
+          <circle {...center} r={50} strokeWidth={2.5} />
+          {Array.from({ length: 16 }, (_, i) => {
+            const angle = (i * 22.5 * Math.PI) / 180;
+            const at = (r: number) => `${(50 + r * Math.cos(angle)).toFixed(2)} ${(52 + r * Math.sin(angle)).toFixed(2)}`;
+            return <path key={i} d={`M${at(53)} L${at(58)}`} strokeWidth={i % 2 === 0 ? 2.5 : 1.5} />;
+          })}
+        </g>
+      );
+    case "hex":
+      return (
+        <g fill="none" strokeLinejoin="round" style={{ filter: "drop-shadow(0 0 3px #b07cff)" }}>
+          <polygon points={hexagon(57)} stroke="#b07cff" strokeWidth={3} />
+          <polygon points={hexagon(52)} stroke="#6f4fb0" strokeWidth={1.5} />
+        </g>
+      );
+    case "apex":
+      return (
+        <g fill="none" style={{ filter: "drop-shadow(0 0 4px #ffb83d)" }}>
+          <circle {...center} r={52} stroke="#ffb83d" strokeWidth={3.5} />
+          <circle {...center} r={57} stroke="#ffe08a" strokeWidth={1.5} strokeDasharray="6 10" className="chest-shimmer" />
+          {[0, 90, 180, 270].map((deg) => (
+            <rect key={deg} x={47} y={-7} width={6} height={6} fill="#ffe08a" transform={`rotate(${deg} 50 52) rotate(45 50 -4)`} />
+          ))}
+        </g>
+      );
+  }
+}
+
 /** The part of the 100 by 100 drawing each frame needs, so a plain shield is not shrunk to leave room for wings. */
 const VIEW: Record<Rank["frame"], { x: number; y: number; w: number; h: number }> = {
   ring: { x: 2, y: 8, w: 96, h: 88 },
@@ -157,6 +217,8 @@ type RankBadgeProps = {
   size?: number;
   /** A rank not reached yet: muted but still in color, so you can see what you are working toward, with a small lock. */
   locked?: boolean;
+  /** A cosmetic frame won from a quest chest, drawn around the badge. */
+  decor?: FrameStyle | null;
   className?: string;
 };
 
@@ -164,9 +226,12 @@ type RankBadgeProps = {
  * The badge for a rank, pure inline SVG so it is sharp at any size and needs no image files. The
  * two highest ranks glow and pulse, unless the user asked their system for less motion.
  */
-export function RankBadge({ rank, size = 64, locked = false, className }: RankBadgeProps) {
+export function RankBadge({ rank, size = 64, locked = false, decor = null, className }: RankBadgeProps) {
   const gradient = `rank-${rank.id}`;
-  const view = VIEW[rank.frame];
+  const base = VIEW[rank.frame];
+  // A decoration needs a margin around the badge.
+  const pad = decor ? 10 : 0;
+  const view = { x: base.x - pad, y: base.y - pad, w: base.w + pad * 2, h: base.h + pad * 2 };
   return (
     <svg
       viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
@@ -182,6 +247,7 @@ export function RankBadge({ rank, size = 64, locked = false, className }: RankBa
           <stop offset="1" stopColor={rank.colors.to} />
         </linearGradient>
       </defs>
+      {decor && !locked && <Decor style={decor} />}
       {rank.animated && !locked && (
         <circle cx="50" cy="52" r="52" fill={rank.colors.glow} opacity={0.28} className="motion-safe:animate-pulse" />
       )}

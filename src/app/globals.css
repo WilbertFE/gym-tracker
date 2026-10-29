@@ -12,6 +12,10 @@
   --font-heading: var(--font-chakra);
   --font-display: var(--font-chakra);
   --color-danger: var(--danger);
+  --color-grade-common: var(--grade-common);
+  --color-grade-rare: var(--grade-rare);
+  --color-grade-epic: var(--grade-epic);
+  --color-grade-legendary: var(--grade-legendary);
   --color-glow: var(--primary-glow);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
@@ -76,6 +80,11 @@
   --accent-foreground: #dbe6f7;
   --destructive: #ff4d5e;
   --danger: #ff4d5e;
+  /* Item grades. Kept apart from the heatmap colors, which are data. */
+  --grade-common: #9aa8c4;
+  --grade-rare: #4aa8ff;
+  --grade-epic: #b07cff;
+  --grade-legendary: #ffb83d;
   --border: #1a2a46;
   --input: #1a2a46;
   --ring: #4aa8ff;
@@ -196,6 +205,94 @@ body {
   .system-window {
     animation: materialize 220ms ease-out;
   }
+}
+
+/*
+ * Quest chests. Every keyframe is used once per opening, and only when the user has not asked for less motion.
+ * The glow color comes from --glow, set on the stage, so the same animation lights up in any grade.
+ */
+@keyframes chest-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes chest-rise {
+  from { opacity: 0; transform: translateY(26px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes chest-shake {
+  0% { transform: translateX(0) rotate(0); }
+  12% { transform: translateX(-2px) rotate(-0.8deg); }
+  24% { transform: translateX(2px) rotate(0.8deg); }
+  36% { transform: translateX(-3px) rotate(-1.4deg); }
+  48% { transform: translateX(3px) rotate(1.4deg); }
+  60% { transform: translateX(-4px) rotate(-2deg); }
+  72% { transform: translateX(4px) rotate(2deg); }
+  86% { transform: translateX(-5px) rotate(-2.6deg); }
+  100% { transform: translateX(0) rotate(0); }
+}
+
+@keyframes chest-seam {
+  from { opacity: 0.35; transform: scaleX(0.7); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes chest-lid {
+  0% { transform: perspective(520px) rotateX(0deg); }
+  55% { transform: perspective(520px) rotateX(-118deg); }
+  100% { transform: perspective(520px) rotateX(-108deg); }
+}
+
+@keyframes chest-beam {
+  0% { transform: scaleY(0); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: scaleY(1); opacity: 0.8; }
+}
+
+@keyframes chest-ring {
+  from { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
+  to { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+}
+
+@keyframes chest-flash {
+  0% { opacity: 0; }
+  25% { opacity: 0.45; }
+  100% { opacity: 0; }
+}
+
+@keyframes chest-card {
+  from { opacity: 0; transform: translateY(30px) rotateX(-62deg) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes chest-shard {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.4); }
+}
+
+@keyframes chest-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes chest-shimmer {
+  to { stroke-dashoffset: -40; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chest-float { animation: chest-float 3.6s ease-in-out infinite; }
+  .chest-rise { animation: chest-rise 0.4s cubic-bezier(0.2, 0.9, 0.25, 1); }
+  .chest-shake { animation: chest-shake var(--shake, 0.8s) ease-in-out; }
+  .chest-seam-build { animation: chest-seam var(--shake, 0.8s) ease-in forwards; }
+  .chest-lid-open { animation: chest-lid 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
+  .chest-beam { animation: chest-beam var(--open, 0.5s) ease-out forwards; }
+  .chest-ring { animation: chest-ring 0.75s ease-out forwards; }
+  .chest-flash { animation: chest-flash 0.28s ease-out forwards; }
+  .chest-card { animation: chest-card var(--reveal, 0.5s) cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+  .chest-shard { animation: chest-shard 0.95s cubic-bezier(0.1, 0.7, 0.3, 1) var(--delay, 0s) both; }
+  .chest-fade { animation: chest-fade 0.7s ease-out both; }
+  .chest-shimmer { animation: chest-shimmer 5s linear infinite; }
 }
 
 /* XP pop-up: slides up, and the rank badge pops in. Only used with `motion-safe`. */

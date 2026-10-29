@@ -10,6 +10,7 @@ import {
   RankingIcon,
   PersonSimpleIcon,
   SignOutIcon,
+  TreasureChestIcon,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/body", label: "Body", icon: PersonSimpleIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarBlankIcon },
   { href: "/status", label: "Status", icon: SealCheckIcon, desktopOnly: true, feature: "status" },
+  { href: "/collection", label: "Collection", icon: TreasureChestIcon, desktopOnly: true, feature: "chests" },
   { href: "/leaderboard", label: "Leaderboard", icon: RankingIcon, desktopOnly: true, feature: "leaderboard" },
   { href: "/membership", label: "Membership", icon: IdentificationCardIcon, desktopOnly: true },
   { href: "/settings", label: "Settings", icon: GearSixIcon, alsoActive: "/membership" },

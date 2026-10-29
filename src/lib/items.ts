@@ -85,6 +85,12 @@ export const ITEMS: readonly Item[] = [
   { id: "look-aurora", slot: "look", grade: "legendary", name: "Aurora", blurb: "A shifting green and violet look for share images.", value: "aurora" },
 ];
 
+/** The colors of the two chest-only share looks: a gradient from top to bottom and the accent. */
+export const LOOK_COLORS: Record<string, { from: string; to: string; accent: string }> = {
+  ember: { from: "#4a1a06", to: "#0a0604", accent: "#ff8a3d" },
+  aurora: { from: "#0b3a3f", to: "#2a1457", accent: "#7cf5c8" },
+};
+
 const byId = new Map(ITEMS.map((item) => [item.id, item]));
 
 export const itemById = (id: string): Item | null => byId.get(id) ?? null;
