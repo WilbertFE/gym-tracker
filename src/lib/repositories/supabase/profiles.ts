@@ -32,7 +32,7 @@ const exact = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 export async function getProfile(userId: string): Promise<{ available: boolean; profile: Profile | null }> {
   if (!isUuid(userId)) return { available: false, profile: null };
-  const { data, error } = await createAdminClient().from("profiles").select(COLUMNS).eq("user_id", userId).maybeSingle();
+  const { data, error } = await createAdminClient().from("player_profiles").select(COLUMNS).eq("user_id", userId).maybeSingle();
   if (isMissingTable(error)) return { available: false, profile: null };
   check(error);
   return { available: true, profile: data ? toProfile(data) : null };
@@ -40,14 +40,14 @@ export async function getProfile(userId: string): Promise<{ available: boolean; 
 
 export async function getProfileByUsername(username: string): Promise<{ available: boolean; profile: Profile | null }> {
   // Usernames are stored in lowercase, and the pattern is matched exactly.
-  const { data, error } = await createAdminClient().from("profiles").select(COLUMNS).ilike("username", exact(username)).limit(1).maybeSingle();
+  const { data, error } = await createAdminClient().from("player_profiles").select(COLUMNS).ilike("username", exact(username)).limit(1).maybeSingle();
   if (isMissingTable(error)) return { available: false, profile: null };
   check(error);
   return { available: true, profile: data ? toProfile(data) : null };
 }
 
 export async function usernameTaken(username: string, exceptUserId: string): Promise<boolean> {
-  const { data, error } = await createAdminClient().from("profiles").select("user_id").ilike("username", exact(username)).neq("user_id", exceptUserId).limit(1);
+  const { data, error } = await createAdminClient().from("player_profiles").select("user_id").ilike("username", exact(username)).neq("user_id", exceptUserId).limit(1);
   if (isMissingTable(error)) return false;
   check(error);
   return (data?.length ?? 0) > 0;
@@ -56,7 +56,7 @@ export async function usernameTaken(username: string, exceptUserId: string): Pro
 /** A display name is taken by another profile or by another leaderboard entry. */
 export async function displayNameTaken(name: string, exceptUserId: string): Promise<boolean> {
   const admin = createAdminClient();
-  for (const table of ["profiles", "leaderboard_entries"] as const) {
+  for (const table of ["player_profiles", "leaderboard_entries"] as const) {
     const { data, error } = await admin.from(table).select("user_id").ilike("display_name", exact(name)).neq("user_id", exceptUserId).limit(1);
     if (isMissingTable(error)) continue;
     check(error);
@@ -71,7 +71,7 @@ export async function saveProfile(
 ): Promise<SaveProfileResult> {
   if (!isUuid(userId)) return { ok: false, reason: "unavailable" };
   const { data, error } = await createAdminClient()
-    .from("profiles")
+    .from("player_profiles")
     .upsert({ user_id: userId, ...input, updated_at: new Date().toISOString() }, { onConflict: "user_id" })
     .select(COLUMNS)
     .single();
@@ -87,14 +87,14 @@ export async function saveProfile(
 /** Stores the snapshot of an existing profile. Does nothing when there is no profile or no table. */
 export async function saveSnapshot(userId: string, snapshot: ProfileSnapshot): Promise<void> {
   if (!isUuid(userId)) return;
-  const { error } = await createAdminClient().from("profiles").update({ snapshot }).eq("user_id", userId);
+  const { error } = await createAdminClient().from("player_profiles").update({ snapshot }).eq("user_id", userId);
   if (isMissingTable(error)) return;
   check(error);
 }
 
 export async function deleteProfile(userId: string): Promise<boolean> {
   if (!isUuid(userId)) return false;
-  const { data, error } = await createAdminClient().from("profiles").delete().eq("user_id", userId).select("user_id");
+  const { data, error } = await createAdminClient().from("player_profiles").delete().eq("user_id", userId).select("user_id");
   if (isMissingTable(error)) return false;
   check(error);
   return (data?.length ?? 0) > 0;
@@ -104,7 +104,7 @@ export async function deleteProfile(userId: string): Promise<boolean> {
 export async function visibleUsernames(userIds: string[]): Promise<Record<string, string>> {
   const ids = [...new Set(userIds.filter(isUuid))];
   if (ids.length === 0) return {};
-  const { data, error } = await createAdminClient().from("profiles").select("user_id,username").in("user_id", ids).eq("visibility", "members");
+  const { data, error } = await createAdminClient().from("player_profiles").select("user_id,username").in("user_id", ids).eq("visibility", "members");
   if (isMissingTable(error)) return {};
   check(error);
   return Object.fromEntries((data ?? []).map((r: { user_id: string; username: string }) => [r.user_id, r.username]));
