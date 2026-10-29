@@ -8,9 +8,10 @@ import { apiRequest } from "@/lib/api-client";
 import { CHEST_NAMES, chestColor, type AvailableChest, type ChestKind } from "@/lib/chests";
 import { GRADE_ORDER, GRADES, gradeRank, SLOTS, type Equipment, type Grade, type Item } from "@/lib/items";
 import type { Rank } from "@/lib/ranks";
+import { cn } from "@/lib/utils";
 import { SYSTEM } from "@/lib/system-voice";
 import { XP_CHECK_EVENT } from "@/lib/xp-diff";
-import { playSound } from "@/lib/sound";
+import { buzz, playSound, primeSound, revealBuzz } from "@/lib/sound";
 import { ChestArt, type ChestPhase } from "./chest-art";
 import { GradeLabel } from "@/components/items/grade-card";
 import { ItemArt } from "@/components/items/item-art";
@@ -98,6 +99,11 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
   const opened = useRef<OpenResult[]>([]);
   const mainButton = useRef<HTMLButtonElement>(null);
 
+  // Wake the audio up as soon as the chest screen is open, so the first tap's sounds are not lost to a locked browser.
+  useEffect(() => {
+    primeSound();
+  }, []);
+
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -146,7 +152,10 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
     setWaiting(false);
     setGlow(chestColor(chest.kind));
     setPhase("shaking");
-    if (!calmNow) playSound("chestShake");
+    if (!calmNow) {
+      playSound("chestShake");
+      buzz([30, 40, 30, 40, 30, 40, 30]);
+    }
 
     // The server rolls while the chest shakes, so the animation never waits for it and it never waits for the animation.
     const request = apiRequest<OpenResult>("/api/chests/open", "POST", { chestId: chest.id });
@@ -172,6 +181,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
     if (!calmNow && !skipped.current) {
       setPhase("opening");
       playSound("chestOpen");
+      buzz(40);
       // The light runs through the lower grades for a moment and settles on the real one.
       GRADE_ORDER.slice(0, gradeRank(data.grade) + 1).forEach((grade, i) => {
         setTimeout(() => alive.current && setGlow(GRADES[grade].color), i * 90);
@@ -182,6 +192,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
     setGlow(color);
     setPhase("reveal");
     playSound("reveal", { grade: data.grade });
+    if (!calmNow) buzz(revealBuzz(data.grade));
   }
 
   function next() {
@@ -237,7 +248,11 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-label={`${CHEST_NAMES[chest.kind]} chest`}
-      className="fixed inset-0 z-[60] overflow-y-auto bg-black/85 backdrop-blur-sm motion-safe:animate-[xp-in_0.3s_ease-out]"
+      className={cn(
+        "fixed inset-0 z-[60] overflow-y-auto bg-black/85 backdrop-blur-sm motion-safe:animate-[xp-in_0.3s_ease-out]",
+        // The lid bursting open jolts the whole screen, harder for a better find.
+        showEffects && phase === "opening" && result && gradeRank(result.grade) >= 2 && (gradeRank(result.grade) >= 4 ? "chest-impact-big" : "chest-impact"),
+      )}
       onClick={busy ? skip : undefined}
     >
       {legendary && phase === "reveal" && !calm && (

@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GRADE_ORDER } from "@/lib/items";
 import { MOODS } from "@/lib/mascot/types";
-import { BLIP_PITCH, midiToHz, playSound, resetSoundEngine, revealNotes, setSoundEnabled, soundEnabled, tonesFor, type SoundName } from "@/lib/sound";
+import { BLIP_PITCH, buzz, midiToHz, playSound, resetSoundEngine, revealBuzz, revealNotes, setSoundEnabled, sparkles, soundEnabled, tonesFor, type SoundName } from "@/lib/sound";
 
 const NAMES: SoundName[] = ["chestShake", "chestOpen", "reveal", "xpTick", "levelUp", "rankUp", "stageAppear", "seraBlip", "tourStep", "workoutDone", "setLogged", "checkIn"];
 
@@ -33,11 +33,17 @@ describe("the notes", () => {
       const tones = tonesFor(name, { grade: "legendary", mood: "smug" });
       expect(tones.length, name).toBeGreaterThan(0);
       for (const tone of tones) {
-        expect(tone.freq, name).toBeGreaterThan(20);
-        expect(tone.freq, name).toBeLessThan(8000);
+        // A burst of noise has a filter instead of a pitch.
+        if (tone.noise) {
+          expect(tone.noise.from, name).toBeGreaterThan(20);
+          expect(tone.noise.to, name).toBeGreaterThan(20);
+        } else {
+          expect(tone.freq, name).toBeGreaterThan(20);
+          expect(tone.freq, name).toBeLessThan(14_000);
+        }
         expect(tone.at, name).toBeGreaterThanOrEqual(0);
         expect(tone.dur, name).toBeGreaterThan(0);
-        expect(tone.dur + tone.at, name).toBeLessThan(2);
+        expect(tone.dur + tone.at, name).toBeLessThan(2.2);
         expect(tone.gain ?? 0.4, name).toBeLessThanOrEqual(0.6);
       }
     }
@@ -47,8 +53,45 @@ describe("the notes", () => {
     const count = (g: (typeof GRADE_ORDER)[number]) => tonesFor("reveal", { grade: g }).length;
     expect(count("common")).toBe(1);
     expect(count("mythic")).toBeGreaterThan(count("rare"));
-    const lowest = (g: (typeof GRADE_ORDER)[number]) => Math.min(...tonesFor("reveal", { grade: g }).map((t) => t.freq));
+    const lowest = (g: (typeof GRADE_ORDER)[number]) => Math.min(...tonesFor("reveal", { grade: g }).filter((t) => !t.noise).map((t) => t.freq));
     expect(lowest("legendary")).toBeLessThan(lowest("epic"));
+  });
+
+  it("builds the chest as a sequence: a rattle that speeds up, then a lock click, a creak, air and a thump", () => {
+    const shake = tonesFor("chestShake");
+    const rattles = shake.filter((t) => t.noise?.filter === "highpass").map((t) => t.at);
+    expect(rattles.length).toBeGreaterThanOrEqual(6);
+    // The gaps between rattles shrink, so it sounds like it strains harder and harder.
+    const gaps = rattles.slice(1).map((at, i) => at - rattles[i]);
+    expect(gaps[gaps.length - 1]).toBeLessThan(gaps[0]);
+    expect(shake.some((t) => t.noise?.filter === "lowpass")).toBe(true);
+
+    const open = tonesFor("chestOpen");
+    expect(open.some((t) => t.type === "square")).toBe(true);
+    expect(open.some((t) => t.noise?.filter === "bandpass")).toBe(true);
+    expect(open.some((t) => !t.noise && t.to !== undefined && t.to < t.freq)).toBe(true);
+  });
+
+  it("scatters more sparkles for a better find, and none for Common", () => {
+    expect(sparkles("common")).toHaveLength(0);
+    expect(GRADE_ORDER.map((g) => sparkles(g).length)).toEqual([0, 2, 4, 6, 8, 10]);
+    expect(tonesFor("reveal", { grade: "mythic" }).length).toBeGreaterThan(tonesFor("reveal", { grade: "legendary" }).length);
+    // A mythic find ends on a deep rumble.
+    expect(Math.min(...tonesFor("reveal", { grade: "mythic" }).filter((t) => !t.noise).map((t) => t.freq))).toBeLessThan(50);
+  });
+
+  it("buzzes longer for a better find, and only when sound is on and the device can vibrate", () => {
+    expect(revealBuzz("common").length).toBeLessThan(revealBuzz("rare").length);
+    expect(revealBuzz("rare").length).toBeLessThan(revealBuzz("legendary").length);
+    const vibrate = vi.fn();
+    vi.stubGlobal("navigator", { vibrate });
+    buzz(40);
+    expect(vibrate).toHaveBeenCalledWith(40);
+    setSoundEnabled(false);
+    buzz(40);
+    expect(vibrate).toHaveBeenCalledTimes(1);
+    vi.stubGlobal("navigator", {});
+    expect(() => buzz(40)).not.toThrow();
   });
 
   it("pitches her blip lower when she is smug or annoyed and higher when she is happy or flustered", () => {
@@ -85,6 +128,16 @@ describe("playSound", () => {
       createGain() {
         return { gain: param(), connect: (node: unknown) => node };
       }
+      sampleRate = 8000;
+      createBuffer(_channels: number, length: number) {
+        return { getChannelData: () => new Float32Array(length) };
+      }
+      createBufferSource() {
+        return { buffer: null, connect: (node: unknown) => node, start: () => started.push(1), stop: vi.fn() };
+      }
+      createBiquadFilter() {
+        return { type: "lowpass", Q: { value: 1 }, frequency: param(), connect: (node: unknown) => node };
+      }
       createOscillator() {
         return {
           type: "sine",
@@ -108,7 +161,7 @@ describe("playSound", () => {
   it("plays one oscillator per tone when audio is running", () => {
     const started = fakeAudio("running");
     playSound("reveal", { grade: "epic" });
-    // Epic: four climbing notes and the shimmer on top.
+    // Epic: four climbing notes, the shimmer, sparkles, a bright chord and a burst of air, tones and noise alike.
     expect(started.length).toBe(tonesFor("reveal", { grade: "epic" }).length);
   });
 
