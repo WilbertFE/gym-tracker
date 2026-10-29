@@ -23,6 +23,13 @@ const POSE_MOOD: Record<(typeof POSES)[number], Mood> = {
   hairflip: "smug",
 };
 
+const FULL_BODY: { pose: (typeof POSES)[number]; mood: Mood }[] = [
+  { pose: "idle", mood: "calm" },
+  { pose: "wave", mood: "happy" },
+  { pose: "point", mood: "smug" },
+  { pose: "cheer", mood: "cheer" },
+];
+
 /** A dev only sheet: Sera in every mood, pose and quirk at the sizes the app uses, and the big appearances and tours to play. It does not exist outside demo mode. */
 export default function SeraSheetPage() {
   if (!isDemoMode()) notFound();
@@ -71,7 +78,24 @@ export default function SeraSheetPage() {
         </ul>
       </section>
 
-      <section aria-labelledby="quirks" className="flex flex-col gap-3">
+      <section aria-labelledby="full" className="flex flex-col gap-3">
+        <h2 id="full" className="font-display text-sm font-semibold uppercase tracking-[0.18em]">
+          Full body (preview only, used nowhere yet)
+        </h2>
+        <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {FULL_BODY.map(({ pose, mood }) => (
+            <li key={pose} className="system-window flex flex-col items-center gap-3 p-4">
+              <SeraArt view="full" pose={pose} mood={mood} size={170} />
+              <p className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">{pose}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="system-window flex justify-center p-4">
+          <SeraArt view="full" pose="idle" mood="smug" size={340} />
+        </div>
+      </section>
+
+      <section aria-labelledby="quirks"className="flex flex-col gap-3">
         <h2 id="quirks" className="font-display text-sm font-semibold uppercase tracking-[0.18em]">
           Quirks
         </h2>

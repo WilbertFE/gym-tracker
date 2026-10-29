@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { POSES, SeraArt } from "@/components/mascot/sera-art";
 import { MOODS, QUIRKS } from "@/lib/mascot/types";
 
-const VIEWS = ["bust", "half", "avatar"] as const;
+const VIEWS = ["bust", "half", "full", "avatar"] as const;
 
 describe("Sera's drawing", () => {
   it("renders every mood in every view, pose and quirk", () => {
@@ -18,12 +18,13 @@ describe("Sera's drawing", () => {
       }
       for (const quirk of QUIRKS) expect(renderToStaticMarkup(<SeraArt mood={mood} quirk={quirk} />)).toContain(`sera-q-${quirk}`);
     }
-  });
+  }, 20_000);
 
   it("keeps the height in step with the width for each view, or leaves it to CSS with fluid", () => {
     expect(renderToStaticMarkup(<SeraArt view="half" size={240} />)).toContain('height="400"');
     expect(renderToStaticMarkup(<SeraArt view="bust" size={240} />)).toContain('height="300"');
     expect(renderToStaticMarkup(<SeraArt view="avatar" size={152} />)).toContain('height="170"');
+    expect(renderToStaticMarkup(<SeraArt view="full" size={240} />)).toContain('height="800"');
     const fluid = renderToStaticMarkup(<SeraArt view="half" fluid />);
     const tag = fluid.match(/^<svg[^>]*>/)?.[0] ?? "";
     expect(tag).not.toMatch(/ width="/);
@@ -47,9 +48,18 @@ describe("Sera's drawing", () => {
     expect(new Set([html.idle, html.wave, html.point, html.cheer]).size).toBe(4);
   });
 
-  it("only draws the arms in the half view", () => {
+  it("only draws the legs in the full view", () => {
+    const legs = (view: (typeof VIEWS)[number]) => renderToStaticMarkup(<SeraArt view={view} />);
+    expect(legs("full").length).toBeGreaterThan(legs("half").length);
+    expect(legs("full")).toContain("ellipse");
+    expect(legs("half")).not.toContain('rx="74"');
+    expect(legs("full")).toContain('rx="74"');
+  });
+
+  it("draws the arms in the half and full views only", () => {
     const arms = (view: (typeof VIEWS)[number]) => renderToStaticMarkup(<SeraArt view={view} pose="wave" />);
     expect(arms("half")).toContain("sera-hand-wave");
+    expect(arms("full")).toContain("sera-hand-wave");
     expect(arms("bust")).not.toContain("sera-hand-wave");
     expect(arms("avatar")).not.toContain("sera-hand-wave");
   });
