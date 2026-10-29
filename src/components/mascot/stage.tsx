@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Reply, StageScript } from "@/lib/mascot/types";
 import { cn } from "@/lib/utils";
 import { SeraArt } from "./sera-art";
+import { useQuirk } from "./use-quirk";
 import { TypedText } from "./typed-text";
 
 /** The daily hello moves on by itself, a beat every few seconds, then goes. */
@@ -38,6 +39,7 @@ export function Stage({ script, onReply, onClose }: StageProps) {
   const atEnd = beat >= last;
   const mood = atEnd && script.endMood ? script.endMood : script.mood;
   const text = script.beats[beat];
+  const quirk = useQuirk(!talking && !script.auto);
 
   const go = useCallback((next: number) => {
     setBeat(next);
@@ -150,7 +152,7 @@ export function Stage({ script, onReply, onClose }: StageProps) {
       >
         <div className={cn("absolute -inset-x-[70%] bottom-0 h-[105%] blur-2xl motion-safe:animate-[stage-halo_3.4s_ease-in-out_infinite]", HALO[script.halo])} />
         <div className="relative h-full motion-safe:animate-[stage-rise_0.7s_cubic-bezier(0.2,0.9,0.3,1)_both]">
-          <SeraArt view="half" pose={script.pose} mood={mood} talking={talking} size={320} className="h-full w-auto max-w-none" />
+          <SeraArt view="half" pose={script.pose} mood={mood} quirk={quirk} talking={talking} fluid className="h-full w-auto max-w-none" />
         </div>
       </div>
 

@@ -182,7 +182,7 @@ describe("the script", () => {
   });
 
   it("can be reached: every node is the target of another, or is a moment she speaks up with", () => {
-    const moments = new Set(["intro", "lockedPage", "chest", "nudge", "tourOffer", "menu", "quietDone", "offDone", "allOpen"]);
+    const moments = new Set(["intro", "lockedPage", "chest", "nudge", "tourOffer", "poked", "menu", "quietDone", "offDone", "allOpen"]);
     const reached = new Set<string>(moments);
     for (const id of NODE_IDS) for (const [, c] of contexts) for (const r of renderNode(id, c, argsFor(id)).replies) if (r.next) reached.add(r.next);
     for (const id of NODE_IDS) expect(reached.has(id), id).toBe(true);

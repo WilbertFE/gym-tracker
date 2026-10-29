@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { SHOW_ALL_COOKIE, writeCookie } from "@/lib/feature-prefs";
 import { renderStage } from "@/lib/mascot/beats";
+import { registerPoke } from "@/lib/mascot/quirks";
 import { renderNode } from "@/lib/mascot/script";
 import { endOfDay, markSeen, markTold, parseMemory, rollDay, withLevel, type Memory } from "@/lib/mascot/state";
 import { tourById, tourForPath, tourHref, type Tour, type TourStep } from "@/lib/mascot/tours";
@@ -27,6 +28,7 @@ import {
 } from "./prefs";
 import { SeraArt } from "./sera-art";
 import { Stage } from "./stage";
+import { useQuirk } from "./use-quirk";
 import { availableSteps, TourOverlay } from "./tour";
 import { TypedText, useReducedMotion } from "./typed-text";
 
@@ -80,6 +82,7 @@ export function Mascot({ context, today }: { context: SeraContext; today: string
   const memoryRef = useRef<Memory | null>(null);
   const pendingTourRef = useRef<string | null>(null);
   const avatarRef = useRef<HTMLButtonElement>(null);
+  const pokesRef = useRef<number[]>([]);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -327,10 +330,21 @@ export function Mascot({ context, today }: { context: SeraContext; today: string
     return () => window.removeEventListener("keydown", onKey);
   }, [open, closeChat]);
 
+  const quirk = useQuirk(!open && !speaking && !bubble && !stage && !tour);
+
   // She is out of the way while a workout is being logged, and gone when she is turned off (once her goodbye is read).
   if (isWorkoutScreen(pathname) || (prefs.mode === "off" && !open && !tour)) return null;
 
   const faceMood = open ? mood : (bubble?.mood ?? "calm");
+
+  // Tapping her over and over annoys her.
+  const tapAvatar = () => {
+    const poke = registerPoke(pokesRef.current, Date.now());
+    pokesRef.current = poke.taps;
+    if (poke.annoyed) openChat("poked");
+    else if (open) closeChat();
+    else openChat();
+  };
 
   return (
     <>
@@ -391,7 +405,7 @@ export function Mascot({ context, today }: { context: SeraContext; today: string
         <button
           ref={avatarRef}
           type="button"
-          onClick={() => (open ? closeChat() : openChat())}
+          onClick={tapAvatar}
           aria-label="Chat with Sera"
           data-tour="sera"
           aria-expanded={open}
@@ -400,7 +414,7 @@ export function Mascot({ context, today }: { context: SeraContext; today: string
           )}
         >
           <span className="block size-full overflow-hidden rounded-full">
-            <SeraArt mood={faceMood} view="avatar" size={60} talking={speaking} className="mx-auto mt-0.5" />
+            <SeraArt mood={faceMood} view="avatar" quirk={quirk} size={56} talking={speaking} />
           </span>
           {bubble && !open && <span aria-hidden className="absolute -right-0.5 -top-0.5 size-3.5 rounded-full bg-primary ring-2 ring-background" />}
         </button>

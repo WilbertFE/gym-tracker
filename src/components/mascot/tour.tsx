@@ -149,14 +149,14 @@ export function TourOverlay({ tour, steps, onFinish }: TourProps) {
         {/* Sera's hand peeks over the top edge of the sheet, pointing at the area. */}
         {!cardOnTop && (
           <span aria-hidden className="pointer-events-none absolute -top-[6.4rem] right-3 block h-[6.5rem] w-[6.75rem] overflow-hidden">
-            <SeraArt view="half" pose={step.pose} mood="happy" size={108} className="max-w-none" />
+            <SeraArt view="half" pose={step.pose} mood="smug" size={104} className="max-w-none" />
           </span>
         )}
 
         <div className="system-window flex flex-col gap-3 p-4" data-glow>
           <div className="flex items-center gap-3">
             <span className="size-10 shrink-0 overflow-hidden rounded-full border border-primary/60 bg-surface">
-              <SeraArt view="avatar" size={44} mood="happy" className="mx-auto" />
+              <SeraArt view="avatar" size={40} mood="smug" />
             </span>
             <div className="flex min-w-0 flex-1 flex-col">
               <p className="tabular text-[11px] uppercase tracking-[0.2em] text-primary">Sera, guide</p>

@@ -1,9 +1,14 @@
 import type { FeatureId } from "@/lib/unlocks";
 
 /** How Sera looks while she says something. */
-export type Mood = "calm" | "happy" | "cheer" | "thinking" | "surprised" | "sleepy";
+export type Mood = "calm" | "happy" | "cheer" | "thinking" | "surprised" | "sleepy" | "smug" | "flustered" | "annoyed";
 
-export const MOODS: readonly Mood[] = ["calm", "happy", "cheer", "thinking", "surprised", "sleepy"];
+export const MOODS: readonly Mood[] = ["calm", "happy", "cheer", "thinking", "surprised", "sleepy", "smug", "flustered", "annoyed"];
+
+/** The small things she does when nobody is talking to her: a hair flip, her tongue out, a puffed cheek, a haughty turn of the head. */
+export type Quirk = "hairflip" | "tongue" | "puff" | "hmph";
+
+export const QUIRKS: readonly Quirk[] = ["hairflip", "tongue", "puff", "hmph"];
 
 /**
  * Everything Sera knows about you, and nothing more: counts, flags and the names of features. It never holds
@@ -47,7 +52,9 @@ export type SeraContext = {
 };
 
 /** What her arms do on the stage. */
-export type StagePose = "idle" | "wave" | "point" | "cheer";
+export type StagePose = "idle" | "wave" | "point" | "cheer" | "smug" | "crossed" | "taunt" | "hairflip";
+
+export const POSES: readonly StagePose[] = ["idle", "wave", "point", "cheer", "smug", "crossed", "taunt", "hairflip"];
 
 /** A reply the user can tap. */
 export type Reply = {

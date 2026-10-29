@@ -7,13 +7,12 @@ import { renderNode } from "@/lib/mascot/script";
 import { DEFAULT_PREFS, emptyMemory, markTold, MAX_STAGES_PER_DAY, parseMemory, rollDay, type Memory } from "@/lib/mascot/state";
 import { TOUR_IDS, TOUR_TARGETS, TOURS, tourById, tourForFeature, tourForPath, tourHref } from "@/lib/mascot/tours";
 import { pickMoment, STREAK_MILESTONES } from "@/lib/mascot/triggers";
-import { MOODS, type Moment, type SeraContext } from "@/lib/mascot/types";
+import { MOODS, POSES, type Moment, type SeraContext } from "@/lib/mascot/types";
 import { FEATURES } from "@/lib/unlocks";
 import { xpForLevel } from "@/lib/xp";
 
 const TODAY = "2026-11-10";
 const NOW = new Date("2026-11-10T09:00:00");
-const POSES = ["idle", "wave", "point", "cheer"];
 
 const input = (over: Partial<ContextInput> = {}): ContextInput => ({
   today: TODAY,
@@ -172,7 +171,7 @@ describe("when she appears big", () => {
   it("welcomes you back after days away as a stage", () => {
     const away = ctx({ lastActivity: "2026-11-05", checkinKind: null, checkinDates: [] });
     expect(pick(away, told({}, "intro", `daily:${TODAY}`))).toMatchObject({ key: `comeback:${TODAY}`, kind: "stage" });
-    expect(renderStage("comeback", away).endMood).toBe("happy");
+    expect(renderStage("comeback", away).endMood).toBe("smug");
   });
 
   it("opens the day with the short hello, once, and only when nothing bigger has appeared", () => {
