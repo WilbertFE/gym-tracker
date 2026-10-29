@@ -31,5 +31,5 @@ export function ItemArt({ item, rank, size = 88, animated = false }: { item: Ite
     return <Nameplate text={item.value} grade={item.grade} size="md" />;
   }
 
-  return <LookThumb template={item.value as ShareTemplate} width={Math.round(size * 0.6)} label={`${item.name} share look`} />;
+  return <LookThumb template={item.value as ShareTemplate} width={Math.round(size * 0.72)} label={`${item.name} share look`} />;
 }
