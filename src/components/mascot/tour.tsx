@@ -156,7 +156,7 @@ export function TourOverlay({ tour, steps, onFinish }: TourProps) {
         <div className="system-window flex flex-col gap-3 p-4" data-glow>
           <div className="flex items-center gap-3">
             <span className="size-10 shrink-0 overflow-hidden rounded-full border border-primary/60 bg-surface">
-              <SeraArt view="avatar" size={40} mood="smug" />
+              <SeraArt view="avatar" size={44} mood="smug" className="mx-auto" />
             </span>
             <div className="flex min-w-0 flex-1 flex-col">
               <p className="tabular text-[11px] uppercase tracking-[0.2em] text-primary">Sera, guide</p>

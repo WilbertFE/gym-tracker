@@ -1,111 +1,499 @@
-"use client";
-
-import { useEffect, useState, type CSSProperties } from "react";
-import { FACE_CROPS, spriteFor, spriteSrc, type SpriteId } from "@/lib/mascot/sprites";
+import { useId, type CSSProperties } from "react";
 import { POSES, type Mood, type Quirk, type StagePose } from "@/lib/mascot/types";
 import { cn } from "@/lib/utils";
 
 export { POSES };
 export type Pose = StagePose;
 
-/** The sprites are 2:3 (width to height). */
-const SPRITE_RATIO = 2 / 3;
-
-/** How long the old picture stays under the new one while it fades in, in milliseconds. */
-const FADE_MS = 320;
-
 /**
- * Sera, the guide. She is a set of painted anime illustrations ("sprites", `public/sera/sprites/<id>.webp`), one per way she
- * looks, and this component shows the right one for her mood, pose and quirk (see `src/lib/mascot/sprites.ts`), fading from
- * one to the next. Still pictures cannot move their mouths, so while she talks she gently bobs; she also breathes and sways a
- * little. All of that is CSS (`.sera-*` in globals.css) and is off for reduced motion.
+ * Sera, the guide. An original character drawn as inline SVG in the System palette: silver blue hair in a bob with
+ * side swept bangs and one long lock, a slim headset with a glowing earpiece, and a dark high collar jacket with cyan
+ * piping and a small rank pin. One drawing gives every mood by swapping the eyes, brows, mouth, blush and sparkle.
+ * Everything that moves is CSS (`.sera-*` in globals.css) and is off for reduced motion.
  *
- * `half` (and `bust`, the same picture) is the whole waist-up illustration, for the stage and the tour. `avatar` is a round crop
- * of her face, for the corner button and the chat. If a picture fails to load, a small monogram stands in so nothing breaks.
+ * `bust` is head and shoulders, for the chat. `avatar` is the head only, for the corner button. She has nine moods; the three
+ * newest (smug, flustered, annoyed) reuse her eyes with new brows and mouths. Her eight poses use four arm drawings (smug and
+ * crossed stand like idle, taunt points, hairflip waves). A quirk is a small thing she does when idle: her tongue, a puffed
+ * cheek, a turn of the head, a flip of her long lock.
  */
+const COLOR = {
+  line: "#16233f",
+  skin: "#f7e0d6",
+  skinShade: "#e8bcae",
+  blush: "#ff8fa6",
+  hairLight: "#e8f1ff",
+  hairBase: "#b6cdf3",
+  hairMid: "#8aabe6",
+  hairDark: "#5a7dc2",
+  irisTop: "#a6d8ff",
+  irisBottom: "#2c6bd6",
+  pupil: "#0b1a33",
+  jacket: "#0d1930",
+  jacketLight: "#1a2c52",
+  piping: "#4aa8ff",
+  shirt: "#dbe6f7",
+  headset: "#d3e3f8",
+  headsetDark: "#8aa4c8",
+  mouth: "#8a3347",
+  tongue: "#e88a9a",
+} as const;
+
+type Face = {
+  eyes: "open" | "happy" | "wide" | "sleepy" | "up";
+  brows: "calm" | "raised" | "worried" | "thinking" | "cheer" | "sleepy" | "smug" | "angry";
+  mouth: "smile" | "grin" | "o" | "flat" | "small" | "smirk" | "pout" | "wobble";
+  blush: number;
+  sparkle: boolean;
+  sweat?: boolean;
+  /** A small head tilt, in degrees. */
+  tilt: number;
+};
+
+const FACES: Record<Mood, Face> = {
+  calm: { eyes: "open", brows: "calm", mouth: "small", blush: 0.2, sparkle: false, tilt: 0 },
+  happy: { eyes: "open", brows: "calm", mouth: "smile", blush: 0.5, sparkle: false, tilt: -1.5 },
+  cheer: { eyes: "happy", brows: "cheer", mouth: "grin", blush: 0.7, sparkle: true, tilt: -2 },
+  thinking: { eyes: "up", brows: "thinking", mouth: "flat", blush: 0.1, sparkle: false, tilt: 3 },
+  surprised: { eyes: "wide", brows: "raised", mouth: "o", blush: 0.25, sparkle: false, tilt: 0 },
+  sleepy: { eyes: "sleepy", brows: "sleepy", mouth: "small", blush: 0.35, sparkle: false, tilt: 4 },
+  smug: { eyes: "open", brows: "smug", mouth: "smirk", blush: 0.3, sparkle: false, tilt: -3 },
+  flustered: { eyes: "up", brows: "worried", mouth: "wobble", blush: 1, sparkle: false, sweat: true, tilt: 2 },
+  annoyed: { eyes: "sleepy", brows: "angry", mouth: "pout", blush: 0.3, sparkle: false, tilt: 0 },
+};
+
+/** The mouth shapes. `talk` is the open mouth that alternates with the resting one while she speaks. */
+function Mouth({ shape, talking, tongue }: { shape: Face["mouth"]; talking: boolean; tongue: boolean }) {
+  const stroke = { stroke: COLOR.line, strokeWidth: 2.4, fill: "none", strokeLinecap: "round" } as const;
+  const resting = (() => {
+    switch (shape) {
+      case "smile":
+        return <path d="M110 151 Q120 160 130 151" {...stroke} />;
+      case "small":
+        return <path d="M113 152 Q120 157 127 152" {...stroke} />;
+      case "flat":
+        return <path d="M114 154 Q120 153 126 154" {...stroke} />;
+      case "smirk":
+        return (
+          <g>
+            <path d="M109 154 Q120 158 131 149" {...stroke} />
+            <path d="M131 149 L134 147" {...stroke} strokeWidth={2} />
+          </g>
+        );
+      case "pout":
+        return <path d="M113 158 Q120 151 127 158" {...stroke} />;
+      case "wobble":
+        return <path d="M111 155 Q115 150 119 155 Q123 160 128 154" {...stroke} />;
+      case "o":
+        return <ellipse cx={120} cy={155} rx={3.8} ry={4.6} fill={COLOR.mouth} stroke={COLOR.line} strokeWidth={1.8} />;
+      case "grin":
+        return (
+          <g>
+            <path d="M106 149 Q120 168 134 149 Z" fill={COLOR.mouth} stroke={COLOR.line} strokeWidth={2} strokeLinejoin="round" />
+            <path d="M109 150 Q120 156 131 150 Q120 153 109 150 Z" fill="#fff" />
+            <ellipse cx={120} cy={160} rx={4} ry={2.2} fill={COLOR.tongue} />
+          </g>
+        );
+    }
+  })();
+
+  return (
+    <g>
+      <g className={talking ? "sera-mouth-rest" : undefined}>{resting}</g>
+      {talking && (
+        <g className="sera-mouth-talk" opacity={0}>
+          <ellipse cx={120} cy={155} rx={6.2} ry={4.8} fill={COLOR.mouth} stroke={COLOR.line} strokeWidth={1.8} />
+          <ellipse cx={120} cy={158} rx={3.2} ry={1.7} fill={COLOR.tongue} />
+        </g>
+      )}
+      {/* The tongue, stuck out under a smirk. */}
+      {tongue && (
+        <g>
+          <path d="M116 155 C115 163 117 168 121 168 C125 168 126 163 125 155 Z" fill={COLOR.tongue} stroke={COLOR.line} strokeWidth={1.8} strokeLinejoin="round" />
+          <path d="M120.5 156 L120.5 164" stroke={COLOR.mouth} strokeWidth={1.1} strokeLinecap="round" opacity={0.7} />
+        </g>
+      )}
+    </g>
+  );
+}
+
+const BROWS: Record<Face["brows"], { left: string; right: string }> = {
+  calm: { left: "M86 103 Q100 96 114 101", right: "M126 101 Q140 96 154 103" },
+  raised: { left: "M86 97 Q100 90 114 95", right: "M126 95 Q140 90 154 97" },
+  worried: { left: "M86 104 Q100 103 114 95", right: "M126 95 Q140 103 154 104" },
+  thinking: { left: "M86 103 Q100 97 114 102", right: "M126 93 Q140 86 154 95" },
+  cheer: { left: "M86 99 Q100 91 114 98", right: "M126 98 Q140 91 154 99" },
+  sleepy: { left: "M86 108 Q100 107 114 109", right: "M126 109 Q140 107 154 108" },
+  smug: { left: "M86 98 Q100 90 114 96", right: "M126 103 Q140 99 154 105" },
+  angry: { left: "M86 97 Q100 98 114 108", right: "M126 108 Q140 98 154 97" },
+};
+
+type EyeProps = { cx: number; kind: Face["eyes"]; clip: string; iris: string };
+
+/** One eye. The right eye is the left one moved over, so both always match. */
+function Eye({ cx, kind, clip, iris }: EyeProps) {
+  const cy = 122;
+  if (kind === "happy") {
+    return <path d={`M${cx - 11} ${cy + 4} Q${cx} ${cy - 11} ${cx + 11} ${cy + 4}`} stroke={COLOR.line} strokeWidth={3.2} fill="none" strokeLinecap="round" />;
+  }
+  const wide = kind === "wide";
+  const rx = wide ? 13 : 12;
+  const ry = wide ? 15.5 : 14;
+  const dx = kind === "up" ? 2.2 : 0;
+  const dy = kind === "up" ? -3.4 : 0;
+  const r = wide ? 10.4 : 9.2;
+
+  return (
+    <g>
+      <clipPath id={clip}>
+        <ellipse cx={cx} cy={cy} rx={rx} ry={ry} />
+      </clipPath>
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="#f6f9ff" />
+      <g clipPath={`url(#${clip})`}>
+        <circle cx={cx + dx} cy={cy + dy + 1} r={r} fill={`url(#${iris})`} />
+        <circle cx={cx + dx} cy={cy + dy + 1} r={wide ? 4.2 : 4.8} fill={COLOR.pupil} />
+        <circle cx={cx + dx + 3.6} cy={cy + dy - 3.8} r={wide ? 3.4 : 3.1} fill="#fff" />
+        <circle cx={cx + dx - 3.2} cy={cy + dy + 4} r={1.5} fill="#fff" opacity={0.9} />
+        {kind === "sleepy" && <rect x={cx - rx} y={cy - ry - 1} width={rx * 2} height={ry + 1} fill={COLOR.skin} />}
+      </g>
+      {kind === "sleepy" ? (
+        <path d={`M${cx - 13} ${cy + 1} Q${cx} ${cy + 6} ${cx + 13} ${cy + 1}`} stroke={COLOR.line} strokeWidth={2.8} fill="none" strokeLinecap="round" />
+      ) : (
+        <path
+          d={`M${cx - 13} ${cy - 2} Q${cx} ${cy - 18} ${cx + 13} ${cy - 2}`}
+          stroke={COLOR.line}
+          strokeWidth={3}
+          fill="none"
+          strokeLinecap="round"
+        />
+      )}
+      <path d={`M${cx - 10} ${cy + 11} Q${cx} ${cy + 15} ${cx + 10} ${cy + 11}`} stroke={COLOR.line} strokeWidth={1.2} fill="none" opacity={0.55} />
+    </g>
+  );
+}
+
+/** The four arm drawings. The eight poses map onto them: smug and crossed stand like idle, taunt points, hairflip waves. */
+type ArmPose = "idle" | "wave" | "point" | "cheer";
+
+const ARM_POSE: Record<Pose, ArmPose> = { idle: "idle", wave: "wave", point: "point", cheer: "cheer", smug: "idle", crossed: "idle", taunt: "point", hairflip: "wave" };
+
+/** A sleeve is a thick stroke with an outline under it, so an arm is one path. */
+function Sleeve({ d }: { d: string }) {
+  return (
+    <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d={d} stroke={COLOR.line} strokeWidth={34} />
+      <path d={d} stroke={COLOR.jacketLight} strokeWidth={30} />
+      <path d={d} stroke={COLOR.piping} strokeWidth={1.6} opacity={0.55} transform="translate(-9 0)" />
+    </g>
+  );
+}
+
+const skinStroke = { fill: COLOR.skin, stroke: COLOR.line, strokeWidth: 2, strokeLinejoin: "round" } as const;
+
+/** An open hand, fingers up, for waving. The origin is the wrist. */
+function OpenHand() {
+  return (
+    <g>
+      {[-12, -4, 4, 12].map((x, i) => (
+        <rect key={x} x={x - 3.6} y={-38 - (i === 1 || i === 2 ? 4 : 0)} width={7.2} height={26 + (i === 1 || i === 2 ? 4 : 0)} rx={3.6} {...skinStroke} />
+      ))}
+      <path d="M-16 -16 C-24 -22 -22 -34 -17 -30" {...skinStroke} />
+      <ellipse cx={0} cy={-8} rx={16} ry={14} {...skinStroke} />
+      <path d="M-8 -14 Q0 -10 8 -14" stroke={COLOR.skinShade} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+    </g>
+  );
+}
+
+/** A fist, for cheering. The origin is the middle of the fist. */
+function Fist() {
+  return (
+    <g>
+      <ellipse cx={0} cy={0} rx={15} ry={14} {...skinStroke} />
+      <path d="M-9 -4 Q0 -8 9 -4 M-9 3 Q0 -1 9 3" stroke={COLOR.skinShade} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+      <path d="M-13 6 C-18 8 -17 -1 -13 -2" {...skinStroke} />
+    </g>
+  );
+}
+
+/** A hand with one finger up, to say "look here". The origin is the wrist. */
+function PointingHand() {
+  return (
+    <g>
+      <rect x={-3.6} y={-50} width={7.2} height={34} rx={3.6} {...skinStroke} />
+      <ellipse cx={0} cy={-8} rx={15} ry={13} {...skinStroke} />
+      <path d="M-9 -10 Q0 -6 9 -10 M-9 -3 Q0 1 9 -3" stroke={COLOR.skinShade} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+    </g>
+  );
+}
+
+/** The arms and hands of the half body. The torso is already drawn; these sit over it. */
+function Arms({ pose }: { pose: ArmPose }) {
+  const down = (side: "l" | "r") => (side === "l" ? "M52 238 C30 290 38 345 62 392" : "M188 238 C210 290 202 345 178 392");
+  switch (pose) {
+    case "wave":
+      return (
+        <g>
+          <Sleeve d={down("l")} />
+          <ellipse cx={66} cy={398} rx={14} ry={11} {...skinStroke} />
+          <Sleeve d="M188 240 C226 250 238 206 222 166" />
+          <g transform="translate(222 164)">
+            <g className="sera-hand-wave">
+              <OpenHand />
+            </g>
+          </g>
+        </g>
+      );
+    case "point":
+      return (
+        <g>
+          <Sleeve d={down("l")} />
+          <ellipse cx={66} cy={398} rx={14} ry={11} {...skinStroke} />
+          <Sleeve d="M188 240 C222 246 232 210 220 172" />
+          <g transform="translate(220 170)">
+            <g className="sera-hand-bob">
+              <PointingHand />
+            </g>
+          </g>
+        </g>
+      );
+    case "cheer":
+      return (
+        <g>
+          <Sleeve d="M52 240 C16 236 6 196 24 158" />
+          <g transform="translate(24 150)">
+            <g className="sera-hand-bob">
+              <Fist />
+            </g>
+          </g>
+          <Sleeve d="M188 240 C224 236 234 196 216 158" />
+          <g transform="translate(216 150)">
+            <g className="sera-hand-bob">
+              <Fist />
+            </g>
+          </g>
+        </g>
+      );
+    default:
+      return (
+        <g>
+          <Sleeve d="M52 238 C30 290 46 346 100 366" />
+          <Sleeve d="M188 238 C210 290 194 346 140 366" />
+          <ellipse cx={120} cy={368} rx={24} ry={13} {...skinStroke} />
+          <path d="M104 366 Q120 374 136 366 M108 372 L132 372" stroke={COLOR.skinShade} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+        </g>
+      );
+  }
+}
+
 type SeraArtProps = {
   mood?: Mood;
+  /** `bust` is head and shoulders, `half` is down to the waist with her arms, `avatar` the head only. */
   view?: "bust" | "half" | "avatar";
+  /** What her arms do, in the half view. */
   pose?: Pose;
   /** A small idle behaviour to show right now, or none. */
   quirk?: Quirk | null;
-  /** Width in pixels. The height follows. Ignored when CSS sizes her (the `fluid` class names below). */
+  /** Width in pixels. The height follows. */
   size?: number;
-  /** She bobs a little while she speaks. */
+  /** The mouth moves while she speaks. */
   talking?: boolean;
-  /** Draw a picture the owner supplies instead of the sprite set. */
+  /** Draw a picture the owner supplies instead of the vector. */
   src?: string;
-  /** Let CSS size her (for example `h-full w-auto`); she keeps her proportions either way. */
+  /** Let CSS size her (for example `h-full w-auto`). */
   fluid?: boolean;
   className?: string;
 };
 
-/** The picture, filling its box, or cropped to her face for the avatar. */
-function Sprite({ id, avatar, onBroken }: { id: SpriteId; avatar: boolean; onBroken: () => void }) {
-  const crop = FACE_CROPS[id];
-  // The box is square for the avatar. The picture is scaled so the crop fills it, then moved so the face is in the middle.
-  const style: CSSProperties = avatar
-    ? { width: `${100 / crop.w}%`, left: `${-(crop.x / crop.w) * 100}%`, top: `${-((crop.y * (1 / SPRITE_RATIO)) / crop.w) * 100}%` }
-    : { width: "100%", left: 0, top: 0 };
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={spriteSrc(id)}
-      alt=""
-      draggable={false}
-      decoding="async"
-      onError={onBroken}
-      style={style}
-      className="absolute max-w-none select-none"
-    />
-  );
+/** The face for a mood, changed by what she is doing right now. */
+function faceFor(mood: Mood, pose: Pose, quirk: Quirk | null): { face: Face; tongue: boolean; turn: boolean } {
+  let face = FACES[mood];
+  const tongue = quirk === "tongue" || pose === "taunt";
+  if (quirk === "puff") face = { ...face, mouth: "pout", brows: "angry", eyes: "sleepy" };
+  if (quirk === "hmph") face = { ...face, eyes: "up", mouth: "pout", tilt: 5 };
+  if (pose === "crossed") face = { ...face, eyes: "up" };
+  return { face, tongue, turn: quirk === "hmph" };
 }
+
+const VIEWS = {
+  bust: { box: "0 0 240 300", w: 240, h: 300 },
+  half: { box: "0 0 240 400", w: 240, h: 400 },
+  avatar: { box: "44 20 152 170", w: 152, h: 170 },
+} as const;
 
 /** Sera. Decorative: the words she says are always real text beside her. */
 export function SeraArt({ mood = "calm", view = "bust", pose = "idle", quirk = null, size = 220, talking = false, src, fluid = false, className }: SeraArtProps) {
-  const avatar = view === "avatar";
-  const id = spriteFor(mood, pose, quirk);
-  const [shown, setShown] = useState<SpriteId>(id);
-  const [prev, setPrev] = useState<SpriteId | null>(null);
-  const [broken, setBroken] = useState(false);
-
-  // When her sprite changes, the old one stays underneath for a moment while the new one fades in.
-  if (shown !== id) {
-    setPrev(shown);
-    setShown(id);
-  }
-  useEffect(() => {
-    if (!prev) return;
-    const timer = setTimeout(() => setPrev(null), FADE_MS);
-    return () => clearTimeout(timer);
-  }, [prev]);
-
-  const ratio = avatar ? 1 : SPRITE_RATIO;
-  const height = Math.round(size / ratio);
+  const uid = useId().replace(/:/g, "");
+  const id = (name: string) => `${uid}-${name}`;
+  const { face, tongue, turn } = faceFor(mood, pose, quirk);
+  const v = VIEWS[view];
+  const height = Math.round((size * v.h) / v.w);
 
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt="" width={size} height={height} className={cn("block", className)} />;
   }
 
+  const brows = BROWS[face.brows];
+
   return (
-    <span
+    <svg
+      viewBox={v.box}
+      {...(fluid ? {} : { width: size, height })}
       aria-hidden
-      className={cn("sera relative block", avatar ? "overflow-hidden" : "overflow-visible", talking && "sera-talking", className)}
-      style={{ aspectRatio: `${ratio}`, ...(fluid ? {} : { width: size }) }}
+      focusable="false"
+      className={cn("sera block overflow-visible", talking && "sera-talking", quirk && `sera-q-${quirk}`, className)}
+      style={{ "--sera-glow": COLOR.piping } as CSSProperties}
     >
-      {broken ? (
-        <span className="absolute inset-0 flex items-center justify-center bg-surface font-display text-primary" style={{ fontSize: avatar ? size * 0.5 : size * 0.3 }}>
-          S
-        </span>
-      ) : (
-        <span className="sera-life absolute inset-0 block">
-          {prev && <Sprite id={prev} avatar={avatar} onBroken={() => setBroken(true)} />}
-          <span key={shown} className="sera-fade absolute inset-0 block">
-            <Sprite id={shown} avatar={avatar} onBroken={() => setBroken(true)} />
-          </span>
-        </span>
-      )}
-    </span>
+      <defs>
+        <linearGradient id={id("hair")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={COLOR.hairLight} />
+          <stop offset="0.35" stopColor={COLOR.hairBase} />
+          <stop offset="1" stopColor={COLOR.hairMid} />
+        </linearGradient>
+        <linearGradient id={id("hairBack")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={COLOR.hairMid} />
+          <stop offset="1" stopColor={COLOR.hairDark} />
+        </linearGradient>
+        <linearGradient id={id("iris")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={COLOR.irisTop} />
+          <stop offset="1" stopColor={COLOR.irisBottom} />
+        </linearGradient>
+        <linearGradient id={id("jacket")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={COLOR.jacketLight} />
+          <stop offset="1" stopColor={COLOR.jacket} />
+        </linearGradient>
+        <radialGradient id={id("glow")}>
+          <stop offset="0" stopColor="#fff" />
+          <stop offset="0.35" stopColor={COLOR.piping} />
+          <stop offset="1" stopColor={COLOR.piping} stopOpacity={0} />
+        </radialGradient>
+        <clipPath id={id("face")}>
+          <path d="M72 112 C72 80 92 62 120 62 C148 62 168 80 168 112 C168 140 150 170 120 174 C90 170 72 140 72 112 Z" />
+        </clipPath>
+      </defs>
+
+      <g className="sera-breathe">
+        {/* Back hair: the bob behind the head and the shoulders. */}
+        <path
+          d="M120 26 C70 26 46 70 48 118 C49 150 52 176 62 196 C74 188 84 172 86 152 L154 152 C156 172 166 188 178 196 C188 176 191 150 192 118 C194 70 170 26 120 26 Z"
+          fill={`url(#${id("hairBack")})`}
+          stroke={COLOR.line}
+          strokeWidth={2}
+          strokeLinejoin="round"
+        />
+
+        {view !== "avatar" && (
+          <g transform="translate(0 -10)">
+            {/* Jacket: dark, with a high collar, a light shirt and cyan piping. The half body carries on to the waist. */}
+            <path
+              d={view === "half" ? "M10 420 L14 316 C20 244 58 212 100 200 L140 200 C182 212 220 244 226 316 L230 420 Z" : "M14 316 C20 244 58 212 100 200 L140 200 C182 212 220 244 226 316 Z"}
+              fill={`url(#${id("jacket")})`}
+              stroke={COLOR.line}
+              strokeWidth={2}
+              strokeLinejoin="round"
+            />
+            <path d="M104 160 L104 198 C104 208 136 208 136 198 L136 160 Z" fill={COLOR.skinShade} stroke={COLOR.line} strokeWidth={2} strokeLinejoin="round" />
+            <path d="M102 198 L120 238 L138 198 Z" fill={COLOR.shirt} stroke={COLOR.line} strokeWidth={1.8} strokeLinejoin="round" />
+            <path d="M82 208 L102 197 L120 238 L92 246 Z" fill={COLOR.jacketLight} stroke={COLOR.line} strokeWidth={2} strokeLinejoin="round" />
+            <path d="M158 208 L138 197 L120 238 L148 246 Z" fill={COLOR.jacketLight} stroke={COLOR.line} strokeWidth={2} strokeLinejoin="round" />
+            <path d="M84 211 L103 200 L120 236" stroke={COLOR.piping} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M156 211 L137 200 L120 236" stroke={COLOR.piping} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M44 268 C58 250 82 240 98 248" stroke={COLOR.piping} strokeWidth={1.6} fill="none" opacity={0.6} strokeLinecap="round" />
+            <path d="M196 268 C182 250 158 240 142 248" stroke={COLOR.piping} strokeWidth={1.6} fill="none" opacity={0.6} strokeLinecap="round" />
+            {/* The rank pin. */}
+            <g transform="translate(170 262)">
+              <path d="M0 -11 L9 -7 V3 C9 9 4 12 0 14 C-4 12 -9 9 -9 3 V-7 Z" fill={COLOR.jacket} stroke={COLOR.piping} strokeWidth={1.8} strokeLinejoin="round" />
+              <path d="M-4 0 L0 -5 L4 0" stroke={COLOR.piping} strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+            {view === "half" && <Arms pose={ARM_POSE[pose]} />}
+          </g>
+        )}
+
+        {/* The head, tilted a little with the mood. */}
+        <g transform={`rotate(${face.tilt} 120 150)${turn ? " translate(-4 0)" : ""}`}>
+          {/* Left ear and the headset cup. */}
+          <ellipse cx={71} cy={122} rx={7} ry={10.5} fill={COLOR.skin} stroke={COLOR.line} strokeWidth={2} />
+
+          {/* Face. */}
+          <path
+            d="M72 112 C72 80 92 62 120 62 C148 62 168 80 168 112 C168 140 150 170 120 174 C90 170 72 140 72 112 Z"
+            fill={COLOR.skin}
+            stroke={COLOR.line}
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
+          <g clipPath={`url(#${id("face")})`}>
+            <ellipse cx={120} cy={102} rx={50} ry={11} fill={COLOR.skinShade} opacity={0.45} />
+            <path d="M152 112 C170 130 160 164 124 176 C146 160 154 136 152 112 Z" fill={COLOR.skinShade} opacity={0.4} />
+          </g>
+
+          {/* Blush, nose, brows. */}
+          <ellipse cx={87} cy={141} rx={9} ry={5} fill={COLOR.blush} opacity={face.blush} />
+          <ellipse cx={153} cy={141} rx={9} ry={5} fill={COLOR.blush} opacity={face.blush} />
+          <path d="M119 139 Q121 142.5 123.5 140" stroke={COLOR.skinShade} strokeWidth={2} fill="none" strokeLinecap="round" />
+          <path d={brows.left} stroke={COLOR.hairDark} strokeWidth={3} fill="none" strokeLinecap="round" />
+          <path d={brows.right} stroke={COLOR.hairDark} strokeWidth={3} fill="none" strokeLinecap="round" />
+
+          {/* Eyes and mouth. */}
+          <g className="sera-eyes">
+            <Eye cx={100} kind={face.eyes} clip={id("eyeL")} iris={id("iris")} />
+            <Eye cx={140} kind={face.eyes} clip={id("eyeR")} iris={id("iris")} />
+          </g>
+          <Mouth shape={face.mouth} talking={talking} tongue={tongue} />
+          {face.sweat && <path d="M156 92 C153 99 152 103 155 105 C158 103 158 98 156 92 Z" fill="#bfe6ff" stroke={COLOR.line} strokeWidth={1.4} strokeLinejoin="round" />}
+
+          {/* Headset: the cup on her ear with its glowing light, and the boom to the mouth. */}
+          <path d="M60 134 C 62 152 74 162 92 159" stroke={COLOR.headsetDark} strokeWidth={3} fill="none" strokeLinecap="round" />
+          <circle cx={93} cy={159} r={3.4} fill={COLOR.piping} className="sera-glow" />
+          <circle cx={62} cy={120} r={13} fill={COLOR.headset} stroke={COLOR.line} strokeWidth={2} />
+          <circle cx={62} cy={120} r={7.5} fill={COLOR.headsetDark} stroke={COLOR.line} strokeWidth={1.4} />
+          <circle cx={62} cy={120} r={14} fill={`url(#${id("glow")})`} className="sera-glow" opacity={0.7} />
+          <circle cx={62} cy={120} r={3.6} fill={COLOR.piping} />
+
+          {/* Front hair: the bangs and the one long lock. */}
+          <path
+            d="M70 114 C 60 80 78 44 120 40 C 162 44 180 80 170 114 C 166 102 160 92 152 88 C 150 95 142 100 134 98 C 130 91 124 88 118 86 C 116 94 108 100 98 98 C 94 93 88 90 82 92 C 78 98 74 106 70 114 Z"
+            fill={`url(#${id("hair")})`}
+            stroke={COLOR.line}
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
+          <path d="M92 60 C 104 49 124 47 142 54" stroke={COLOR.hairLight} strokeWidth={2.4} fill="none" strokeLinecap="round" opacity={0.85} />
+          <path d="M118 90 C 123 76 124 62 121 48" stroke={COLOR.hairDark} strokeWidth={1.6} fill="none" opacity={0.55} strokeLinecap="round" />
+          <path d="M96 100 C 90 86 88 72 92 60" stroke={COLOR.hairDark} strokeWidth={1.6} fill="none" opacity={0.5} strokeLinecap="round" />
+          <path d="M148 94 C 156 82 160 70 158 58" stroke={COLOR.hairDark} strokeWidth={1.6} fill="none" opacity={0.5} strokeLinecap="round" />
+          {/* A small hair clip, the colour of the System. */}
+          <g transform="translate(150 70) rotate(30)">
+            <rect x={-8} y={-2.4} width={16} height={4.8} rx={2.4} fill={COLOR.jacket} stroke={COLOR.line} strokeWidth={1.4} />
+            <circle cx={0} cy={0} r={2} fill={COLOR.piping} className="sera-glow" />
+          </g>
+
+          {/* The headband runs over the top of her head and tucks under the long lock. */}
+          <path d="M62 108 C 56 58 92 30 122 30 C 152 30 178 58 176 106" stroke={COLOR.line} strokeWidth={7} fill="none" strokeLinecap="round" />
+          <path d="M62 108 C 56 58 92 30 122 30 C 152 30 178 58 176 106" stroke={COLOR.headset} strokeWidth={4} fill="none" strokeLinecap="round" />
+
+          <g className="sera-sway">
+            <path
+              d="M166 98 C 180 122 188 152 184 184 C 182 212 176 234 164 256 C 158 232 156 204 158 180 C 160 152 162 124 166 98 Z"
+              fill={`url(#${id("hair")})`}
+              stroke={COLOR.line}
+              strokeWidth={2}
+              strokeLinejoin="round"
+            />
+            <path d="M174 126 C 180 152 180 184 171 222" stroke={COLOR.hairLight} strokeWidth={2} fill="none" opacity={0.8} strokeLinecap="round" />
+          </g>
+        </g>
+
+        {face.sparkle && (
+          <path
+            className="sera-sparkle"
+            d="M204 54 L208 66 L220 70 L208 74 L204 86 L200 74 L188 70 L200 66 Z"
+            fill={COLOR.hairLight}
+            stroke={COLOR.piping}
+            strokeWidth={1.6}
+            strokeLinejoin="round"
+          />
+        )}
+      </g>
+    </svg>
   );
 }

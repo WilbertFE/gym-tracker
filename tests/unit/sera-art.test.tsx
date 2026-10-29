@@ -1,50 +1,82 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { SeraArt } from "@/components/mascot/sera-art";
-import { spriteFor, spriteSrc } from "@/lib/mascot/sprites";
-import { MOODS, POSES, QUIRKS } from "@/lib/mascot/types";
+import { POSES, SeraArt } from "@/components/mascot/sera-art";
+import { MOODS, QUIRKS } from "@/lib/mascot/types";
 
 const VIEWS = ["bust", "half", "avatar"] as const;
 
-describe("Sera's picture", () => {
-  it("renders every mood, pose, view and quirk as a picture of a sprite that exists", () => {
+describe("Sera's drawing", () => {
+  it("renders every mood in every view, pose and quirk", () => {
     for (const mood of MOODS) {
       for (const view of VIEWS) {
         for (const pose of POSES) {
           const html = renderToStaticMarkup(<SeraArt mood={mood} view={view} pose={pose} size={200} />);
-          expect(html, `${mood} ${view} ${pose}`).toContain("<img");
-          expect(html).toContain(spriteSrc(spriteFor(mood, pose)));
+          expect(html, `${mood} ${view} ${pose}`).toContain("<svg");
           expect(html).toContain('aria-hidden="true"');
           expect(html).not.toContain("—");
         }
       }
-      for (const quirk of QUIRKS) expect(renderToStaticMarkup(<SeraArt mood={mood} view="half" quirk={quirk} />)).toContain(spriteSrc(spriteFor(mood, "idle", quirk)));
+      for (const quirk of QUIRKS) expect(renderToStaticMarkup(<SeraArt mood={mood} quirk={quirk} />)).toContain(`sera-q-${quirk}`);
     }
   });
 
-  it("keeps her proportions: 2 by 3 for the whole illustration, square for the avatar", () => {
-    expect(renderToStaticMarkup(<SeraArt view="half" size={240} />)).toContain("aspect-ratio:0.6666666666666666");
-    expect(renderToStaticMarkup(<SeraArt view="bust" size={240} />)).toContain("width:240px");
-    expect(renderToStaticMarkup(<SeraArt view="avatar" size={56} />)).toContain("aspect-ratio:1");
+  it("keeps the height in step with the width for each view, or leaves it to CSS with fluid", () => {
+    expect(renderToStaticMarkup(<SeraArt view="half" size={240} />)).toContain('height="400"');
+    expect(renderToStaticMarkup(<SeraArt view="bust" size={240} />)).toContain('height="300"');
+    expect(renderToStaticMarkup(<SeraArt view="avatar" size={152} />)).toContain('height="170"');
+    const fluid = renderToStaticMarkup(<SeraArt view="half" fluid />);
+    const tag = fluid.match(/^<svg[^>]*>/)?.[0] ?? "";
+    expect(tag).not.toMatch(/ width="/);
+    expect(tag).toContain("viewBox");
   });
 
-  it("lets CSS size her when asked, and crops the avatar to her face", () => {
-    expect(renderToStaticMarkup(<SeraArt view="half" size={240} fluid />)).not.toContain("width:240px");
-    const avatar = renderToStaticMarkup(<SeraArt view="avatar" size={56} />);
-    expect(avatar).toContain("overflow-hidden");
-    // The picture is scaled up so the face crop fills the circle, which means more than 100 percent wide.
-    expect(avatar).toMatch(/width:2\d\d\.\d+%/);
+  it("shows her sparkle only when she cheers, and her moving mouth only while she talks", () => {
+    expect(renderToStaticMarkup(<SeraArt mood="cheer" />)).toContain("sera-sparkle");
+    expect(renderToStaticMarkup(<SeraArt mood="calm" />)).not.toContain("sera-sparkle");
+    expect(renderToStaticMarkup(<SeraArt talking />)).toContain("sera-mouth-talk");
+    expect(renderToStaticMarkup(<SeraArt />)).not.toContain("sera-mouth-talk");
   });
 
-  it("moves her a little while she talks, and not otherwise", () => {
-    expect(renderToStaticMarkup(<SeraArt talking />)).toContain("sera-talking");
-    expect(renderToStaticMarkup(<SeraArt />)).not.toContain("sera-talking");
+  it("gives each arm drawing its own look, and maps the other poses onto them", () => {
+    const html = Object.fromEntries(POSES.map((pose) => [pose, renderToStaticMarkup(<SeraArt view="half" pose={pose} />)]));
+    expect(html.wave).toContain("sera-hand-wave");
+    expect(html.point).toContain("sera-hand-bob");
+    expect(html.cheer).toContain("sera-hand-bob");
+    expect(html.idle).not.toContain("sera-hand-wave");
+    expect(html.hairflip).toBe(html.wave);
+    expect(new Set([html.idle, html.wave, html.point, html.cheer]).size).toBe(4);
   });
 
-  it("draws a supplied picture instead of the sprites", () => {
-    const html = renderToStaticMarkup(<SeraArt src="/mine.png" size={120} view="half" />);
-    expect(html).toContain('src="/mine.png"');
-    expect(html).toContain('height="180"');
-    expect(html).not.toContain("/sera/sprites/");
+  it("only draws the arms in the half view", () => {
+    const arms = (view: (typeof VIEWS)[number]) => renderToStaticMarkup(<SeraArt view={view} pose="wave" />);
+    expect(arms("half")).toContain("sera-hand-wave");
+    expect(arms("bust")).not.toContain("sera-hand-wave");
+    expect(arms("avatar")).not.toContain("sera-hand-wave");
+  });
+
+  it("shows her tongue for the tongue quirk and the taunt, and the sweat drop for a flustered face", () => {
+    const plain = renderToStaticMarkup(<SeraArt mood="smug" />);
+    expect(renderToStaticMarkup(<SeraArt mood="smug" quirk="tongue" />).length).toBeGreaterThan(plain.length);
+    expect(renderToStaticMarkup(<SeraArt mood="smug" view="half" pose="taunt" />)).toContain("M116 155");
+    expect(renderToStaticMarkup(<SeraArt mood="flustered" />).length).toBeGreaterThan(renderToStaticMarkup(<SeraArt mood="calm" />).length);
+  });
+
+  it("gives every instance its own gradient ids, so two on one page never clash", () => {
+    const html = renderToStaticMarkup(
+      <>
+        <SeraArt mood="happy" />
+        <SeraArt mood="sleepy" view="avatar" />
+      </>,
+    );
+    const ids = [...html.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
+    expect(ids.length).toBeGreaterThan(8);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("draws a supplied picture instead of the vector", () => {
+    const html = renderToStaticMarkup(<SeraArt src="/sera.png" size={120} view="half" />);
+    expect(html).toContain("<img");
+    expect(html).toContain('src="/sera.png"');
+    expect(html).not.toContain("<svg");
   });
 });

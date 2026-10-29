@@ -414,7 +414,7 @@ export function Mascot({ context, today }: { context: SeraContext; today: string
           )}
         >
           <span className="block size-full overflow-hidden rounded-full">
-            <SeraArt mood={faceMood} view="avatar" quirk={quirk} size={56} talking={speaking} />
+            <SeraArt mood={faceMood} view="avatar" quirk={quirk} size={60} talking={speaking} className="mx-auto mt-0.5" />
           </span>
           {bubble && !open && <span aria-hidden className="absolute -right-0.5 -top-0.5 size-3.5 rounded-full bg-primary ring-2 ring-background" />}
         </button>

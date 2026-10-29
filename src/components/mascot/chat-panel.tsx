@@ -43,7 +43,7 @@ export function ChatPanel({ thread, replies, mood, speaking, onChoose, onClose, 
     >
       <header className="flex items-center gap-3 border-b border-primary/25 p-3">
         <span className="size-11 shrink-0 overflow-hidden rounded-full border border-primary/60 bg-surface">
-          <SeraArt mood={mood} view="avatar" size={44} talking={speaking} />
+          <SeraArt mood={mood} view="avatar" size={50} talking={speaking} className="mx-auto" />
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="font-display text-sm font-semibold uppercase tracking-[0.18em]">Sera</p>
