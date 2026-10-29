@@ -42,6 +42,7 @@ function samples(): LeaderboardEntry[] {
     week_xp,
     week_start: week,
     level,
+    title: level >= 60 ? "Iron Regular" : null,
     updated_at: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString(),
   }));
 }

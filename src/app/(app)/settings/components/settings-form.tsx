@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/api-client";
 import { countryOptions } from "@/lib/countries";
-import { SHOW_ALL_COOKIE, writeCookie } from "@/lib/feature-prefs";
+import { NO_RECOVERY_COOKIE, SHOW_ALL_COOKIE, writeCookie } from "@/lib/feature-prefs";
 import { CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currency";
 import type { UserSettings } from "@/lib/types";
 import { UNIT_LABELS, WEIGHT_UNITS, type WeightUnit } from "@/lib/units";
@@ -29,7 +29,7 @@ const subscribePref = (notify: () => void) => {
   return () => window.removeEventListener(PREF_EVENT, notify);
 };
 
-export function SettingsForm({ initial, showAll }: { initial: UserSettings; showAll: boolean }) {
+export function SettingsForm({ initial, showAll, recovery }: { initial: UserSettings; showAll: boolean; recovery: boolean }) {
   const router = useRouter();
   const countries = useMemo(() => countryOptions(), []);
   const [country, setCountry] = useState<string>(initial.country ?? NO_COUNTRY);
@@ -37,6 +37,7 @@ export function SettingsForm({ initial, showAll }: { initial: UserSettings; show
   const [currency, setCurrency] = useState<Currency>(initial.currency);
   const [saving, setSaving] = useState(false);
   const [everything, setEverything] = useState(showAll);
+  const [comeback, setComeback] = useState(recovery);
   // Kept on this device, not in the account, and read after load so the server and browser agree.
   const popups = useSyncExternalStore(subscribePref, xpPopupsEnabled, () => true);
   const levelScreen = useSyncExternalStore(subscribePref, levelUpScreenEnabled, () => true);
@@ -126,6 +127,26 @@ export function SettingsForm({ initial, showAll }: { initial: UserSettings; show
         </label>
         <p className="text-xs text-muted-foreground">
           Quests, boosters and the leaderboard normally open as you level up. Turn this on to see everything right away.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className={labelClass}>Comeback quest</span>
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={comeback}
+            onChange={(e) => {
+              setComeback(e.target.checked);
+              writeCookie(NO_RECOVERY_COOKIE, e.target.checked ? null : "1");
+              router.refresh();
+            }}
+            className="size-4 accent-[var(--primary)]"
+          />
+          Offer an easy comeback quest after a quiet day
+        </label>
+        <p className="text-xs text-muted-foreground">
+          After a day with no daily quest finished, the next day has one extra, easy quest. No XP is ever taken away.
         </p>
       </div>
 

@@ -43,6 +43,21 @@ export const DAILY_ANCHOR: QuestDef = {
   xp: 3,
 };
 
+/**
+ * The comeback quest. The System is not harsh: after a day with no daily quest finished, the next day carries
+ * one extra, easy quest, and no XP is ever taken away. It sits next to the three daily quests, is not part of
+ * the daily bonus, and can be switched off in Settings.
+ */
+export const RECOVERY_QUEST: QuestDef = {
+  id: "d-recovery",
+  scope: "daily",
+  title: "Comeback",
+  hint: "Yesterday was quiet. Log 5 sets to get back on track.",
+  metric: "sets",
+  target: 5,
+  xp: 8,
+};
+
 export const DAILY_POOL: readonly QuestDef[] = [
   { id: "d-sets10", scope: "daily", title: "Log 10 sets", hint: "Across any exercises.", metric: "sets", target: 10, xp: 5, group: "sets" },
   { id: "d-sets20", scope: "daily", title: "Log 20 sets", hint: "A big session.", metric: "sets", target: 20, xp: 8, group: "sets" },
@@ -125,6 +140,8 @@ export type QuestInput = {
   sets: { session_id: string; exercise_id?: string }[];
   /** Primary muscle of each exercise, by id. Without it the muscle quests cannot be met. */
   exerciseMuscles?: Record<string, string>;
+  /** Turns the comeback quest on. Off by default, so older callers and tests are unchanged. */
+  recovery?: boolean;
 };
 
 /** A finished workout needs at least this many sets to count, the same rule as the workout XP. */
@@ -175,6 +192,26 @@ export function metricValue(metric: QuestMetric, days: readonly (DayMetrics | un
   return days.reduce((sum, d) => sum + (d ? d[metric] : 0), 0);
 }
 
+/**
+ * Whether the comeback quest shows on `date`: the day before was on or after the quest start, the account
+ * already existed that day, and none of its daily quests were finished.
+ */
+export function needsRecovery(date: string, metrics: Map<string, DayMetrics>, start: string): boolean {
+  const yesterday = addDaysISO(date, -1);
+  if (yesterday < start) return false;
+  const first = [...metrics.keys()].sort()[0];
+  if (first === undefined || first >= yesterday) return false;
+  return !dailyStatus(yesterday, metrics).some((s) => s.done);
+}
+
+/** The comeback quest for a date, with progress, or null when it does not apply. */
+export function recoveryStatus(date: string, metrics: Map<string, DayMetrics>, start: string): QuestStatus | null {
+  if (!needsRecovery(date, metrics, start)) return null;
+  const value = metricValue(RECOVERY_QUEST.metric, [metrics.get(date)]);
+  const done = value >= RECOVERY_QUEST.target;
+  return { quest: RECOVERY_QUEST, value, done, doneOn: done ? date : null };
+}
+
 export type QuestStatus = {
   quest: QuestDef;
   /** Progress so far, not capped at the target. */
@@ -219,7 +256,11 @@ export function weeklyStatus(weekStart: string, through: string, metrics: Map<st
 }
 
 /** XP earned by quests, each dated, so a boosted day can double what was earned on it. */
-export type QuestReward = { date: string; xp: number; kind: "daily" | "weekly" | "daily-sweep" | "weekly-sweep" };
+export type QuestReward = {
+  date: string;
+  xp: number;
+  kind: "daily" | "weekly" | "daily-sweep" | "weekly-sweep" | "recovery";
+};
 
 export function questRewards(
   input: QuestInput,
@@ -237,6 +278,11 @@ export function questRewards(
       rewards.push({ date, xp: s.quest.xp, kind: "daily" });
     }
     if (status.every((s) => s.done)) rewards.push({ date, xp: DAILY_SWEEP_XP, kind: "daily-sweep" });
+    const comeback = input.recovery ? recoveryStatus(date, metrics, range.start) : null;
+    if (comeback?.done) {
+      completed += 1;
+      rewards.push({ date, xp: RECOVERY_QUEST.xp, kind: "recovery" });
+    }
   }
 
   const seen = new Set<string>();
@@ -265,6 +311,8 @@ export function questRewards(
 export type QuestBoard = {
   today: string;
   daily: QuestStatus[];
+  /** The comeback quest, when yesterday was quiet. */
+  recovery: QuestStatus | null;
   dailySweep: { done: boolean; xp: number };
   weekStart: string;
   weekEnd: string;
@@ -283,6 +331,7 @@ export function buildQuestBoard(input: QuestInput, today: string): QuestBoard {
   return {
     today,
     daily,
+    recovery: input.recovery ? recoveryStatus(today, metrics, QUEST_START_DATE) : null,
     dailySweep: { done: daily.every((s) => s.done), xp: DAILY_SWEEP_XP },
     weekStart: start,
     weekEnd: end,

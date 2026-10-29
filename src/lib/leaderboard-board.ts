@@ -17,6 +17,7 @@ export type PublicRow = {
   display_name: string;
   country: string | null;
   level: number;
+  title: string | null;
   xp: number;
   is_me: boolean;
 };
@@ -43,6 +44,7 @@ const toRow = (entry: LeaderboardEntry, rank: number, period: BoardPeriod, weekS
   display_name: entry.display_name,
   country: entry.country,
   level: entry.level,
+  title: entry.title,
   xp: entryXp(entry, period, weekStart),
   is_me: entry.user_id === myId,
 });

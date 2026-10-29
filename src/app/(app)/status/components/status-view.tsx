@@ -8,12 +8,13 @@ import { notice } from "@/lib/system-voice";
 import { totalStats } from "@/lib/stats";
 import { isUnlocked } from "@/lib/unlocks";
 import { getShowAll } from "@/lib/unlock-state";
+import { MuscleLevels, Titles } from "./collection";
 import { StatsRadar } from "./stats-radar";
 
 /** The status window: rank letter, level, and five stats with a radar and a line each. */
 export async function StatusView() {
   const userId = await getCurrentUserId();
-  const [{ level, stats }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
+  const [{ level, stats, muscles, titles, title }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
   if (!isUnlocked("status", level.level, showAll)) {
     return <LockedFeature id="status" level={level.level} totalXp={level.total} />;
   }
@@ -75,6 +76,9 @@ export async function StatusView() {
           <StatsRadar stats={stats.map((s) => ({ name: s.name, value: s.value }))} max={ceiling} />
         </Panel>
       </div>
+
+      {isUnlocked("titles", level.level, showAll) && <Titles titles={titles} worn={title} />}
+      {isUnlocked("muscleLevels", level.level, showAll) && <MuscleLevels muscles={muscles} />}
     </div>
   );
 }

@@ -106,7 +106,7 @@ export type XpInput = {
    * Turns quests on: today's date, and the primary muscle of each exercise for the muscle quests.
    * Left out, no quest XP is counted, which is how the plain XP rules are tested on their own.
    */
-  quests?: { today: string; start?: string; exerciseMuscles?: Record<string, string> };
+  quests?: { today: string; start?: string; exerciseMuscles?: Record<string, string>; recovery?: boolean };
   /** Turns weekly gates on, with today's date. Needs reps and weight on the sets. */
   gates?: { today: string; start?: string };
   /** Set to false to leave the welcome boost out. Only tests do this. */
@@ -185,7 +185,7 @@ export function computeXp(input: XpInput): XpSummary {
 
   if (input.quests) {
     const { rewards, completed } = questRewards(
-      { ...input, exerciseMuscles: input.quests.exerciseMuscles },
+      { ...input, exerciseMuscles: input.quests.exerciseMuscles, recovery: input.quests.recovery },
       { start: input.quests.start ?? QUEST_START_DATE, today: input.quests.today },
     );
     countOf.quests = completed;
@@ -267,27 +267,38 @@ export type LevelInfo = {
   toNext: number;
   /** 0 to 1, how far through the current level. */
   progress: number;
+  /** The level is held back by a rank trial that is not cleared yet. */
+  held: boolean;
 };
 
-export function levelForXp(total: number): LevelInfo {
+/**
+ * The level for a total. `cap` holds the level back, for a rank trial that is not cleared yet: the XP keeps
+ * counting, the level stops at `cap` with its bar one XP short of full.
+ */
+export function levelForXp(total: number, cap: number | null = null): LevelInfo {
   const xp = Math.max(0, Math.floor(total));
   // Solves (L - 1)(L + 24) / 2 <= xp. The estimate can be off by one at the edges, so correct it.
   let level = Math.max(1, Math.floor(-11.5 + Math.sqrt(132.25 + 2 * (12 + xp))));
   while (xpForLevel(level + 1) <= xp) level += 1;
   while (level > 1 && xpForLevel(level) > xp) level -= 1;
 
+  const held = cap !== null && level > cap;
+  if (held) level = cap;
+
   const start = xpForLevel(level);
   const next = xpForLevel(level + 1);
   const nextRank = nextRankAfter(level);
+  const shown = held ? next - 1 : xp;
   return {
     level,
     rank: rankForLevel(level),
     nextRank,
-    xpToNextRank: nextRank ? xpForLevel(nextRank.minLevel) - xp : null,
+    xpToNextRank: nextRank ? xpForLevel(nextRank.minLevel) - shown : null,
     total: xp,
-    intoLevel: xp - start,
+    intoLevel: shown - start,
     levelSpan: next - start,
-    toNext: next - xp,
-    progress: (xp - start) / (next - start),
+    toNext: next - shown,
+    progress: (shown - start) / (next - start),
+    held,
   };
 }

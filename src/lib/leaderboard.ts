@@ -32,11 +32,13 @@ export type LeaderboardEntry = {
   /** The Monday that `week_xp` belongs to. An older value means no XP yet this week. */
   week_start: string;
   level: number;
+  /** The title worn next to the nickname, or null. */
+  title: string | null;
   updated_at: string;
 };
 
 /** What the server writes when it syncs a user. */
-export type EntryData = Pick<LeaderboardEntry, "display_name" | "country" | "total_xp" | "week_xp" | "week_start" | "level">;
+export type EntryData = Pick<LeaderboardEntry, "display_name" | "country" | "total_xp" | "week_xp" | "week_start" | "level" | "title">;
 
 const RESERVED = ["admin", "administrator", "moderator", "mod", "support", "staff", "system", "official", "muscles leveling", "you"];
 

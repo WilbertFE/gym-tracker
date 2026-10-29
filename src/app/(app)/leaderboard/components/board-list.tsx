@@ -35,6 +35,7 @@ function Row({ row, pinned = false }: { row: PublicRow; pinned?: boolean }) {
           )}
         </p>
         <p className="tabular truncate text-[11px] uppercase tracking-widest text-muted-foreground">
+          {row.title ? `${row.title}, ` : ""}
           {row.country ? `${row.country}, ${countryName(row.country)}` : "No country"}
         </p>
       </div>

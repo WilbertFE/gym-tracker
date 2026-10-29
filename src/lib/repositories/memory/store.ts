@@ -45,6 +45,8 @@ export type Store = {
   settings: UserSettings | null;
   /** Double XP Day boosters that were used. */
   boosts: XpBoost[];
+  /** Ids of the ranks whose trial was cleared. */
+  trials: string[];
 };
 
 const g = globalThis as unknown as { __gymStore?: Map<string, Store> };
@@ -281,6 +283,7 @@ function seed(userId: string): Store {
     logPhotos: seedLogPhotos(userId, checkins, weights, files),
     settings: null,
     boosts: [],
+    trials: [],
   };
 }
 
@@ -298,6 +301,7 @@ const empty = (): Store => ({
   logPhotos: [],
   settings: null,
   boosts: [],
+  trials: [],
 });
 
 export function getStore(userId: string): Store {

@@ -12,7 +12,7 @@ import type { UpsertEntryResult } from "@/lib/repositories/types";
  */
 export async function writeEntry(userId: string, displayName: string): Promise<UpsertEntryResult> {
   const today = todayISO();
-  const [{ xp, level }, settings] = await Promise.all([loadLevel(userId), getSettings(userId)]);
+  const [{ xp, level, title }, settings] = await Promise.all([loadLevel(userId), getSettings(userId)]);
   const score = boardXp(xp, today);
   return upsertEntry(userId, {
     display_name: displayName,
@@ -21,6 +21,7 @@ export async function writeEntry(userId: string, displayName: string): Promise<U
     week_xp: score.week,
     week_start: currentWeekStart(today),
     level: level.level,
+    title,
   });
 }
 

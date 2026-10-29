@@ -4,6 +4,8 @@
  */
 export const SHOW_ALL_COOKIE = "ml_show_all";
 export const LEVEL_COOKIE = "ml_level";
+/** "1" turns the comeback quest off. */
+export const NO_RECOVERY_COOKIE = "ml_no_recovery";
 
 const YEAR = 60 * 60 * 24 * 365;
 

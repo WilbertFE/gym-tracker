@@ -11,7 +11,7 @@ import { getShowAll } from "@/lib/unlock-state";
  */
 export async function LevelHero() {
   const userId = await getCurrentUserId();
-  const [{ level, boosts }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
+  const [{ level, boosts, trial }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
   const boostersOpen = isUnlocked("boosters", level.level, showAll);
   const leaderboardOpen = isUnlocked("leaderboard", level.level, showAll);
   const statusOpen = isUnlocked("status", level.level, showAll);
@@ -73,6 +73,14 @@ export async function LevelHero() {
             </li>
           )}
         </ul>
+      )}
+
+      {trial && (
+        <p className="mt-4 border border-primary/60 bg-primary/5 p-3 text-sm" role="note">
+          <span className="tabular mr-2 text-[11px] uppercase tracking-widest text-primary">Trial available</span>
+          To reach <span className="font-medium">{trial.trial.rank.name}</span>, finish {trial.trial.workouts} workouts within{" "}
+          {trial.trial.days} days. Best so far: {trial.best} of {trial.trial.workouts}. Your XP keeps counting meanwhile.
+        </p>
       )}
 
       <div className="mt-4 flex flex-col gap-2 border-t pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
