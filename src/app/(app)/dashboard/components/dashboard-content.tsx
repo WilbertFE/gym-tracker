@@ -14,7 +14,6 @@ import { QuestsPanel } from "./quests-panel";
 import { UnlockTeaser } from "./unlock-teaser";
 import { WeekPanel } from "./week-panel";
 import { WeightSnapshotPanel } from "./weight-snapshot-panel";
-import { WelcomeSlides } from "./welcome-slides";
 
 /**
  * Level first, then today: check in, then train. The app shows itself in steps: a new account sees the
@@ -29,8 +28,6 @@ export async function DashboardContent() {
 
   return (
     <>
-      <WelcomeSlides show={firstRun} />
-
       <Suspense fallback={<Skeleton className="h-48 w-full" />}>
         <LevelHero />
       </Suspense>

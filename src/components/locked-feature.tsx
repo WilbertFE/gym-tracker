@@ -1,5 +1,6 @@
 import { LockSimpleIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
+import { SeraCue } from "@/components/mascot/sera-cue";
 import { featureById, type FeatureId } from "@/lib/unlocks";
 import { xpForLevel } from "@/lib/xp";
 
@@ -23,6 +24,7 @@ export function LockedFeature({ id, level, totalXp }: { id: FeatureId; level: nu
       <p className="tabular text-sm">
         Opens at level <span className="text-primary">{feature.level}</span>. You are level {level}, {away.toLocaleString("en-US")} XP away.
       </p>
+      <SeraCue featureId={id} />
       <Link
         href="/dashboard"
         className="inline-flex min-h-11 items-center border px-4 text-sm hover:border-primary"

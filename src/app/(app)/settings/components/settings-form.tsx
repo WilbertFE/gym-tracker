@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/api-client";
 import { countryOptions } from "@/lib/countries";
+import { parsePrefs, prefsServerSnapshot, prefsSnapshot, setMode, subscribePrefs } from "@/components/mascot/prefs";
+import type { SeraMode } from "@/lib/mascot/state";
 import { NO_RECOVERY_COOKIE, QUICK_CHESTS_COOKIE, SHOW_ALL_COOKIE, writeCookie } from "@/lib/feature-prefs";
 import { CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currency";
 import type { UserSettings } from "@/lib/types";
@@ -51,6 +53,7 @@ export function SettingsForm({
   const [quick, setQuick] = useState(quickChests);
   // Kept on this device, not in the account, and read after load so the server and browser agree.
   const popups = useSyncExternalStore(subscribePref, xpPopupsEnabled, () => true);
+  const seraMode = parsePrefs(useSyncExternalStore(subscribePrefs, prefsSnapshot, prefsServerSnapshot)).mode;
   const levelScreen = useSyncExternalStore(subscribePref, levelUpScreenEnabled, () => true);
 
   async function onSubmit(e: React.FormEvent) {
@@ -158,6 +161,25 @@ export function SettingsForm({
         </label>
         <p className="text-xs text-muted-foreground">
           After a day with no daily quest finished, the next day has one extra, easy quest. No XP is ever taken away.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className={labelClass}>Sera, your guide</span>
+        <SegmentedControl<SeraMode>
+          label="Sera"
+          className="w-full sm:w-96"
+          value={seraMode}
+          onChange={setMode}
+          options={[
+            { value: "normal", label: "Normal" },
+            { value: "quiet", label: "Quiet" },
+            { value: "off", label: "Off" },
+          ]}
+        />
+        <p className="text-xs text-muted-foreground">
+          Normal: she speaks up at key moments and waits to be tapped otherwise. Quiet: only when you tap her. Off: she is gone. This is
+          kept on this device only.
         </p>
       </div>
 

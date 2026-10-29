@@ -648,6 +648,52 @@ body {
   }
 }
 
+/* Sera. Everything that moves is here, and none of it moves for reduced motion. */
+@keyframes sera-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1.6px); }
+}
+
+@keyframes sera-blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.08); }
+}
+
+@keyframes sera-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes sera-sway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(1.4deg); }
+}
+
+@keyframes sera-rest {
+  0%, 49.99% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes sera-talk {
+  0%, 49.99% { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+
+@keyframes sera-twinkle {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sera-breathe { animation: sera-breathe 4.4s ease-in-out infinite; }
+  .sera-eyes { transform-box: fill-box; transform-origin: center; animation: sera-blink 5.2s ease-in-out infinite; }
+  .sera-glow { animation: sera-glow 2.8s ease-in-out infinite; }
+  .sera-sway { transform-box: fill-box; transform-origin: 50% 0%; animation: sera-sway 5.6s ease-in-out infinite; }
+  .sera-talking .sera-mouth-rest { animation: sera-rest 0.42s steps(1) infinite; }
+  .sera-talking .sera-mouth-talk { animation: sera-talk 0.42s steps(1) infinite; }
+  .sera-sparkle { transform-box: fill-box; transform-origin: center; animation: sera-twinkle 1.8s ease-in-out infinite; }
+}
+
 /* XP pop-up: slides up, and the rank badge pops in. Only used with `motion-safe`. */
 @keyframes xp-in {
   from {

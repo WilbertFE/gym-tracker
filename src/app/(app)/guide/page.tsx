@@ -37,6 +37,10 @@ const CARDS = [
     body: "New accounts get double XP for the first week. After that, training earns Double XP Day boosters that you use on a day you choose.",
   },
   {
+    title: "Sera, your guide",
+    body: "Sera is in the corner of every page. Tap her to ask what to do next, what is locked or how something works. She only speaks up at key moments, and you can quiet her in Settings.",
+  },
+  {
     title: "Profile",
     body: "Make a player page in Settings with your rank, stats and the items you found. It starts private. You choose who can open it and which parts they see.",
   },

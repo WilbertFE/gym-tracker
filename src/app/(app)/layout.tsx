@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { AppNav } from "@/components/app-nav";
+import { MascotHost } from "@/components/mascot/mascot-host";
 import { XpWatcher } from "@/components/xp-watcher";
 import { isDemoMode } from "@/lib/demo";
 import { LEVEL_COOKIE, parseLevelCookie, SHOW_ALL_COOKIE } from "@/lib/feature-prefs";
@@ -34,6 +35,10 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         {children}
       </div>
       <XpWatcher />
+      {/* Sera reads the signed in user, so she streams in after the page like the nav does. */}
+      <Suspense fallback={null}>
+        <MascotHost />
+      </Suspense>
     </div>
   );
 }
