@@ -21,8 +21,8 @@ export async function CollectionView() {
     getQuickChests(),
     getProfile(userId),
   ]);
-  if (!isUnlocked("chests", level.level, showAll)) {
-    return <LockedFeature id="chests" level={level.level} totalXp={level.total} />;
+  if (!isUnlocked("collection", level.level, showAll)) {
+    return <LockedFeature id="collection" level={level.level} totalXp={level.total} />;
   }
 
   const worn = collection.equipment;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { FeatureGate } from "@/components/feature-gate";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
@@ -23,11 +24,12 @@ export default function SchedulePage() {
       />
 
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <BestTimesPanel />
-      </Suspense>
-
-      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <AvailabilityPanel />
+        <FeatureGate id="schedule">
+          <div className="flex flex-col gap-6">
+            <BestTimesPanel />
+            <AvailabilityPanel />
+          </div>
+        </FeatureGate>
       </Suspense>
     </main>
   );

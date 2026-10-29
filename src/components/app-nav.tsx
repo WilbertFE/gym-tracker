@@ -36,13 +36,13 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: GaugeIcon },
   { href: "/workouts", label: "Workouts", icon: BarbellIcon },
-  { href: "/body", label: "Body", icon: PersonSimpleIcon },
-  { href: "/schedule", label: "Schedule", icon: CalendarBlankIcon },
+  { href: "/body", label: "Body", icon: PersonSimpleIcon, feature: "body" },
+  { href: "/schedule", label: "Schedule", icon: CalendarBlankIcon, feature: "schedule" },
   { href: "/status", label: "Status", icon: SealCheckIcon, desktopOnly: true, feature: "status" },
-  { href: "/collection", label: "Collection", icon: TreasureChestIcon, desktopOnly: true, feature: "chests" },
+  { href: "/collection", label: "Collection", icon: TreasureChestIcon, desktopOnly: true, feature: "collection" },
   { href: "/leaderboard", label: "Leaderboard", icon: RankingIcon, desktopOnly: true, feature: "leaderboard" },
-  { href: "/profile", label: "Profile", icon: UserCircleIcon, desktopOnly: true, matchPrefix: "/u/" },
-  { href: "/membership", label: "Membership", icon: IdentificationCardIcon, desktopOnly: true },
+  { href: "/profile", label: "Profile", icon: UserCircleIcon, desktopOnly: true, matchPrefix: "/u/", feature: "profile" },
+  { href: "/membership", label: "Membership", icon: IdentificationCardIcon, desktopOnly: true, feature: "membership" },
   { href: "/settings", label: "Settings", icon: GearSixIcon, alsoActive: "/membership" },
 ];
 
@@ -113,7 +113,7 @@ export function AppNav({ level, showAll }: { level: number; showAll: boolean }) 
         aria-label="Primary"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/30 bg-sidebar/95 shadow-[0_-8px_30px_-16px_var(--primary)] backdrop-blur md:hidden"
       >
-        <ul className="grid grid-cols-5">
+        <ul className="grid auto-cols-fr grid-flow-col">
           {items.filter((item) => !item.desktopOnly).map((item) => {
             const { href, label, icon: Icon } = item;
             const active = isActive(pathname, item, false);

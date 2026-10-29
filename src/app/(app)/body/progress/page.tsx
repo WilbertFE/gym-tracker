@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { FeatureGate } from "@/components/feature-gate";
 import { PageHeader } from "@/components/page-header";
 import { SectionTabs } from "@/components/section-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +25,8 @@ export default function ProgressPage() {
         description="Compare photos from two dates and see how your weight and measurements changed between them."
       />
 
+      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+        <FeatureGate id="body">
       <SectionTabs
         label="Progress views"
         tabs={[
@@ -56,6 +59,8 @@ export default function ProgressPage() {
           Back to the muscle heatmap
         </Link>
       </nav>
+        </FeatureGate>
+      </Suspense>
     </main>
   );
 }

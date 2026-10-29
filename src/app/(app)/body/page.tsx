@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { FeatureGate } from "@/components/feature-gate";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
@@ -23,6 +24,8 @@ export default function BodyPage() {
         title="Body"
         description="See which muscles you have trained, or log your weight."
       />
+      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+        <FeatureGate id="body">
       <SectionTabs
         label="Body views"
         tabs={[
@@ -55,6 +58,8 @@ export default function BodyPage() {
           <span aria-hidden className="text-muted-foreground">&rarr;</span>
         </Link>
       </nav>
+        </FeatureGate>
+      </Suspense>
     </main>
   );
 }

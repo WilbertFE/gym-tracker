@@ -1,17 +1,18 @@
 import { CheckIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 import { Panel } from "@/components/panel";
-import { guideDone, type GuideStep } from "@/lib/guide";
+import { guideDone, type GuideStep, type GuideStepId } from "@/lib/guide";
 import { cn } from "@/lib/utils";
 
 /**
  * The first steps, as a short checklist that ticks itself. It is the whole tutorial: no tour, no pop-ups,
  * and it goes away when the last step is done. Finishing it earns a booster.
  */
-export function GettingStarted({ steps }: { steps: GuideStep[] }) {
+export function GettingStarted({ steps, lockedSteps = {} }: { steps: GuideStep[]; lockedSteps?: Partial<Record<GuideStepId, number>> }) {
   if (guideDone(steps)) return null;
   const done = steps.filter((s) => s.done).length;
-  const next = steps.find((s) => !s.done);
+  // A step whose page is still locked says when it opens, and is never the one to do next.
+  const next = steps.find((s) => !s.done && lockedSteps[s.id] === undefined);
 
   return (
     <Panel label="Getting started" variant="system">
@@ -49,7 +50,11 @@ export function GettingStarted({ steps }: { steps: GuideStep[] }) {
               </span>
               <div className="flex min-w-0 flex-1 flex-col">
                 <p className={cn("text-sm", step.done && "text-muted-foreground line-through decoration-1")}>{step.title}</p>
-                {!step.done && <p className="text-xs text-muted-foreground">{step.hint}</p>}
+                {!step.done && (
+                  <p className="text-xs text-muted-foreground">
+                    {lockedSteps[step.id] !== undefined ? `Opens at level ${lockedSteps[step.id]}. ${step.hint}` : step.hint}
+                  </p>
+                )}
               </div>
               {step === next && (
                 <Link

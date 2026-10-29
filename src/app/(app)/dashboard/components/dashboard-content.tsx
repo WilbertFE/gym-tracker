@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
 import { loadLevel } from "@/lib/level";
-import { isUnlocked } from "@/lib/unlocks";
+import { featureById, isUnlocked } from "@/lib/unlocks";
 import { getShowAll } from "@/lib/unlock-state";
 import { CheckinPanel } from "./checkin-panel";
 import { GatePanel } from "./gate-panel";
@@ -35,7 +35,7 @@ export async function DashboardContent() {
         <LevelHero />
       </Suspense>
 
-      <GettingStarted steps={guide} />
+      <GettingStarted steps={guide} lockedSteps={open("body") ? {} : { weight: featureById("body").level }} />
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         {/* Anchor target for the "Go to the check-in" links on the start workout buttons. */}
@@ -69,14 +69,20 @@ export async function DashboardContent() {
             <WeekPanel />
           </Suspense>
 
-          <div className="grid items-start gap-6 lg:grid-cols-2">
-            <Suspense fallback={<Skeleton className="h-40 w-full" />}>
-              <WeightSnapshotPanel />
-            </Suspense>
-            <Suspense fallback={<Skeleton className="h-40 w-full" />}>
-              <MembershipSnapshotPanel />
-            </Suspense>
-          </div>
+          {(open("body") || open("membership")) && (
+            <div className="grid items-start gap-6 lg:grid-cols-2">
+              {open("body") && (
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <WeightSnapshotPanel />
+                </Suspense>
+              )}
+              {open("membership") && (
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <MembershipSnapshotPanel />
+                </Suspense>
+              )}
+            </div>
+          )}
         </>
       )}
     </>

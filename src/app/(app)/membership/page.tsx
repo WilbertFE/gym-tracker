@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { FeatureGate } from "@/components/feature-gate";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
@@ -21,7 +22,9 @@ export default function MembershipPage() {
         description="Know when your gym membership ends before it does."
       />
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <MembershipPanel />
+        <FeatureGate id="membership">
+          <MembershipPanel />
+        </FeatureGate>
       </Suspense>
     </main>
   );

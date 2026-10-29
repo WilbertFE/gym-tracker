@@ -343,7 +343,8 @@ const empty = (): Store => ({
 export function getStore(userId: string): Store {
   let store = stores.get(userId);
   if (!store) {
-    store = userId === DEMO_USER_ID ? seed(userId) : empty();
+    // `NEXT_PUBLIC_DEMO_FRESH=1` (demo mode only) makes the demo user a brand new account, to look at the first day.
+    store = userId === DEMO_USER_ID && process.env.NEXT_PUBLIC_DEMO_FRESH !== "1" ? seed(userId) : empty();
     stores.set(userId, store);
   }
   return store;

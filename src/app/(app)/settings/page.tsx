@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
+import { AccountLinks } from "./components/account-links";
 import { ProfilePanel } from "./components/profile-panel";
 import { SettingsPanel } from "./components/settings-panel";
 
@@ -27,15 +27,9 @@ export default function SettingsPage() {
         <ProfilePanel />
       </Suspense>
 
-      <nav aria-label="Account pages">
-        <Link
-          href="/membership"
-          className="flex min-h-12 items-center justify-between border border-primary/25 bg-card px-4 text-sm hover:border-primary/60 hover:bg-surface-raised"
-        >
-          Gym membership
-          <span aria-hidden className="text-muted-foreground">&rarr;</span>
-        </Link>
-      </nav>
+      <Suspense fallback={null}>
+        <AccountLinks />
+      </Suspense>
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { FeatureGate } from "@/components/feature-gate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
 import { validateUsername } from "@/lib/profile";
@@ -44,5 +45,9 @@ export default function ProfilePage({ params }: PageProps<"/u/[username]">) {
 
 async function ProfileBody({ params }: Pick<PageProps<"/u/[username]">, "params">) {
   const { username } = await params;
-  return <ProfileView username={decodeURIComponent(username)} />;
+  return (
+    <FeatureGate id="profile">
+      <ProfileView username={decodeURIComponent(username)} />
+    </FeatureGate>
+  );
 }

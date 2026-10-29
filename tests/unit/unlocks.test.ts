@@ -35,23 +35,49 @@ describe("the unlock table", () => {
   });
 
   it("lists what is next, soonest first, and at most the count asked", () => {
-    expect(nextUnlocks(1).map((f) => f.id)).toEqual(["quests", "boosters"]);
+    expect(nextUnlocks(1).map((f) => f.id)).toEqual(["body", "quests"]);
     expect(nextUnlocks(5, 1)[0].id).toBe("status");
     expect(nextUnlocks(1, 5)).toHaveLength(5);
     expect(nextUnlocks(99)).toEqual([]);
   });
 
   it("finds the next unlock level, or none", () => {
-    expect(nextUnlockLevel(1)).toBe(5);
+    expect(nextUnlockLevel(1)).toBe(3);
+    expect(nextUnlockLevel(3)).toBe(5);
     expect(nextUnlockLevel(5)).toBe(8);
     expect(nextUnlockLevel(15)).toBeNull();
   });
 
   it("says what opened between two levels, for the unlock message", () => {
-    expect(unlockedBetween(1, 4)).toEqual([]);
-    expect(unlockedBetween(4, 8).map((f) => f.id)).toEqual(["quests", "boosters", "chests", "status"]);
+    expect(unlockedBetween(1, 2)).toEqual([]);
+    expect(unlockedBetween(1, 4).map((f) => f.id)).toEqual(["body"]);
+    expect(unlockedBetween(4, 8).map((f) => f.id)).toEqual(["quests", "boosters", "chests", "schedule", "status", "membership"]);
     expect(unlockedBetween(8, 8)).toEqual([]);
     expect(unlockedBetween(14, 20).map((f) => f.id)).toEqual(["muscleLevels", "trials"]);
+  });
+
+  it("is the focus plan: only the dashboard, workouts and settings at level 1, the rest by level", () => {
+    const byLevel = (level: number) => FEATURES.filter((f) => f.level === level).map((f) => f.id);
+    expect(FEATURES.filter((f) => f.level <= 2)).toEqual([]);
+    expect(byLevel(3)).toEqual(["body"]);
+    expect(byLevel(5)).toEqual(["quests", "boosters", "chests", "schedule"]);
+    expect(byLevel(8)).toEqual(["status", "membership"]);
+    expect(byLevel(10)).toEqual(["leaderboard", "titles", "profile", "collection"]);
+    expect(byLevel(12)).toEqual(["gates"]);
+    expect(byLevel(15)).toEqual(["muscleLevels", "trials"]);
+    expect(FEATURES).toHaveLength(14);
+  });
+
+  it("loses nothing for an account that is already past every level", () => {
+    for (const f of FEATURES) expect(isUnlocked(f.id, 16)).toBe(true);
+  });
+
+  it("locks the pages a new user does not need yet, at level 1", () => {
+    for (const id of ["body", "schedule", "membership", "profile", "collection", "status", "leaderboard"] as const) {
+      expect(isUnlocked(id, 1), id).toBe(false);
+    }
+    expect(isUnlocked("body", 3)).toBe(true);
+    expect(isUnlocked("schedule", 4)).toBe(false);
   });
 
   it("can reach a unique feature by id", () => {
