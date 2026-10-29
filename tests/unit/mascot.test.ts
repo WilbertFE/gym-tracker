@@ -39,28 +39,28 @@ const input = (over: Partial<ContextInput> = {}): ContextInput => ({
 
 const ctx = (over: Partial<ContextInput> = {}): SeraContext => buildContext(input(over));
 
-/** A veteran: level 16, everything open, a few workouts behind them. */
+/** A veteran: level 33, everything open, a few workouts behind them. */
 const veteran = (over: Partial<ContextInput> = {}) =>
-  ctx({ level: 16, totalXp: xpForLevel(16) + 5, finishedWorkouts: 40, checkinKind: "gym", checkinDates: [TODAY], guide: input().guide.map((g) => ({ ...g, done: true })), quests: { done: 3, total: 3 }, lastActivity: TODAY, ...over });
+  ctx({ level: 33, totalXp: xpForLevel(33) + 5, finishedWorkouts: 40, checkinKind: "gym", checkinDates: [TODAY], guide: input().guide.map((g) => ({ ...g, done: true })), quests: { done: 3, total: 3 }, lastActivity: TODAY, ...over });
 
 describe("what she knows", () => {
   it("knows a brand new account: level 1, everything locked, soonest first", () => {
     const c = ctx();
     expect(c.isNew).toBe(true);
     expect(c.locked).toHaveLength(FEATURES.length);
-    expect(c.locked[0]).toMatchObject({ id: "body", level: 3 });
-    expect(c.locked[0].xpAway).toBe(xpForLevel(3));
+    expect(c.locked[0]).toMatchObject({ id: "body", level: 4 });
+    expect(c.locked[0].xpAway).toBe(xpForLevel(4));
     expect(c.open.body).toBe(false);
     expect(c.quests).toBeNull();
   });
 
   it("opens things with the level, and keeps the quests out of sight while they are locked", () => {
-    const c = ctx({ level: 5, totalXp: xpForLevel(5), quests: { done: 1, total: 3 }, finishedWorkouts: 2 });
+    const c = ctx({ level: 10, totalXp: xpForLevel(10), quests: { done: 1, total: 3 }, finishedWorkouts: 2 });
     expect(c.open.body).toBe(true);
     expect(c.open.status).toBe(false);
     expect(c.quests).toEqual({ done: 1, total: 3 });
     expect(c.locked.map((f) => f.id)).not.toContain("quests");
-    expect(ctx({ level: 3, quests: { done: 1, total: 3 } }).quests).toBeNull();
+    expect(ctx({ level: 9, quests: { done: 1, total: 3 } }).quests).toBeNull();
   });
 
   it("has nothing locked, and is never new, with show all on", () => {
@@ -102,7 +102,7 @@ describe("what to do next", () => {
     expect(suggestNext(ctx()).action?.href).toBe("/dashboard#daily-checkin");
     expect(suggestNext(ctx({ checkinKind: "gym" })).action?.href).toBe("/workouts");
     expect(suggestNext(ctx({ checkinKind: "gym", sessionsToday: [{ ended: false }] })).lines.join(" ")).toContain("still open");
-    expect(suggestNext(ctx({ level: 5, checkinKind: "home", sessionsToday: [{ ended: true }], quests: { done: 1, total: 3 } })).lines.join(" ")).toContain("2 of today's 3 quests");
+    expect(suggestNext(ctx({ level: 10, checkinKind: "home", sessionsToday: [{ ended: true }], quests: { done: 1, total: 3 } })).lines.join(" ")).toContain("2 of today's 3 quests");
   });
 
   it("lets a rest day be a rest day, and does not push a workout", () => {
@@ -208,7 +208,7 @@ describe("the script", () => {
   it("explains a locked page with its level and distance, and a feature that is not locked gently", () => {
     const text = renderNode("lockedPage", ctx(), { featureId: "body" }).lines.join(" ");
     expect(text).toContain("Body is locked");
-    expect(text).toContain("level 3");
+    expect(text).toContain("level 4");
     expect(renderNode("lockedPage", veteran(), { featureId: "body" }).lines.join(" ")).toContain("not open yet");
   });
 
@@ -291,11 +291,12 @@ describe("when she speaks up", () => {
   });
 
   it("announces what a level up opened, once", () => {
-    const memory = { ...told("welcome"), lastLevel: 4 };
-    const moment = pick({ ctx: ctx({ level: 5, totalXp: xpForLevel(5), checkinKind: "gym", finishedWorkouts: 1 }), memory });
-    expect(moment).toMatchObject({ key: "unlock:5", node: "unlock" });
-    expect(moment?.args?.features).toEqual(["quests", "boosters", "chests", "schedule"]);
-    expect(pick({ ctx: ctx({ level: 5, totalXp: xpForLevel(5), checkinKind: "gym", finishedWorkouts: 1 }), memory: { ...memory, told: { ...memory.told, "unlock:5": TODAY } } })?.node).not.toBe("unlock");
+    const memory = { ...told("welcome"), lastLevel: 9 };
+    const at10 = ctx({ level: 10, totalXp: xpForLevel(10), checkinKind: "gym", finishedWorkouts: 1 });
+    const moment = pick({ ctx: at10, memory });
+    expect(moment).toMatchObject({ key: "unlock:10", node: "unlock" });
+    expect(moment?.args?.features).toEqual(["quests", "boosters", "chests"]);
+    expect(pick({ ctx: at10, memory: { ...memory, told: { ...memory.told, "unlock:10": TODAY } } })?.node).not.toBe("unlock");
   });
 
   it("stays quiet about a level up that opened nothing, and on the very first look", () => {

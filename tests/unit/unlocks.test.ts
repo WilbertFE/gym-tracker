@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { guideDone, guideSteps } from "@/lib/guide";
 import { boostersEarned } from "@/lib/boosters";
+import { TRIAL_FROM_LEVEL } from "@/lib/trials";
 import { FEATURES, featureById, isUnlocked, nextUnlockLevel, nextUnlocks, unlockedBetween } from "@/lib/unlocks";
 import { levelForXp, xpForLevel } from "@/lib/xp";
 
@@ -36,57 +37,78 @@ describe("the unlock table", () => {
 
   it("lists what is next, soonest first, and at most the count asked", () => {
     expect(nextUnlocks(1).map((f) => f.id)).toEqual(["body", "quests"]);
-    expect(nextUnlocks(5, 1)[0].id).toBe("status");
+    expect(nextUnlocks(10, 1)[0].id).toBe("schedule");
     expect(nextUnlocks(1, 5)).toHaveLength(5);
     expect(nextUnlocks(99)).toEqual([]);
   });
 
   it("finds the next unlock level, or none", () => {
-    expect(nextUnlockLevel(1)).toBe(3);
-    expect(nextUnlockLevel(3)).toBe(5);
-    expect(nextUnlockLevel(5)).toBe(8);
-    expect(nextUnlockLevel(15)).toBeNull();
+    expect(nextUnlockLevel(1)).toBe(4);
+    expect(nextUnlockLevel(4)).toBe(10);
+    expect(nextUnlockLevel(10)).toBe(14);
+    expect(nextUnlockLevel(33)).toBeNull();
   });
 
   it("says what opened between two levels, for the unlock message", () => {
     expect(unlockedBetween(1, 2)).toEqual([]);
     expect(unlockedBetween(1, 4).map((f) => f.id)).toEqual(["body"]);
-    expect(unlockedBetween(4, 8).map((f) => f.id)).toEqual(["quests", "boosters", "chests", "schedule", "status", "membership"]);
-    expect(unlockedBetween(8, 8)).toEqual([]);
-    expect(unlockedBetween(14, 20).map((f) => f.id)).toEqual(["muscleLevels", "trials"]);
+    expect(unlockedBetween(4, 14).map((f) => f.id)).toEqual(["quests", "boosters", "chests", "schedule", "status", "membership"]);
+    expect(unlockedBetween(14, 14)).toEqual([]);
+    expect(unlockedBetween(20, 30).map((f) => f.id)).toEqual(["trials", "gates"]);
   });
 
   it("is the focus plan: only the dashboard, workouts and settings at level 1, the rest by level", () => {
     const byLevel = (level: number) => FEATURES.filter((f) => f.level === level).map((f) => f.id);
     expect(FEATURES.filter((f) => f.level <= 2)).toEqual([]);
-    expect(byLevel(3)).toEqual(["body"]);
-    expect(byLevel(5)).toEqual(["quests", "boosters", "chests", "schedule"]);
-    expect(byLevel(8)).toEqual(["status", "membership"]);
-    expect(byLevel(10)).toEqual(["leaderboard", "titles", "profile", "collection"]);
-    expect(byLevel(12)).toEqual(["gates"]);
-    expect(byLevel(15)).toEqual(["muscleLevels", "trials"]);
+    expect(byLevel(4)).toEqual(["body"]);
+    expect(byLevel(10)).toEqual(["quests", "boosters", "chests"]);
+    expect(byLevel(14)).toEqual(["schedule", "status", "membership"]);
+    expect(byLevel(18)).toEqual(["leaderboard", "titles", "profile", "collection"]);
+    expect(byLevel(22)).toEqual(["trials"]);
+    expect(byLevel(26)).toEqual(["gates"]);
+    expect(byLevel(33)).toEqual(["muscleLevels"]);
     expect(FEATURES).toHaveLength(14);
   });
 
   it("loses nothing for an account that is already past every level", () => {
-    for (const f of FEATURES) expect(isUnlocked(f.id, 16)).toBe(true);
+    for (const f of FEATURES) expect(isUnlocked(f.id, 33)).toBe(true);
   });
 
   it("locks the pages a new user does not need yet, at level 1", () => {
     for (const id of ["body", "schedule", "membership", "profile", "collection", "status", "leaderboard"] as const) {
       expect(isUnlocked(id, 1), id).toBe(false);
     }
-    expect(isUnlocked("body", 3)).toBe(true);
-    expect(isUnlocked("schedule", 4)).toBe(false);
+    expect(isUnlocked("body", 4)).toBe(true);
+    expect(isUnlocked("schedule", 13)).toBe(false);
   });
 
   it("can reach a unique feature by id", () => {
-    expect(featureById("leaderboard").level).toBe(10);
+    expect(featureById("leaderboard").level).toBe(18);
   });
 
-  it("is reachable with real XP: the first unlock needs little, the last a few weeks", () => {
-    expect(xpForLevel(5)).toBeLessThan(100);
-    expect(xpForLevel(15)).toBeLessThan(500);
+  it("is paced for about a week of dedicated training and two of lighter training", () => {
+    // Rough day by day XP: a dedicated day (check-in, workout, 12 sets, weigh-in, quests) is about 95 XP, doubled by the
+    // welcome boost in the first 7 days. A lighter user trains 3 days a week for about 75 XP a day.
+    const final = xpForLevel(FEATURES.at(-1)!.level);
+    expect(final).toBeGreaterThanOrEqual(800);
+    expect(final).toBeLessThanOrEqual(1000);
+    const dedicatedDays = Math.ceil(final / (95 * 2));
+    expect(dedicatedDays).toBeGreaterThanOrEqual(5);
+    expect(dedicatedDays).toBeLessThanOrEqual(7);
+    const lighterWeek1 = 3 * 75 * 2 + 40;
+    const lighterWeek2 = 3 * 75 + 40;
+    expect(lighterWeek1 + lighterWeek2).toBeGreaterThanOrEqual(final * 0.7);
+    // The first unlock comes with the first workout.
+    expect(xpForLevel(FEATURES[0].level)).toBeLessThanOrEqual(60);
+  });
+
+  it("opens Rank trials before the first trial can hold the level back", () => {
+    expect(featureById("trials").level).toBeLessThan(TRIAL_FROM_LEVEL - 1);
+  });
+
+  it("leaves room between the steps, so something new opens every day or two", () => {
+    const levels = [...new Set(FEATURES.map((f) => f.level))];
+    for (let i = 1; i < levels.length; i++) expect(xpForLevel(levels[i]) - xpForLevel(levels[i - 1])).toBeGreaterThanOrEqual(90);
   });
 });
 

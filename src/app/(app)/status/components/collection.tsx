@@ -3,7 +3,7 @@ import type { MuscleLevel } from "@/lib/muscle-levels";
 import type { TitleStatus } from "@/lib/titles";
 import { cn } from "@/lib/utils";
 
-/** A level for every muscle, from the sets that worked it. Opens at level 15. */
+/** A level for every muscle, from the sets that worked it. Opens at level 33. */
 export function MuscleLevels({ muscles }: { muscles: MuscleLevel[] }) {
   const sorted = [...muscles].sort((a, b) => b.level - a.level || b.weighted - a.weighted);
   return (
@@ -35,7 +35,7 @@ export function MuscleLevels({ muscles }: { muscles: MuscleLevel[] }) {
   );
 }
 
-/** Every title and how to earn it, the worn one marked. Opens at level 10. */
+/** Every title and how to earn it, the worn one marked. Opens at level 18. */
 export function Titles({ titles, worn }: { titles: TitleStatus[]; worn: string | null }) {
   return (
     <Panel label="Titles" variant="system" tour="titles">

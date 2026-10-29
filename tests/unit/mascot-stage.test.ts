@@ -17,8 +17,8 @@ const POSES = ["idle", "wave", "point", "cheer"];
 
 const input = (over: Partial<ContextInput> = {}): ContextInput => ({
   today: TODAY,
-  level: 16,
-  totalXp: xpForLevel(16) + 5,
+  level: 33,
+  totalXp: xpForLevel(33) + 5,
   xpToNext: 40,
   nextRank: null,
   showAll: false,
@@ -186,7 +186,7 @@ describe("when she appears big", () => {
   it("keeps the order: welcome, unlock, boss, first workout, streak, welcome back, daily", () => {
     const memory = { ...told({ lastLevel: 4 }, "welcome") };
     // Everything is due at once: it unlocks first, then the boss, and so on.
-    let c = ctx({ level: 16, totalXp: xpForLevel(16), finishedWorkouts: 1, checkinDates: days(7), lastActivity: "2026-11-05", gate: { ...input().gate, cleared: true } });
+    let c = ctx({ level: 33, totalXp: xpForLevel(33), finishedWorkouts: 1, checkinDates: days(7), lastActivity: "2026-11-05", gate: { ...input().gate, cleared: true } });
     let m: Memory = { ...memory };
     const order: string[] = [];
     for (let i = 0; i < 6; i += 1) {
