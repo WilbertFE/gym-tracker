@@ -29,8 +29,11 @@ export default function SeraSheetPage() {
           <li key={mood} className="system-window flex flex-col items-center gap-3 p-4">
             <SeraArt mood={mood} size={200} />
             <div className="flex items-center gap-4">
-              <SeraArt mood={mood} view="avatar" size={56} />
-              <SeraArt mood={mood} view="avatar" size={56} talking />
+              {[false, true].map((talking) => (
+                <span key={String(talking)} className="size-14 overflow-hidden rounded-full border-2 border-primary/70 bg-card">
+                  <SeraArt mood={mood} view="avatar" size={60} talking={talking} className="mx-auto mt-0.5" />
+                </span>
+              ))}
             </div>
             <p className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">{mood}</p>
           </li>

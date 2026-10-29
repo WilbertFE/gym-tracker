@@ -148,8 +148,8 @@ export function TourOverlay({ tour, steps, onFinish }: TourProps) {
       >
         {/* Sera's hand peeks over the top edge of the sheet, pointing at the area. */}
         {!cardOnTop && (
-          <span aria-hidden className="pointer-events-none absolute -top-[4.3rem] right-4 block h-[4.5rem] w-[5.25rem] overflow-hidden">
-            <SeraArt view="half" pose={step.pose} mood="happy" size={84} className="max-w-none" />
+          <span aria-hidden className="pointer-events-none absolute -top-[6.4rem] right-3 block h-[6.5rem] w-[6.75rem] overflow-hidden">
+            <SeraArt view="half" pose={step.pose} mood="happy" size={108} className="max-w-none" />
           </span>
         )}
 
