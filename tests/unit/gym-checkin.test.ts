@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  ACCURACY_ALLOWANCE_METERS,
   distanceMeters,
   formatDistance,
   GYM_RADIUS_METERS,
@@ -59,10 +60,13 @@ describe("verifyAtGym", () => {
   });
 
   it("forgives some of a poor accuracy, but not all of it", () => {
-    // 280 m away with a 200 m error margin: 100 m is forgiven, 180 m effective, inside 200.
-    expect(verifyAtGym(GYM, { ...north(280), accuracy: 200 }).ok).toBe(true);
-    // 400 m away is outside even with the full allowance.
-    expect(verifyAtGym(GYM, { ...north(400), accuracy: 300 })).toMatchObject({ ok: false, reason: "too_far" });
+    // 350 m away with a 200 m error margin: 200 m is forgiven, 150 m effective, inside 200.
+    expect(verifyAtGym(GYM, { ...north(350), accuracy: 200 }).ok).toBe(true);
+    // An indoor fix of 800 m centred on the gym still passes: the allowance is capped at 300 m but the point is at the gym.
+    expect(verifyAtGym(GYM, { ...GYM, accuracy: 800 }).ok).toBe(true);
+    // 600 m away is outside even with the full allowance.
+    expect(verifyAtGym(GYM, { ...north(600), accuracy: 800 })).toMatchObject({ ok: false, reason: "too_far" });
+    expect(verifyAtGym(GYM, { ...north(ACCURACY_ALLOWANCE_METERS + GYM_RADIUS_METERS + 20), accuracy: 1000 })).toMatchObject({ ok: false, reason: "too_far" });
   });
 
   it("refuses a position too vague to prove anything", () => {

@@ -5,13 +5,13 @@ import { isValidCoordinates } from "@/lib/geo";
 export const GYM_RADIUS_METERS = 200;
 
 /**
- * A phone usually reports 5 to 50 m, a laptop on Wi-Fi often hundreds. Beyond this the position says
- * too little to prove anything, so the check-in asks for a better one instead of guessing.
+ * A phone outdoors reports 5 to 50 m, indoors often 50 to 300 m, and a coarse cell or Wi-Fi fix 1 km or more. Beyond
+ * this the position says too little to prove anything, so the check-in asks for a better one instead of guessing.
  */
-export const MAX_ACCURACY_METERS = 500;
+export const MAX_ACCURACY_METERS = 1500;
 
-/** The error margin the device reports is forgiven up to this much, so a poor fix at the door still counts. */
-const ACCURACY_ALLOWANCE_METERS = 100;
+/** The error margin the device reports is forgiven up to this much, so a poor fix inside the gym still counts. */
+export const ACCURACY_ALLOWANCE_METERS = 300;
 
 export type Position = Coordinates & { accuracy?: number | null };
 
@@ -24,7 +24,8 @@ export type LocationVerdict =
 export const LOCATION_MESSAGES: Record<Exclude<LocationReason, "too_far">, string> = {
   no_gym_location: "Pin your gym on the map in Membership first, so the check-in knows where the gym is.",
   no_position: "Your location is needed to check in at the gym. Allow location access and try again.",
-  inaccurate: "Your location is not accurate enough. Turn on GPS or move near a window or outside, then try again.",
+  inaccurate:
+    "Your location is too vague. Turn on GPS and allow Precise location for your browser, or step outside for a moment, then try again.",
 };
 
 const EARTH_RADIUS_METERS = 6_371_000;

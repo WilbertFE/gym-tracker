@@ -1,5 +1,6 @@
 "use client";
 
+import { getBestPosition } from "@/lib/browser-location";
 import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -23,6 +24,9 @@ const LocationMap = dynamic(() => import("./location-map"), {
   ssr: false,
   loading: () => <Skeleton className="h-72 w-full" />,
 });
+
+/** A pin taken from the device is only as good as the reading; above this we ask the user to check it on the map. */
+const PIN_ACCURACY_WARN_METERS = 100;
 
 const NOMINATIM = "https://nominatim.openstreetmap.org";
 /** OpenStreetMap asks for at most one request per second. */
@@ -101,21 +105,22 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
       return;
     }
     setBusy("locate");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setBusy(null);
-        const { latitude, longitude } = pos.coords;
-        if (!isValidCoordinates(latitude, longitude)) return;
-        const point = { latitude: roundCoordinate(latitude), longitude: roundCoordinate(longitude) };
-        setFocus(point);
-        void placePin(point);
-      },
-      () => {
-        setBusy(null);
-        toast.error("Could not get your location. Allow location access, or search instead.");
-      },
-      { enableHighAccuracy: true, timeout: 10_000 },
-    );
+    // Wait for the most precise reading, so an indoor first guess does not drop the pin far from the gym.
+    void getBestPosition().then((found) => {
+      setBusy(null);
+      if (!found.ok) {
+        toast.error(found.message || "Could not get your location. Allow location access, or search instead.");
+        return;
+      }
+      const { latitude, longitude } = found;
+      if (!isValidCoordinates(latitude, longitude)) return;
+      const point = { latitude: roundCoordinate(latitude), longitude: roundCoordinate(longitude) };
+      setFocus(point);
+      void placePin(point);
+      if (found.accuracy > PIN_ACCURACY_WARN_METERS) {
+        toast.message(`The pin may be off by about ${Math.round(found.accuracy)} m. Drag it onto the gym entrance on the map.`);
+      }
+    });
   }
 
   return (

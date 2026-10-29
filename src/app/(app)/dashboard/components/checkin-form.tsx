@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScaleSelect } from "@/components/scale-select";
 import { apiRequest } from "@/lib/api-client";
-import { getCurrentPosition } from "@/lib/browser-location";
+import { getBestPosition } from "@/lib/browser-location";
 import { CHECKIN_KIND_LABELS, CHECKIN_KINDS, type CheckinKind } from "@/lib/checkin-kind";
 import { GYM_RADIUS_METERS } from "@/lib/gym-location";
 import type { Checkin } from "@/lib/types";
@@ -33,6 +33,7 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
   const [sleep, setSleep] = useState(existing?.sleep_hours?.toString() ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [fixAccuracy, setFixAccuracy] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
 
   // A day that is already a gym check-in was verified when it was made, so editing it needs no location.
@@ -61,7 +62,8 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
     let position: { latitude: number; longitude: number; accuracy: number } | null = null;
     if (needsLocation) {
       setLocating(true);
-      const found = await getCurrentPosition();
+      setFixAccuracy(null);
+      const found = await getBestPosition((accuracy) => setFixAccuracy(Math.round(accuracy)));
       setLocating(false);
       if (!found.ok) {
         setSubmitting(false);
@@ -160,7 +162,11 @@ export function CheckinForm({ today, existing, gymName, gymPinned }: CheckinForm
       )}
 
       <Button type="submit" className="h-11" disabled={submitting || (needsLocation && !gymPinned)}>
-        {locating ? "Checking your location" : submitting ? "Saving" : existing ? "Update check-in" : "Check in"}
+        {locating
+          ? fixAccuracy === null
+            ? "Getting a precise fix"
+            : `Getting a precise fix (${fixAccuracy} m)`
+          : submitting ? "Saving" : existing ? "Update check-in" : "Check in"}
       </Button>
     </form>
   );
