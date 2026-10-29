@@ -239,9 +239,9 @@ body {
 }
 
 @keyframes chest-lid {
-  0% { transform: perspective(520px) rotateX(0deg); }
-  55% { transform: perspective(520px) rotateX(-118deg); }
-  100% { transform: perspective(520px) rotateX(-108deg); }
+  0% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-36px) rotate(-11deg); }
+  100% { transform: translateY(-28px) rotate(-7deg); }
 }
 
 @keyframes chest-beam {
@@ -251,8 +251,8 @@ body {
 }
 
 @keyframes chest-ring {
-  from { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
-  to { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+  from { transform: scale(0.3); opacity: 0.9; }
+  to { transform: scale(2.6); opacity: 0; }
 }
 
 @keyframes chest-flash {

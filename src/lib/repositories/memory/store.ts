@@ -65,13 +65,13 @@ const iso = (d: Date) => format(d, ISO_FORMAT);
 /** [exercise name, [reps, kg] per set] */
 type Plan = [string, [number, number][]][];
 
-/** Two daily chests and a weekly one, earned on recent days, each with some days left. */
+/** Five daily chests and two weekly ones, earned on recent days, each with some days left. */
 function seedChests(now: Date): Chest[] {
   const earn = (kind: "daily" | "weekly", daysAgo: number): Chest => {
     const earnedOn = iso(subDays(now, daysAgo));
     return { id: chestId(kind, earnedOn), kind, earnedOn, expiresOn: iso(addDays(subDays(now, daysAgo), CHEST_EXPIRY_DAYS[kind])) };
   };
-  return [earn("daily", 1), earn("daily", 3), earn("weekly", 2)];
+  return [earn("daily", 1), earn("daily", 2), earn("daily", 3), earn("daily", 4), earn("daily", 5), earn("weekly", 2), earn("weekly", 9)];
 }
 
 function seedWorkouts(userId: string, now: Date) {

@@ -241,13 +241,13 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
         <div
           aria-hidden
           className="chest-flash pointer-events-none fixed inset-0 opacity-0"
-          style={{ background: "radial-gradient(circle at 50% 45%, rgba(255,255,255,0.9), transparent 60%)" }}
+          style={{ background: `radial-gradient(circle at 50% 45%, color-mix(in srgb, ${glow} 55%, white), transparent 62%)` }}
         />
       )}
 
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="flex w-full max-w-sm flex-col items-center gap-3 text-center">
-          <p className="font-display text-[11px] font-semibold uppercase tracking-[0.3em] text-primary">
+          <p className="font-display relative z-10 text-[11px] font-semibold uppercase tracking-[0.3em] text-primary">
             [ {chest.kind === "daily" ? "Daily chest" : "Weekly chest"} ]
             {chests.length > 1 && (
               <span className="tabular ml-2 text-muted-foreground">
@@ -261,7 +261,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
             <div
               className={
                 "absolute left-1/2 top-[90px] -translate-x-1/2 transition-[opacity,transform] duration-300 " +
-                (phase === "reveal" ? "translate-y-3 scale-90 opacity-40" : "chest-rise")
+                (phase === "reveal" ? "translate-y-6 scale-90 opacity-0" : "chest-rise")
               }
               key={chest.id}
             >
@@ -279,20 +279,35 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
             {showEffects && phase === "opening" && (
               <>
                 <div aria-hidden className="pointer-events-none absolute left-1/2" style={{ top: SEAM_Y, transform: "translate(-50%, -100%)" }}>
+                  <div className="relative h-[230px] w-[170px]">
+                    <div
+                      className="chest-beam absolute inset-0 origin-bottom"
+                      style={{
+                        background: "linear-gradient(to top, var(--glow), transparent 92%)",
+                        clipPath: "polygon(34% 100%, 66% 100%, 100% 0, 0 0)",
+                        transformOrigin: "50% 100%",
+                        opacity: 0.85,
+                      }}
+                    />
+                    {/* A narrower, brighter core inside the cone. */}
+                    <div
+                      className="chest-beam absolute bottom-0 left-1/2 h-[180px] w-[56px] -translate-x-1/2"
+                      style={{
+                        background: "linear-gradient(to top, rgba(255,255,255,0.95), transparent 90%)",
+                        clipPath: "polygon(30% 100%, 70% 100%, 100% 0, 0 0)",
+                        transformOrigin: "50% 100%",
+                        filter: "blur(2px)",
+                      }}
+                    />
+                  </div>
+                </div>
+                {/* The ring is centered with fixed offsets, so the animation only has to scale it. */}
+                <div aria-hidden className="pointer-events-none absolute left-1/2" style={{ top: SEAM_Y }}>
                   <div
-                    className="chest-beam h-[270px] w-[170px] origin-bottom"
-                    style={{
-                      background: "linear-gradient(to top, var(--glow), transparent 92%)",
-                      clipPath: "polygon(34% 100%, 66% 100%, 100% 0, 0 0)",
-                      transformOrigin: "50% 100%",
-                    }}
+                    className="chest-ring absolute -left-20 -top-20 size-40 rounded-full border-2"
+                    style={{ borderColor: "var(--glow)", boxShadow: "0 0 24px var(--glow)" }}
                   />
                 </div>
-                <div
-                  aria-hidden
-                  className="chest-ring pointer-events-none absolute left-1/2 size-40 rounded-full border-2"
-                  style={{ top: SEAM_Y, borderColor: "var(--glow)", boxShadow: "0 0 24px var(--glow)" }}
-                />
               </>
             )}
             {showEffects && result && SHARDS[result.grade] > 0 && <Shards count={SHARDS[result.grade]} color={gradeColor} />}

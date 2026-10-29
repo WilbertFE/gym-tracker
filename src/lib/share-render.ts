@@ -3,7 +3,7 @@ import type { IntensityLevel } from "@/lib/muscle-intensity";
 import type { MuscleGroup } from "@/lib/muscles";
 import type { ShareCard } from "@/lib/share";
 
-export type ShareTemplate = "classic" | "bold" | "light" | "status" | "shadow" | "mono";
+export type ShareTemplate = "classic" | "bold" | "light" | "status" | "shadow" | "mono" | "ember" | "aurora";
 
 /** How the three headline numbers are laid out: three tiles, a list in one window, or the volume big with the rest beside it. */
 export type ShareLayout = "tiles" | "list" | "split";
@@ -16,6 +16,18 @@ export const SHARE_TEMPLATES: { value: ShareTemplate; label: string }[] = [
   { value: "status", label: "Status" },
   { value: "shadow", label: "Shadow" },
   { value: "mono", label: "Mono" },
+];
+
+/** Looks that are only found in quest chests. They show in the picker once you own them. */
+export const CHEST_TEMPLATES: { value: ShareTemplate; label: string }[] = [
+  { value: "ember", label: "Ember" },
+  { value: "aurora", label: "Aurora" },
+];
+
+/** The free looks, plus the chest looks the user owns. */
+export const templatesFor = (ownedLooks: readonly string[]): { value: ShareTemplate; label: string }[] => [
+  ...SHARE_TEMPLATES,
+  ...CHEST_TEMPLATES.filter((t) => ownedLooks.includes(t.value)),
 ];
 
 export const SHARE_FORMATS: { value: ShareFormat; label: string; hint: string }[] = [
@@ -131,6 +143,38 @@ const PALETTES: Record<ShareTemplate, Palette> = {
     glowing: true,
     glow: "rgba(169, 139, 255, 0.26)",
     layout: "split",
+  },
+  // From a chest: glowing orange.
+  ember: {
+    bg: ["#3a1204", "#080403"],
+    text: "#fff1e6",
+    muted: "#c9a58c",
+    accent: "#ff8a3d",
+    surface: "rgba(40, 16, 6, 0.7)",
+    line: "#5a2a12",
+    bodyNone: "#3a241a",
+    bodyGap: "#080403",
+    onAccent: "#1a0a02",
+    grid: false,
+    glowing: true,
+    glow: "rgba(255, 138, 61, 0.28)",
+    layout: "split",
+  },
+  // From a chest: shifting green into violet.
+  aurora: {
+    bg: ["#0b3a3f", "#2a1457"],
+    text: "#eafff8",
+    muted: "#9fd8c8",
+    accent: "#7cf5c8",
+    surface: "rgba(8, 28, 40, 0.65)",
+    line: "#1f5a5a",
+    bodyNone: "#1d3a44",
+    bodyGap: "#0b1430",
+    onAccent: "#04201a",
+    grid: false,
+    glowing: true,
+    glow: "rgba(124, 245, 200, 0.22)",
+    layout: "list",
   },
   // Black and white. The white outline reads on every muscle color.
   mono: {

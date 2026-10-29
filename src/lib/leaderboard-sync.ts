@@ -1,6 +1,7 @@
 import "server-only";
 import { todayISO } from "@/lib/dates";
 import { boardXp, currentWeekStart } from "@/lib/leaderboard";
+import { itemById } from "@/lib/items";
 import { loadLevel } from "@/lib/level";
 import { getEntry, upsertEntry } from "@/lib/repositories/leaderboard";
 import { getSettings } from "@/lib/repositories/settings";
@@ -12,7 +13,7 @@ import type { UpsertEntryResult } from "@/lib/repositories/types";
  */
 export async function writeEntry(userId: string, displayName: string): Promise<UpsertEntryResult> {
   const today = todayISO();
-  const [{ xp, level, title }, settings] = await Promise.all([loadLevel(userId), getSettings(userId)]);
+  const [{ xp, level, title, collection }, settings] = await Promise.all([loadLevel(userId), getSettings(userId)]);
   const score = boardXp(xp, today);
   return upsertEntry(userId, {
     display_name: displayName,
@@ -22,6 +23,8 @@ export async function writeEntry(userId: string, displayName: string): Promise<U
     week_start: currentWeekStart(today),
     level: level.level,
     title,
+    // Only the word of the worn nameplate is public, never which item it was.
+    plate: collection.equipment.plate ? (itemById(collection.equipment.plate)?.value ?? null) : null,
   });
 }
 

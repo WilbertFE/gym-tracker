@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { RankBadge } from "@/components/rank-badge";
 import { getCurrentUserId } from "@/lib/auth";
+import { itemById, type FrameStyle } from "@/lib/items";
 import { loadLevel } from "@/lib/level";
 import { isUnlocked } from "@/lib/unlocks";
 import { getShowAll } from "@/lib/unlock-state";
@@ -11,21 +13,23 @@ import { getShowAll } from "@/lib/unlock-state";
  */
 export async function LevelHero() {
   const userId = await getCurrentUserId();
-  const [{ level, boosts, trial }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
+  const [{ level, boosts, trial, collection }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
   const boostersOpen = isUnlocked("boosters", level.level, showAll);
   const leaderboardOpen = isUnlocked("leaderboard", level.level, showAll);
   const statusOpen = isUnlocked("status", level.level, showAll);
   const percent = Math.round(level.progress * 100);
+  const frame = collection.equipment.frame ? itemById(collection.equipment.frame) : null;
+  const aura = collection.equipment.aura ? itemById(collection.equipment.aura) : null;
 
   return (
-    <section aria-label="Your level" className="system-window p-4 sm:p-6" data-glow>
+    <section aria-label="Your level" className="system-window p-4 sm:p-6" data-glow style={aura ? ({ "--aura": aura.value } as CSSProperties) : undefined}>
       <div className="flex items-center gap-4 sm:gap-6">
-        <RankBadge rank={level.rank} size={104} className="sm:w-32" />
+        <RankBadge rank={level.rank} size={104} className="sm:w-32" decor={(frame?.value as FrameStyle | undefined) ?? null} />
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div>
             <p className="font-display text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">[ {level.rank.name} ]</p>
-            <h2 className="tabular text-5xl font-bold leading-none [text-shadow:0_0_20px_var(--primary)] sm:text-6xl">
+            <h2 className="tabular text-5xl font-bold leading-none [text-shadow:0_0_20px_var(--aura,var(--primary))] sm:text-6xl">
               <span className="mr-2 text-base font-normal text-muted-foreground sm:text-lg">Level</span>
               {level.level}
             </h2>
@@ -40,7 +44,7 @@ export async function LevelHero() {
               aria-valuenow={percent}
               className="h-2.5 w-full bg-intensity-none"
             >
-              <div className="h-full border-r-2 border-white/70 bg-primary shadow-[0_0_10px_var(--primary)] transition-[width] duration-700" style={{ width: `${percent}%` }} />
+              <div className="h-full border-r-2 border-white/70 bg-[var(--aura,var(--primary))] shadow-[0_0_10px_var(--aura,var(--primary))] transition-[width] duration-700" style={{ width: `${percent}%` }} />
             </div>
             <p className="tabular flex justify-between gap-2 text-xs text-muted-foreground">
               <span>

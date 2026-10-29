@@ -34,11 +34,13 @@ export type LeaderboardEntry = {
   level: number;
   /** The title worn next to the nickname, or null. */
   title: string | null;
+  /** The nameplate from a quest chest, worn next to the nickname, or null. */
+  plate: string | null;
   updated_at: string;
 };
 
 /** What the server writes when it syncs a user. */
-export type EntryData = Pick<LeaderboardEntry, "display_name" | "country" | "total_xp" | "week_xp" | "week_start" | "level" | "title">;
+export type EntryData = Pick<LeaderboardEntry, "display_name" | "country" | "total_xp" | "week_xp" | "week_start" | "level" | "title" | "plate">;
 
 const RESERVED = ["admin", "administrator", "moderator", "mod", "support", "staff", "system", "official", "muscles leveling", "you"];
 

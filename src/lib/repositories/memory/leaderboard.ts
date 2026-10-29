@@ -43,6 +43,7 @@ function samples(): LeaderboardEntry[] {
     week_start: week,
     level,
     title: level >= 60 ? "Iron Regular" : null,
+    plate: level >= 70 ? "Ascendant" : level >= 50 ? "Grinder" : null,
     updated_at: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString(),
   }));
 }

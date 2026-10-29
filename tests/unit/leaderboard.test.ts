@@ -34,6 +34,7 @@ const entry = (over: Partial<LeaderboardEntry> & { display_name: string }): Lead
   week_start: week,
   level: 1,
   title: null,
+  plate: null,
   updated_at: "2026-10-01T00:00:00.000Z",
   ...over,
 });

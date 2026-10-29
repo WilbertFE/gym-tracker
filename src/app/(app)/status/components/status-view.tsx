@@ -3,6 +3,7 @@ import { Panel } from "@/components/panel";
 import { RankBadge } from "@/components/rank-badge";
 import { SystemTip } from "@/components/system-tip";
 import { getCurrentUserId } from "@/lib/auth";
+import { itemById, type FrameStyle } from "@/lib/items";
 import { loadLevel } from "@/lib/level";
 import { notice } from "@/lib/system-voice";
 import { totalStats } from "@/lib/stats";
@@ -14,10 +15,14 @@ import { StatsRadar } from "./stats-radar";
 /** The status window: rank letter, level, and five stats with a radar and a line each. */
 export async function StatusView() {
   const userId = await getCurrentUserId();
-  const [{ level, stats, muscles, titles, title }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
+  const [{ level, stats, muscles, titles, title, collection }, showAll] = await Promise.all([loadLevel(userId), getShowAll()]);
   if (!isUnlocked("status", level.level, showAll)) {
     return <LockedFeature id="status" level={level.level} totalXp={level.total} />;
   }
+
+  const frame = collection.equipment.frame ? itemById(collection.equipment.frame) : null;
+  const aura = collection.equipment.aura ? itemById(collection.equipment.aura) : null;
+  const plate = collection.equipment.plate ? itemById(collection.equipment.plate) : null;
 
   // Bars are drawn against a ceiling a little above the best stat, so the shape is easy to read.
   const ceiling = Math.max(60, Math.ceil((Math.max(...stats.map((s) => s.value)) * 1.2) / 10) * 10);
@@ -30,15 +35,18 @@ export async function StatusView() {
 
       <Panel label="Rank" variant="system">
         <div className="flex items-center gap-5">
-          <RankBadge rank={level.rank} size={104} />
+          <RankBadge rank={level.rank} size={104} decor={(frame?.value as FrameStyle | undefined) ?? null} />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <p className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">{level.rank.name}</p>
-            <p className="tabular text-6xl font-bold leading-none text-primary [text-shadow:0_0_22px_var(--primary)]" aria-label={`Rank ${level.rank.letter}`}>
+            <p className="tabular text-6xl font-bold leading-none text-primary [text-shadow:0_0_22px_var(--primary)]" aria-label={`Rank ${level.rank.letter}`} style={aura ? { color: aura.value, textShadow: `0 0 22px ${aura.value}` } : undefined}>
               {level.rank.letter}
             </p>
             <p className="tabular text-sm text-muted-foreground">
               Level {level.level}, {level.total.toLocaleString("en-US")} XP
             </p>
+            {plate && (
+              <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">{plate.value}</p>
+            )}
           </div>
         </div>
       </Panel>

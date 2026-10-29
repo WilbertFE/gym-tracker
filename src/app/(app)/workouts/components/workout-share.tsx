@@ -1,3 +1,4 @@
+import { itemById } from "@/lib/items";
 import { getCheckinByDate } from "@/lib/repositories/checkins";
 import { listMemberships } from "@/lib/repositories/memberships";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
@@ -23,7 +24,7 @@ type WorkoutShareProps = {
  * to the dialog. It loads after the rest of the page, so it never slows the workout down.
  */
 export async function WorkoutShare({ userId, session, sets, exercises, unit, shareOnLoad }: WorkoutShareProps) {
-  const [allSessions, allSets, checkin, [membership], { level }] = await Promise.all([
+  const [allSessions, allSets, checkin, [membership], { level, collection }] = await Promise.all([
     listSessions(userId),
     listAllSets(userId),
     getCheckinByDate(userId, session.date),
@@ -45,5 +46,9 @@ export async function WorkoutShare({ userId, session, sets, exercises, unit, sha
     progress: { level: level.level, rank: level.rank },
   });
 
-  return <ShareWorkout card={card} date={session.date} defaultOpen={shareOnLoad} />;
+  // The share looks from chests the user owns, and the one they wear (it is picked first).
+  const ownedLooks = collection.owned.map((id) => itemById(id)).filter((i) => i?.slot === "look").map((i) => i!.value);
+  const wornLook = collection.equipment.look ? (itemById(collection.equipment.look)?.value ?? null) : null;
+
+  return <ShareWorkout card={card} date={session.date} defaultOpen={shareOnLoad} ownedLooks={ownedLooks} wornLook={wornLook} />;
 }

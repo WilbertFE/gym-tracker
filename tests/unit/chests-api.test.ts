@@ -26,7 +26,7 @@ describe("GET /api/chests", () => {
   it("lists the chests waiting, daily and weekly, with the days left", async () => {
     const data = await state();
     expect(data.enabled).toBe(true);
-    expect(data.available.map((c: { kind: string }) => c.kind).sort()).toEqual(["daily", "daily", "weekly"]);
+    expect(data.available.map((c: { kind: string }) => c.kind).sort()).toEqual(["daily", "daily", "daily", "daily", "daily", "weekly", "weekly"]);
     for (const chest of data.available) {
       expect(chest.daysLeft).toBeGreaterThanOrEqual(0);
       expect(chest.id).toMatch(/^[dw]:\d{4}-\d{2}-\d{2}$/);
@@ -46,10 +46,10 @@ describe("POST /api/chests/open", () => {
     expect(ITEMS.map((i) => i.id)).toContain(data.item.id);
     expect(data.item.grade).toBe(data.grade);
     expect(data.duplicate).toBe(false);
-    expect(data.remaining).toBe(2);
+    expect(data.remaining).toBe(6);
 
     const after = await state();
-    expect(after.available).toHaveLength(2);
+    expect(after.available).toHaveLength(6);
     expect(after.openings).toHaveLength(1);
     expect(after.collection.owned).toEqual([data.item.id]);
   });
@@ -84,7 +84,7 @@ describe("POST /api/chests/open", () => {
     expect(last).toBe(429);
   });
 
-  it("opens all three chests and the collection grows without a repeat", async () => {
+  it("opens every chest and the collection grows without a repeat", async () => {
     const ids = (await state()).available.map((c: { id: string }) => c.id);
     const got: string[] = [];
     for (const id of ids) {
@@ -94,7 +94,8 @@ describe("POST /api/chests/open", () => {
       expect(data.duplicate).toBe(false);
       got.push(data.item.id);
     }
-    expect(new Set(got).size).toBe(3);
+    expect(new Set(got).size).toBe(ids.length);
+    expect(ids).toHaveLength(7);
     expect((await state()).available).toEqual([]);
   });
 });

@@ -28,6 +28,11 @@ function Row({ row, pinned = false }: { row: PublicRow; pinned?: boolean }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="truncate text-sm font-medium">
           {row.display_name}
+          {row.plate && (
+            <span className="font-display ml-2 border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-primary">
+              {row.plate}
+            </span>
+          )}
           {row.is_me && (
             <span className="tabular ml-2 border border-primary px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-primary">
               You

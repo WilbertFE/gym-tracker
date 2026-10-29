@@ -29,6 +29,10 @@ const CARDS = [
     body: "Three small goals every day and three every week, for bonus XP. They tick themselves as you log, there is nothing to claim.",
   },
   {
+    title: "Chests",
+    body: "Finish all three quests of a day for a chest with a random item, all three of a week for a better one. Items only change how things look. Open them within a week, a weekly chest within two.",
+  },
+  {
     title: "Boosters",
     body: "New accounts get double XP for the first week. After that, training earns Double XP Day boosters that you use on a day you choose.",
   },

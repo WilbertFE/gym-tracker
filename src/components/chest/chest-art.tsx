@@ -39,17 +39,17 @@ export function ChestArt({ kind, phase }: { kind: ChestKind; phase: ChestPhase }
         <rect x={108.5} y={118} width={3} height={9} fill="var(--glow)" />
       </svg>
 
-      {/* The inside, lit from within once the lid is up. */}
+      {/* The inside, lit from within once the lid is up: light fills the gap under the lid. */}
       {open && (
         <div
-          className="absolute left-[34px] right-[34px] top-[78px] h-[18px]"
-          style={{ background: "radial-gradient(ellipse at 50% 100%, var(--glow), transparent 70%)", filter: "blur(2px)" }}
+          className="absolute left-[40px] right-[40px] top-[54px] h-[36px]"
+          style={{ background: "linear-gradient(to top, var(--glow), transparent)", filter: "blur(3px)", opacity: 0.9 }}
         />
       )}
 
       <div
         className={cn("absolute left-0 top-0 h-[86px] w-[220px]", phase === "opening" && "chest-lid-open")}
-        style={{ transformOrigin: "50% 100%", transform: open ? "perspective(520px) rotateX(-108deg)" : undefined }}
+        style={{ transformOrigin: "50% 100%", transform: open ? "translateY(-28px) rotate(-7deg)" : undefined }}
       >
         <svg viewBox="0 0 220 86" width={220} height={86}>
           <path d="M30 86 V58 Q30 22 70 22 H150 Q190 22 190 58 V86 Z" fill={look.body} stroke={look.rim} strokeWidth={3} strokeLinejoin="round" />

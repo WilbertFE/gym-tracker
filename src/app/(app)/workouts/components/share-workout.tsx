@@ -22,8 +22,8 @@ import {
   drawShareCard,
   SHARE_FORMATS,
   SHARE_SIZES,
-  SHARE_TEMPLATES,
   shareFileName,
+  templatesFor,
   type ShareBadge,
   type ShareFonts,
   type ShareFormat,
@@ -66,13 +66,27 @@ async function badgeImage(host: HTMLElement | null): Promise<ShareBadge | null> 
  * drawn here in the browser when the dialog is open and is never stored. `defaultOpen` is for the
  * moment right after finishing a workout.
  */
-export function ShareWorkout({ card, date, defaultOpen = false }: { card: ShareCard; date: string; defaultOpen?: boolean }) {
+export function ShareWorkout({
+  card,
+  date,
+  defaultOpen = false,
+  ownedLooks = [],
+  wornLook = null,
+}: {
+  card: ShareCard;
+  date: string;
+  defaultOpen?: boolean;
+  /** Chest looks the user owns, shown in the picker. */
+  ownedLooks?: string[];
+  /** The chest look the user wears, picked when the dialog opens. */
+  wornLook?: string | null;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const badgeHost = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(defaultOpen);
-  const [template, setTemplate] = useState<ShareTemplate>("classic");
+  const [template, setTemplate] = useState<ShareTemplate>((wornLook as ShareTemplate | null) ?? "classic");
   const [format, setFormat] = useState<ShareFormat>("story");
   const [busy, setBusy] = useState(false);
   const [showLocation, setShowLocation] = useState(true);
@@ -182,7 +196,7 @@ export function ShareWorkout({ card, date, defaultOpen = false }: { card: ShareC
             columns={3}
             value={template}
             onChange={setTemplate}
-            options={SHARE_TEMPLATES}
+            options={templatesFor(ownedLooks)}
           />
           <SegmentedControl
             label="Size"
