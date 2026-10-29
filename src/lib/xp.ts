@@ -58,6 +58,7 @@ export type XpSource =
   | "sets"
   | "quests"
   | "gates"
+  | "chests"
   | "streak";
 
 export const XP_SOURCE_LABELS: Record<XpSource, string> = {
@@ -71,6 +72,7 @@ export const XP_SOURCE_LABELS: Record<XpSource, string> = {
   sets: "Sets logged",
   quests: "Quests",
   gates: "Cleared gates",
+  chests: "Duplicate chest items",
   streak: "Streak milestones",
 };
 
@@ -86,6 +88,7 @@ export const XP_SOURCE_HINTS: Record<XpSource, string> = {
   sets: `${XP_RULES.perSet} XP for each set in a finished workout, up to ${XP_RULES.maxRewardedSets} sets per workout.`,
   quests: `XP for the daily and weekly quests on the dashboard, with a bonus of ${DAILY_SWEEP_XP} XP for finishing all of a day's quests and ${WEEKLY_SWEEP_XP} XP for all of a week's. They count from ${QUEST_START_DATE} on.`,
   gates: `XP for clearing the weekly gate, from ${GATE_START_DATE} on: the harder the gate, the more (${boosterGatesNote}).`,
+  chests: "A small XP bonus when a quest chest gives an item you already own. It only happens once you own every item of that grade, so there is always something new to find first.",
   streak: `A one-time bonus for the longest run of check-in days you reach: ${STREAK_MILESTONES.map(
     ([days, xp]) => `${days} days for ${xp} XP`,
   ).join(", ")}. Any check-in keeps a streak alive, rest days too.`,
@@ -107,6 +110,8 @@ export type XpInput = {
    * Left out, no quest XP is counted, which is how the plain XP rules are tested on their own.
    */
   quests?: { today: string; start?: string; exerciseMuscles?: Record<string, string>; recovery?: boolean };
+  /** XP paid for duplicate chest items, each on the day the chest was opened. */
+  chestBonuses?: readonly { date: string; xp: number }[];
   /** Turns weekly gates on, with today's date. Needs reps and weight on the sets. */
   gates?: { today: string; start?: string };
   /** Set to false to leave the welcome boost out. Only tests do this. */
@@ -149,10 +154,10 @@ export function computeXp(input: XpInput): XpSummary {
 
   // Every XP reward as (date, amount), so a boosted day can double exactly what happened on it.
   const entries: Record<XpSource, { date: string; xp: number }[]> = {
-    gym: [], home: [], rest: [], weight: [], measurement: [], photo: [], workout: [], sets: [], quests: [], gates: [], streak: [],
+    gym: [], home: [], rest: [], weight: [], measurement: [], photo: [], workout: [], sets: [], quests: [], gates: [], chests: [], streak: [],
   };
   const countOf: Record<XpSource, number> = {
-    gym: 0, home: 0, rest: 0, weight: 0, measurement: 0, photo: 0, workout: 0, sets: 0, quests: 0, gates: 0, streak: reached.length,
+    gym: 0, home: 0, rest: 0, weight: 0, measurement: 0, photo: 0, workout: 0, sets: 0, quests: 0, gates: 0, chests: 0, streak: reached.length,
   };
 
   for (const kind of ["gym", "home", "rest"] as const) {
@@ -203,6 +208,11 @@ export function computeXp(input: XpInput): XpSummary {
     );
     countOf.gates = rewards.length;
     entries.gates = rewards;
+  }
+
+  if (input.chestBonuses) {
+    countOf.chests = input.chestBonuses.length;
+    entries.chests = input.chestBonuses.map(({ date, xp }) => ({ date, xp }));
   }
 
   const firstDate = firstActivityDate([

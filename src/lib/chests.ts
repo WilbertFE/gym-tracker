@@ -98,6 +98,8 @@ export type Opening = {
   /** XP paid for a duplicate, otherwise 0. */
   bonus_xp: number;
   opened_at: string;
+  /** The day it was opened in the app's own calendar (`YYYY-MM-DD`), the date its XP counts on. */
+  opened_on: string;
 };
 
 /** Whether the next chest of this kind is owed a good item. */

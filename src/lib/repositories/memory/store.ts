@@ -1,6 +1,8 @@
 import "server-only";
 import { addDays, format, subDays } from "date-fns";
+import { CHEST_EXPIRY_DAYS, chestId, type Chest, type Opening } from "@/lib/chests";
 import { DEMO_USER_ID } from "@/lib/demo";
+import { NO_EQUIPMENT, type Equipment } from "@/lib/items";
 import { ISO_FORMAT } from "@/lib/dates";
 import { builtInId } from "@/lib/exercise-library";
 import { resetLeaderboard } from "./leaderboard";
@@ -47,6 +49,12 @@ export type Store = {
   boosts: XpBoost[];
   /** Ids of the ranks whose trial was cleared. */
   trials: string[];
+  /** Opened quest chests. */
+  chestOpenings: Opening[];
+  /** The cosmetic items worn. */
+  equipment: Equipment;
+  /** Demo mode only: chests that are already waiting, so the opening can be tried straight away. */
+  demoChests: Chest[];
 };
 
 const g = globalThis as unknown as { __gymStore?: Map<string, Store> };
@@ -56,6 +64,15 @@ const iso = (d: Date) => format(d, ISO_FORMAT);
 
 /** [exercise name, [reps, kg] per set] */
 type Plan = [string, [number, number][]][];
+
+/** Two daily chests and a weekly one, earned on recent days, each with some days left. */
+function seedChests(now: Date): Chest[] {
+  const earn = (kind: "daily" | "weekly", daysAgo: number): Chest => {
+    const earnedOn = iso(subDays(now, daysAgo));
+    return { id: chestId(kind, earnedOn), kind, earnedOn, expiresOn: iso(addDays(subDays(now, daysAgo), CHEST_EXPIRY_DAYS[kind])) };
+  };
+  return [earn("daily", 1), earn("daily", 3), earn("weekly", 2)];
+}
 
 function seedWorkouts(userId: string, now: Date) {
   const sessions: WorkoutSession[] = [];
@@ -284,6 +301,9 @@ function seed(userId: string): Store {
     settings: null,
     boosts: [],
     trials: [],
+    chestOpenings: [],
+    equipment: { ...NO_EQUIPMENT },
+    demoChests: seedChests(now),
   };
 }
 
@@ -302,6 +322,9 @@ const empty = (): Store => ({
   settings: null,
   boosts: [],
   trials: [],
+  chestOpenings: [],
+  equipment: { ...NO_EQUIPMENT },
+  demoChests: [],
 });
 
 export function getStore(userId: string): Store {

@@ -29,6 +29,7 @@ const opening = (chest_id: string, grade: Opening["grade"], at: string): Opening
   duplicate: false,
   bonus_xp: 0,
   opened_at: at,
+  opened_on: at.slice(0, 10),
 });
 
 describe("the item catalog", () => {
@@ -238,7 +239,7 @@ describe("what a chest holds", () => {
       // A repeat can only come up when its whole grade is owned.
       if (roll.duplicate) expect(itemsOfGrade(roll.grade).every((x) => owned.has(x.id))).toBe(true);
       owned.add(roll.item.id);
-      history.push({ chest_id: `${kind === "daily" ? "d" : "w"}:2027-01-${String(i).padStart(2, "0")}`, item_id: roll.item.id, grade: roll.grade, duplicate: roll.duplicate, bonus_xp: roll.bonusXp, opened_at: `2027-02-${String(i).padStart(3, "0")}` });
+      history.push({ chest_id: `${kind === "daily" ? "d" : "w"}:2027-01-${String(i).padStart(2, "0")}`, item_id: roll.item.id, grade: roll.grade, duplicate: roll.duplicate, bonus_xp: roll.bonusXp, opened_at: `2027-02-${String(i).padStart(3, "0")}`, opened_on: "2027-02-01" });
     }
     expect(owned.size).toBe(ITEMS.length);
     expect(repeats).toBeGreaterThanOrEqual(0);

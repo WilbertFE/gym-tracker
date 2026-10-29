@@ -1,8 +1,11 @@
 import "server-only";
 import { cache } from "react";
 import { boostersEarned, summarizeBoosts, type BoostSummary } from "@/lib/boosters";
+import { chestState, earnedChests, type AvailableChest, type Chest, type Opening } from "@/lib/chests";
+import { itemById, NO_EQUIPMENT, SLOTS, type Equipment } from "@/lib/items";
 import { todayISO } from "@/lib/dates";
 import { listBoosts } from "@/lib/repositories/boosts";
+import { getEquipment, listExtraChests, listOpenings } from "@/lib/repositories/chests";
 import { listCheckins } from "@/lib/repositories/checkins";
 import { listExercises } from "@/lib/repositories/exercises";
 import { listMeasurements } from "@/lib/repositories/measurements";
@@ -16,7 +19,7 @@ import { clearTrial, listClearedTrials } from "@/lib/repositories/trials";
 import { bestTitle, titleStatuses, type TitleInput, type TitleStatus } from "@/lib/titles";
 import { blockingTrial, levelCap, trialProgress, type TrialProgress } from "@/lib/trials";
 import { getRecoveryEnabled } from "@/lib/unlock-state";
-import { buildQuestBoard, type QuestBoard } from "@/lib/quests";
+import { buildQuestBoard, QUEST_START_DATE, questRewards, type QuestBoard } from "@/lib/quests";
 import { computeStats, type Stat } from "@/lib/stats";
 import { computeXp, levelForXp, type LevelInfo, type XpSummary } from "@/lib/xp";
 
@@ -38,6 +41,13 @@ export type GameState = {
   title: string | null;
   /** The rank trial holding the level back, with progress, or null. */
   trial: TrialProgress | null;
+  /**
+   * Quest chests: the ones that can be opened now, the ones that ran out, and everything opened so far.
+   * `enabled` is false until the chests migration has run, and then no chests are offered at all.
+   */
+  chests: { enabled: boolean; available: AvailableChest[]; expired: Chest[]; openings: Opening[] };
+  /** The cosmetic items owned (ids) and the ones worn, one per slot. */
+  collection: { owned: string[]; equipment: Equipment };
 };
 
 /**
@@ -45,7 +55,7 @@ export type GameState = {
  * Cached for the request, so the level card and the quests card on one page share a single load.
  */
 export const loadLevel = cache(async (userId: string): Promise<GameState> => {
-  const [checkins, weights, measurements, photos, sessions, sets, boostRows, exercises, trialRows, recovery] = await Promise.all([
+  const [checkins, weights, measurements, photos, sessions, sets, boostRows, exercises, trialRows, recovery, openingRows, wornRaw, extraChests] = await Promise.all([
     listCheckins(userId),
     listWeights(userId),
     listMeasurements(userId),
@@ -56,10 +66,15 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     listExercises(userId),
     listClearedTrials(userId),
     getRecoveryEnabled(),
+    listOpenings(userId),
+    getEquipment(userId),
+    listExtraChests(userId),
   ]);
   const today = todayISO();
   const exerciseMuscles = Object.fromEntries(exercises.map((e) => [e.id, e.primary_muscle]));
-  const input = { checkins, weights, measurements, photos, sessions, sets, quests: { today, exerciseMuscles, recovery }, gates: { today } };
+  // A repeat from a chest pays a little XP, on the day the chest was opened.
+  const chestBonuses = openingRows.openings.filter((o) => o.duplicate && o.bonus_xp > 0).map((o) => ({ date: o.opened_on, xp: o.bonus_xp }));
+  const input = { checkins, weights, measurements, photos, sessions, sets, quests: { today, exerciseMuscles, recovery }, gates: { today }, chestBonuses };
   const gateInput = { sessions, sets };
   const gateBoosters = boosterGates(gateInput, today);
 
@@ -84,7 +99,25 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     firstDate: xp.firstDate,
     today,
   });
-  const quests = buildQuestBoard({ checkins, weights, measurements, sessions, sets, exerciseMuscles, recovery }, today);
+  const questInput = { checkins, weights, measurements, sessions, sets, exerciseMuscles, recovery };
+  const quests = buildQuestBoard(questInput, today);
+
+  // Chests: one for every day or week whose quests were all finished, minus the opened and the expired.
+  const chestsEarned = new Map<string, Chest>();
+  for (const chest of [...earnedChests(questRewards(questInput, { start: QUEST_START_DATE, today }).rewards), ...extraChests]) {
+    chestsEarned.set(chest.id, chest);
+  }
+  const openedIds = new Set(openingRows.openings.map((o) => o.chest_id));
+  const chestInfo = openingRows.available ? chestState([...chestsEarned.values()], openedIds, today) : { available: [], expired: [] };
+
+  // Only items that are owned, exist and fit their slot count as worn.
+  const owned = [...new Set(openingRows.openings.map((o) => o.item_id))];
+  const equipment: Equipment = { ...NO_EQUIPMENT };
+  for (const slot of SLOTS) {
+    const id = wornRaw[slot.id];
+    const item = id ? itemById(id) : null;
+    if (item && item.slot === slot.id && owned.includes(item.id)) equipment[slot.id] = item.id;
+  }
   const stats = computeStats({
     checkins,
     sessions,
@@ -138,5 +171,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     titles: titleStatuses(titleInput),
     title: bestTitle(titleInput),
     trial,
+    chests: { enabled: openingRows.available, ...chestInfo, openings: openingRows.openings },
+    collection: { owned, equipment },
   };
 });
