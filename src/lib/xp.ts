@@ -4,7 +4,6 @@ import { boosterGatesNote, gateRewards, GATE_START_DATE } from "@/lib/gates";
 import { DAILY_SWEEP_XP, QUEST_START_DATE, questRewards, WEEKLY_SWEEP_XP } from "@/lib/quests";
 import { longestStreak } from "@/lib/streak";
 import type {
-  BodyMeasurement,
   Checkin,
   ProgressPhoto,
   WeightLog,
@@ -23,7 +22,6 @@ export const XP_RULES = {
   homeCheckin: 15,
   restCheckin: 5,
   weight: 10,
-  measurement: 10,
   progressPhoto: 10,
   workout: 40,
   perSet: 2,
@@ -52,7 +50,6 @@ export type XpSource =
   | "home"
   | "rest"
   | "weight"
-  | "measurement"
   | "photo"
   | "workout"
   | "sets"
@@ -66,7 +63,6 @@ export const XP_SOURCE_LABELS: Record<XpSource, string> = {
   home: "Home workout check-ins",
   rest: "Rest day check-ins",
   weight: "Weigh-ins",
-  measurement: "Measurements",
   photo: "Progress photo days",
   workout: "Finished workouts",
   sets: "Sets logged",
@@ -82,7 +78,6 @@ export const XP_SOURCE_HINTS: Record<XpSource, string> = {
   home: `${XP_RULES.homeCheckin} XP for each day you check in with a workout at home.`,
   rest: `${XP_RULES.restCheckin} XP for each rest day you check in, so honest rest days count too.`,
   weight: `${XP_RULES.weight} XP for each day you log your weight (once a day).`,
-  measurement: `${XP_RULES.measurement} XP for each day you log measurements.`,
   photo: `${XP_RULES.progressPhoto} XP for each day you upload a progress photo (once a day).`,
   workout: `${XP_RULES.workout} XP for each finished workout with at least ${XP_RULES.minSetsForWorkout} sets.`,
   sets: `${XP_RULES.perSet} XP for each set in a finished workout, up to ${XP_RULES.maxRewardedSets} sets per workout.`,
@@ -99,7 +94,6 @@ export const XP_SOURCES = Object.keys(XP_SOURCE_LABELS) as XpSource[];
 export type XpInput = {
   checkins: (Pick<Checkin, "date" | "kind"> & Partial<Pick<Checkin, "mood" | "energy" | "sleep_hours">>)[];
   weights: Pick<WeightLog, "date">[];
-  measurements: Pick<BodyMeasurement, "date">[];
   photos: Pick<ProgressPhoto, "date">[];
   sessions: Pick<WorkoutSession, "id" | "date" | "ended_at">[];
   sets: (Pick<WorkoutSet, "session_id"> & Partial<Pick<WorkoutSet, "exercise_id" | "reps" | "weight_kg">>)[];
@@ -154,10 +148,10 @@ export function computeXp(input: XpInput): XpSummary {
 
   // Every XP reward as (date, amount), so a boosted day can double exactly what happened on it.
   const entries: Record<XpSource, { date: string; xp: number }[]> = {
-    gym: [], home: [], rest: [], weight: [], measurement: [], photo: [], workout: [], sets: [], quests: [], gates: [], chests: [], streak: [],
+    gym: [], home: [], rest: [], weight: [], photo: [], workout: [], sets: [], quests: [], gates: [], chests: [], streak: [],
   };
   const countOf: Record<XpSource, number> = {
-    gym: 0, home: 0, rest: 0, weight: 0, measurement: 0, photo: 0, workout: 0, sets: 0, quests: 0, gates: 0, chests: 0, streak: reached.length,
+    gym: 0, home: 0, rest: 0, weight: 0, photo: 0, workout: 0, sets: 0, quests: 0, gates: 0, chests: 0, streak: reached.length,
   };
 
   for (const kind of ["gym", "home", "rest"] as const) {
@@ -168,7 +162,6 @@ export function computeXp(input: XpInput): XpSummary {
   }
   const daily: [XpSource, string[], number][] = [
     ["weight", input.weights.map((w) => w.date), XP_RULES.weight],
-    ["measurement", input.measurements.map((m) => m.date), XP_RULES.measurement],
     ["photo", input.photos.map((p) => p.date), XP_RULES.progressPhoto],
   ];
   for (const [source, dates, each] of daily) {
@@ -218,7 +211,6 @@ export function computeXp(input: XpInput): XpSummary {
   const firstDate = firstActivityDate([
     ...checkinDates,
     ...input.weights.map((w) => w.date),
-    ...input.measurements.map((m) => m.date),
     ...input.photos.map((p) => p.date),
     ...input.sessions.map((s) => s.date),
   ]);

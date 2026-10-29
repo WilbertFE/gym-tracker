@@ -9,7 +9,6 @@ import { resetLeaderboard } from "./leaderboard";
 import { resetProfiles } from "./profiles";
 import type {
   AvailabilityBlock,
-  BodyMeasurement,
   Checkin,
   Exercise,
   LogPhoto,
@@ -40,7 +39,6 @@ export type Store = {
   photos: ProgressPhoto[];
   /** Photo bytes by storage_path. Stands in for a private Supabase Storage bucket. */
   files: Map<string, { bytes: Uint8Array; contentType: string }>;
-  measurements: BodyMeasurement[];
   availability: AvailabilityBlock[];
   /** Photos on check-ins and weigh-ins. Their bytes live in `files` too. */
   logPhotos: LogPhoto[];
@@ -179,27 +177,7 @@ function seedProgress(userId: string, now: Date) {
   add(7, "front", 1);
   add(7, "side", 1);
 
-  const row = (
-    daysAgo: number,
-    m: Partial<Omit<BodyMeasurement, "id" | "user_id" | "date">>,
-  ): BodyMeasurement => ({
-    id: crypto.randomUUID(),
-    user_id: userId,
-    date: iso(subDays(now, daysAgo)),
-    chest_cm: null,
-    waist_cm: null,
-    hips_cm: null,
-    arm_cm: null,
-    thigh_cm: null,
-    body_fat_pct: null,
-    ...m,
-  });
-  const measurements = [
-    row(84, { chest_cm: 98, waist_cm: 84, hips_cm: 96, arm_cm: 33, thigh_cm: 56, body_fat_pct: 19 }),
-    row(42, { chest_cm: 99.5, waist_cm: 82.5, arm_cm: 34, body_fat_pct: 17.5 }),
-    row(7, { chest_cm: 101, waist_cm: 81, hips_cm: 95.5, arm_cm: 35, thigh_cm: 57.5, body_fat_pct: 16 }),
-  ];
-  return { photos, files, measurements };
+  return { photos, files };
 }
 
 function seedAvailability(userId: string): AvailabilityBlock[] {
@@ -298,7 +276,7 @@ function seed(userId: string): Store {
   ];
 
   const { sessions, sets } = seedWorkouts(userId, now);
-  const { photos, files, measurements } = seedProgress(userId, now);
+  const { photos, files } = seedProgress(userId, now);
   return {
     checkins,
     weights,
@@ -308,7 +286,6 @@ function seed(userId: string): Store {
     sets,
     photos,
     files,
-    measurements,
     availability: seedAvailability(userId),
     logPhotos: seedLogPhotos(userId, checkins, weights, files),
     settings: null,
@@ -329,7 +306,6 @@ const empty = (): Store => ({
   sets: [],
   photos: [],
   files: new Map(),
-  measurements: [],
   availability: [],
   logPhotos: [],
   settings: null,

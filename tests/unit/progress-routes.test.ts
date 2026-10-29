@@ -6,8 +6,6 @@ import { resetStores } from "@/lib/repositories/memory/store";
 
 vi.stubEnv("NEXT_PUBLIC_DEMO_MODE", "true");
 
-import { DELETE as deleteMeasurement } from "@/app/api/measurements/[id]/route";
-import { GET as getMeasurements, POST as postMeasurement } from "@/app/api/measurements/route";
 import { GET as getPhotoFile } from "@/app/api/photos/[id]/file/route";
 import { DELETE as deletePhoto } from "@/app/api/photos/[id]/route";
 import { GET as getPhotos, POST as postPhoto } from "@/app/api/photos/route";
@@ -126,36 +124,5 @@ describe("photo access", () => {
 
   it("returns 404 for an unknown photo file", async () => {
     expect((await getPhotoFile(new Request("http://x"), ctx("missing"))).status).toBe(404);
-  });
-});
-
-describe("/api/measurements", () => {
-  it("requires at least one value", async () => {
-    expect((await postMeasurement(json({ date: today }))).status).toBe(400);
-    expect((await postMeasurement(json({ date: today, waist_cm: null }))).status).toBe(400);
-  });
-
-  it("validates ranges", async () => {
-    expect((await postMeasurement(json({ date: today, waist_cm: 5 }))).status).toBe(400);
-    expect((await postMeasurement(json({ date: today, body_fat_pct: 90 }))).status).toBe(400);
-    expect((await postMeasurement(json({ date: today, arm_cm: "35" }))).status).toBe(400);
-    expect((await postMeasurement(json({ date: "2999-01-01", waist_cm: 80 }))).status).toBe(400);
-  });
-
-  it("upserts one entry per date and lists newest first", async () => {
-    await postMeasurement(json({ date: today, waist_cm: 80, chest_cm: 100 }));
-    const second = await postMeasurement(json({ date: today, waist_cm: 79.5 }));
-    expect((await second.json()).data).toMatchObject({ waist_cm: 79.5, chest_cm: null });
-
-    const { data } = await (await getMeasurements()).json();
-    expect(data.filter((m: { date: string }) => m.date === today)).toHaveLength(1);
-    const dates = data.map((m: { date: string }) => m.date);
-    expect(dates).toEqual([...dates].sort().reverse());
-  });
-
-  it("deletes and then 404s", async () => {
-    const { data } = await (await postMeasurement(json({ date: today, waist_cm: 80 }))).json();
-    expect((await deleteMeasurement(new Request("http://x"), ctx(data.id))).status).toBe(200);
-    expect((await deleteMeasurement(new Request("http://x"), ctx(data.id))).status).toBe(404);
   });
 });

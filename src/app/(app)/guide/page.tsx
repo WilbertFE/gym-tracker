@@ -18,7 +18,7 @@ const CARDS = [
   },
   {
     title: "XP and levels",
-    body: "Check-ins, workouts, sets, weigh-ins, measurements and photos all earn XP. Levels come fast at the start and take a little more each time.",
+    body: "Check-ins, workouts, sets, weigh-ins and photos all earn XP. Levels come fast at the start and take a little more each time.",
   },
   {
     title: "Ranks",

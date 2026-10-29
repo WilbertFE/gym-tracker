@@ -12,7 +12,7 @@ import { addDaysISO, weekRange } from "@/lib/week";
 /** Quests earn XP for days from this one on. Earlier days are not turned into XP after the fact. */
 export const QUEST_START_DATE = "2026-10-28";
 
-export type QuestMetric = "checkin" | "trained" | "workouts" | "sets" | "weighIn" | "measure" | "feel" | "muscles";
+export type QuestMetric = "checkin" | "trained" | "workouts" | "sets" | "weighIn" | "feel" | "muscles";
 
 export type QuestDef = {
   id: string;
@@ -75,7 +75,8 @@ export const WEEKLY_POOL: readonly QuestDef[] = [
   { id: "w-muscles6", scope: "weekly", title: "Train 6 muscle groups", hint: "Six different primary muscles this week.", metric: "muscles", target: 6, xp: 25 },
   { id: "w-checkin5", scope: "weekly", title: "Check in on 5 days", hint: "Any kind of check-in.", metric: "checkin", target: 5, xp: 15 },
   { id: "w-weigh2", scope: "weekly", title: "Weigh in twice", hint: "On two different days.", metric: "weighIn", target: 2, xp: 12 },
-  { id: "w-measure1", scope: "weekly", title: "Log measurements", hint: "Once this week.", metric: "measure", target: 1, xp: 12 },
+  // The id is kept from the retired measurements quest so each week still picks the same quests; only what it asks changed.
+  { id: "w-measure1", scope: "weekly", title: "Log 30 sets", hint: "A lighter week still counts.", metric: "sets", target: 30, xp: 12, group: "sets" },
   { id: "w-feel3", scope: "weekly", title: "Log how you feel 3 times", hint: "Mood, energy and sleep on 3 days.", metric: "feel", target: 3, xp: 12 },
 ];
 
@@ -116,7 +117,6 @@ export type DayMetrics = {
   workouts: number;
   sets: number;
   weighIn: number;
-  measure: number;
   feel: number;
   muscles: Set<string>;
 };
@@ -127,7 +127,6 @@ const emptyDay = (): DayMetrics => ({
   workouts: 0,
   sets: 0,
   weighIn: 0,
-  measure: 0,
   feel: 0,
   muscles: new Set(),
 });
@@ -135,7 +134,6 @@ const emptyDay = (): DayMetrics => ({
 export type QuestInput = {
   checkins: (Pick<Checkin, "date" | "kind"> & Partial<Pick<Checkin, "mood" | "energy" | "sleep_hours">>)[];
   weights: { date: string }[];
-  measurements: { date: string }[];
   sessions: { id: string; date: string; ended_at: string | null }[];
   sets: { session_id: string; exercise_id?: string }[];
   /** Primary muscle of each exercise, by id. Without it the muscle quests cannot be met. */
@@ -163,7 +161,6 @@ export function buildDayMetrics(input: QuestInput): Map<string, DayMetrics> {
     if (c.mood != null && c.energy != null && c.sleep_hours != null) m.feel = 1;
   }
   for (const w of input.weights) day(w.date).weighIn = 1;
-  for (const x of input.measurements) day(x.date).measure = 1;
 
   const sessionDate = new Map(input.sessions.map((s) => [s.id, s.date]));
   const setCount = new Map<string, number>();

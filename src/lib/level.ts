@@ -9,7 +9,6 @@ import type { ProfileActivity } from "@/lib/profile";
 import { getEquipment, listExtraChests, listOpenings } from "@/lib/repositories/chests";
 import { listCheckins } from "@/lib/repositories/checkins";
 import { listExercises } from "@/lib/repositories/exercises";
-import { listMeasurements } from "@/lib/repositories/measurements";
 import { listPhotos } from "@/lib/repositories/photos";
 import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
@@ -58,10 +57,9 @@ export type GameState = {
  * Cached for the request, so the level card and the quests card on one page share a single load.
  */
 export const loadLevel = cache(async (userId: string): Promise<GameState> => {
-  const [checkins, weights, measurements, photos, sessions, sets, boostRows, exercises, trialRows, recovery, openingRows, wornRaw, extraChests] = await Promise.all([
+  const [checkins, weights, photos, sessions, sets, boostRows, exercises, trialRows, recovery, openingRows, wornRaw, extraChests] = await Promise.all([
     listCheckins(userId),
     listWeights(userId),
-    listMeasurements(userId),
     listPhotos(userId),
     listSessions(userId),
     listAllSets(userId),
@@ -77,7 +75,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
   const exerciseMuscles = Object.fromEntries(exercises.map((e) => [e.id, e.primary_muscle]));
   // A repeat from a chest pays a little XP, on the day the chest was opened.
   const chestBonuses = openingRows.openings.filter((o) => o.duplicate && o.bonus_xp > 0).map((o) => ({ date: o.opened_on, xp: o.bonus_xp }));
-  const input = { checkins, weights, measurements, photos, sessions, sets, quests: { today, exerciseMuscles, recovery }, gates: { today }, chestBonuses };
+  const input = { checkins, weights, photos, sessions, sets, quests: { today, exerciseMuscles, recovery }, gates: { today }, chestBonuses };
   const gateInput = { sessions, sets };
   const gateBoosters = boosterGates(gateInput, today);
 
@@ -102,7 +100,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     firstDate: xp.firstDate,
     today,
   });
-  const questInput = { checkins, weights, measurements, sessions, sets, exerciseMuscles, recovery };
+  const questInput = { checkins, weights, sessions, sets, exerciseMuscles, recovery };
   const quests = buildQuestBoard(questInput, today);
 
   // Chests: one for every day or week whose quests were all finished, minus the opened and the expired.

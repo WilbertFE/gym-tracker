@@ -9,7 +9,7 @@ const PAGES: { test: RegExp; name: string; lines: string[] }[] = [
   { test: /^\/dashboard\/level/, name: "levels", lines: ["This page shows every rank and your boosters.", "A booster doubles the XP of a day you choose."] },
   { test: /^\/dashboard\/diary/, name: "the gym diary", lines: ["The diary keeps the photos from your check-ins and weigh-ins, day by day."] },
   { test: /^\/dashboard/, name: "the dashboard", lines: ["This is home.", "Your level is at the top, then today's check-in and workout. More cards appear as you level up. Be patient."] },
-  { test: /^\/body\/progress/, name: "progress photos", lines: ["Progress photos and measurements.", "Compare two dates side by side. Photos are private."] },
+  { test: /^\/body\/progress/, name: "progress photos", lines: ["Progress photos.", "Compare two dates side by side. Photos are private."] },
   { test: /^\/body/, name: "body", lines: ["The muscle map shows what you trained this week or overall.", "The weight tab charts your body weight over time."] },
   { test: /^\/schedule/, name: "the schedule", lines: ["Tell me when you are busy, and I will work out the best times to train. You are welcome."] },
   { test: /^\/status/, name: "your status", lines: ["This is your status window.", "Five stats grow as you train. Each one rises with a different habit."] },

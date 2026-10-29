@@ -85,7 +85,7 @@ export function parseSections(raw: unknown): SectionFlags {
 
 /** What a profile can never show, whatever the settings. Said plainly in Settings. */
 export const NEVER_SHARED: readonly string[] = [
-  "Your weight and body measurements",
+  "Your weight",
   "Your progress photos",
   "Your gym, its location and your membership",
   "Your check-ins, moods and notes",

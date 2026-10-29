@@ -109,7 +109,7 @@ describe("gate status and rewards", () => {
 });
 
 describe("gates in the XP total", () => {
-  const base = { checkins: [], weights: [], measurements: [], photos: [], welcomeBoost: false };
+  const base = { checkins: [], weights: [], photos: [], welcomeBoost: false };
 
   it("adds the XP of a cleared gate and doubles it on a boosted day", () => {
     const gate = gateFor(MON, new Map());

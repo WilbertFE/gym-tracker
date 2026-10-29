@@ -23,7 +23,7 @@ import { computeXp, XP_RULES, type XpInput } from "@/lib/xp";
 const MON = "2026-11-02";
 const START = "2026-10-28";
 
-const empty: QuestInput = { checkins: [], weights: [], measurements: [], sessions: [], sets: [] };
+const empty: QuestInput = { checkins: [], weights: [], sessions: [], sets: [] };
 const finished = (id: string, date: string) => ({ id, date, ended_at: `${date}T11:00:00.000Z` });
 const sets = (session_id: string, n: number, exercise_id = "bench") => Array.from({ length: n }, () => ({ session_id, exercise_id }));
 const muscles = { bench: "chest", row: "lats", squat: "quads", curl: "biceps", press: "front_delts", calf: "calves", abs: "abs" };
@@ -85,7 +85,7 @@ describe("which quests appear", () => {
 });
 
 describe("day metrics", () => {
-  it("reads check-ins, how-you-feel, weigh-ins and measurements", () => {
+  it("reads check-ins, how-you-feel and weigh-ins", () => {
     const m = buildDayMetrics({
       ...empty,
       checkins: [
@@ -93,10 +93,9 @@ describe("day metrics", () => {
         { date: "2026-11-03", kind: "rest", mood: 3, energy: null, sleep_hours: 7 },
       ],
       weights: [{ date: MON }],
-      measurements: [{ date: "2026-11-03" }],
     });
-    expect(m.get(MON)).toMatchObject({ checkin: 1, trained: 1, feel: 1, weighIn: 1, measure: 0 });
-    expect(m.get("2026-11-03")).toMatchObject({ checkin: 1, trained: 0, feel: 0, measure: 1 });
+    expect(m.get(MON)).toMatchObject({ checkin: 1, trained: 1, feel: 1, weighIn: 1 });
+    expect(m.get("2026-11-03")).toMatchObject({ checkin: 1, trained: 0, feel: 0, weighIn: 0 });
   });
 
   it("counts sets by the workout's date and workouts only when finished with enough sets", () => {
@@ -196,7 +195,6 @@ describe("quest XP", () => {
     const full: QuestInput = {
       checkins: [{ date: day, kind: "gym", mood: 4, energy: 4, sleep_hours: 8 }],
       weights: [{ date: day }],
-      measurements: [],
       sessions: [finished("a", day)],
       sets: [
         ...sets("a", 8, "bench"), ...sets("a", 4, "row"), ...sets("a", 4, "squat"),
@@ -218,7 +216,6 @@ describe("quest XP", () => {
     const everything: QuestInput = {
       checkins: days.map((date) => ({ date, kind: "gym" as const, mood: 3, energy: 3, sleep_hours: 7 })),
       weights: days.map((date) => ({ date })),
-      measurements: [{ date: MON }],
       sessions: days.map((date, i) => finished(`s${i}`, date)),
       sets: days.flatMap((_, i) => [
         ...sets(`s${i}`, 10, "bench"), ...sets(`s${i}`, 2, "row"), ...sets(`s${i}`, 2, "squat"),
@@ -242,7 +239,7 @@ describe("quest XP", () => {
 });
 
 describe("quests in the XP total", () => {
-  const base: XpInput = { checkins: [], weights: [], measurements: [], photos: [], sessions: [], sets: [], welcomeBoost: false };
+  const base: XpInput = { checkins: [], weights: [], photos: [], sessions: [], sets: [], welcomeBoost: false };
   const line = (xp: ReturnType<typeof computeXp>) => xp.lines.find((l) => l.source === "quests")!;
 
   it("leaves quests out unless asked, so the plain XP rules stay as they were", () => {

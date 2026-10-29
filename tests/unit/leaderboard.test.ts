@@ -108,14 +108,13 @@ describe("boardXp", () => {
     const xp = computeXp({
       checkins: [{ date: today, kind: "gym" }],
       weights: [{ date: today }],
-      measurements: [{ date: today }],
       photos: [{ date: today }],
       sessions: [{ id: "w", date: today, ended_at: `${today}T11:00:00.000Z` }],
       sets: Array.from({ length: 30 }, () => ({ session_id: "w" })),
       boostedDays: [today],
     });
-    // 20 + 10 + 10 + 10 + 40 + 60 = 150, doubled.
-    expect(xp.byDate[today]).toBe(300);
+    // 20 + 10 + 10 + 40 + 60 = 140, doubled.
+    expect(xp.byDate[today]).toBe(280);
     expect(boardXp(xp, today).total).toBe(xp.total);
   });
 

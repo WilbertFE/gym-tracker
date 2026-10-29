@@ -11,22 +11,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { compareProgress, describeSpan } from "@/lib/progress";
-import type { BodyMeasurement, PhotoPose, ProgressPhoto, WeightLog } from "@/lib/types";
+import type { PhotoPose, ProgressPhoto, WeightLog } from "@/lib/types";
 import { displayChange, displayWeight, type WeightUnit } from "@/lib/units";
 import { PhotoImage } from "./photo-image";
 
 type PhotoCompareProps = {
   photos: ProgressPhoto[];
   weights: WeightLog[];
-  measurements: BodyMeasurement[];
   unit: WeightUnit;
 };
 
 const fmtDate = (d: string) => format(parseISO(d), "d MMM yyyy");
-const signed = (n: number, digits = 1) => `${n > 0 ? "+" : ""}${n.toFixed(digits)}`;
 
-/** Same pose, two dates, side by side, with the weight and measurement change between them. */
-export function PhotoCompare({ photos, weights, measurements, unit }: PhotoCompareProps) {
+/** Same pose, two dates, side by side, with the weight change between them. */
+export function PhotoCompare({ photos, weights, unit }: PhotoCompareProps) {
   const firstPose = (["front", "side", "back"] as PhotoPose[]).find((p) =>
     photos.some((x) => x.pose === p),
   );
@@ -44,7 +42,7 @@ export function PhotoCompare({ photos, weights, measurements, unit }: PhotoCompa
 
   const comparison =
     before && after && ofPose.length >= 2
-      ? compareProgress({ beforeDate: before.date, afterDate: after.date, weights, measurements })
+      ? compareProgress({ beforeDate: before.date, afterDate: after.date, weights })
       : null;
 
   const options = ofPose.map((p) => ({ value: p.id, label: fmtDate(p.date) }));
@@ -114,22 +112,11 @@ export function PhotoCompare({ photos, weights, measurements, unit }: PhotoCompa
                   </dd>
                 </div>
               )}
-              {comparison.measurements.map((m) => (
-                <div key={m.key} className="flex flex-col gap-1">
-                  <dt className="text-[11px] uppercase tracking-widest text-muted-foreground">{m.label}</dt>
-                  <dd className="tabular text-lg">
-                    {signed(m.change)} <span className="text-xs text-muted-foreground">{m.unit}</span>
-                    <span className="block text-[11px] text-muted-foreground">
-                      {m.before} to {m.after}
-                    </span>
-                  </dd>
-                </div>
-              ))}
             </dl>
           )}
-          {comparison && !comparison.weight && comparison.measurements.length === 0 && (
+          {comparison && !comparison.weight && (
             <p className="text-xs text-muted-foreground">
-              No weight or measurements were logged on or before both dates, so only the photos are compared.
+              No weight was logged on or before both dates, so only the photos are compared.
             </p>
           )}
         </>

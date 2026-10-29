@@ -19,7 +19,7 @@ import { GET as getBoosts, POST as postBoost } from "@/app/api/boosts/route";
 import { addDaysISO } from "@/lib/week";
 
 const today = format(new Date(), "yyyy-MM-dd");
-const base: XpInput = { checkins: [], weights: [], measurements: [], photos: [], sessions: [], sets: [] };
+const base: XpInput = { checkins: [], weights: [], photos: [], sessions: [], sets: [] };
 const line = (xp: ReturnType<typeof computeXp>, source: string) => xp.lines.find((l) => l.source === source)!;
 
 describe("welcome boost window", () => {

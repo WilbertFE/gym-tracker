@@ -55,7 +55,7 @@ export default function BodyPage() {
           href="/body/progress"
           className="flex min-h-12 items-center justify-between border border-primary/25 bg-card px-4 text-sm hover:border-primary/60 hover:bg-surface-raised"
         >
-          Progress photos and measurements
+          Progress photos
           <span aria-hidden className="text-muted-foreground">&rarr;</span>
         </Link>
       </nav>

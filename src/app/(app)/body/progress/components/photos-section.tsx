@@ -1,7 +1,6 @@
 import { Panel } from "@/components/panel";
 import { getCurrentUserId } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
-import { listMeasurements } from "@/lib/repositories/measurements";
 import { listPhotos } from "@/lib/repositories/photos";
 import { getSettings } from "@/lib/repositories/settings";
 import { listWeights } from "@/lib/repositories/weights";
@@ -11,10 +10,9 @@ import { PhotoUploadForm } from "./photo-upload-form";
 
 export async function PhotosSection() {
   const userId = await getCurrentUserId();
-  const [photos, weights, measurements, settings] = await Promise.all([
+  const [photos, weights, settings] = await Promise.all([
     listPhotos(userId),
     listWeights(userId),
-    listMeasurements(userId),
     getSettings(userId),
   ]);
 
@@ -24,7 +22,6 @@ export async function PhotosSection() {
         <PhotoCompare
           photos={photos}
           weights={weights}
-          measurements={measurements}
           unit={settings.weight_unit}
         />
       </Panel>

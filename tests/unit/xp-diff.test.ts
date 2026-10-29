@@ -108,7 +108,6 @@ describe("affectsXp", () => {
     "/api/checkins/abc",
     "/api/weights",
     "/api/weights/abc",
-    "/api/measurements",
     "/api/photos",
     "/api/workouts/abc/finish",
     "/api/workouts/abc/sets",

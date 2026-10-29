@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import { contentTypeForPath, detectImageType } from "@/lib/photo-file";
 import {
   compareProgress,
-  deltaVsPrevious,
   describeSpan,
   latestOnOrBefore,
 } from "@/lib/progress";
-import type { BodyMeasurement, WeightLog } from "@/lib/types";
+import type { WeightLog } from "@/lib/types";
 
 const bytes = (...n: number[]) => new Uint8Array(n);
 const ascii = (s: string) => new TextEncoder().encode(s);
@@ -56,19 +55,6 @@ const weight = (date: string, weight_kg: number): WeightLog => ({
   notes: null,
 });
 
-const measure = (date: string, m: Partial<BodyMeasurement>): BodyMeasurement => ({
-  id: date,
-  user_id: "u",
-  date,
-  chest_cm: null,
-  waist_cm: null,
-  hips_cm: null,
-  arm_cm: null,
-  thigh_cm: null,
-  body_fat_pct: null,
-  ...m,
-});
-
 describe("latestOnOrBefore", () => {
   const rows = [{ date: "2026-10-10" }, { date: "2026-10-01" }, { date: "2026-10-20" }];
 
@@ -86,50 +72,25 @@ describe("latestOnOrBefore", () => {
 
 describe("compareProgress", () => {
   const weights = [weight("2026-08-01", 72.4), weight("2026-09-12", 71.1), weight("2026-10-17", 69.9)];
-  const measurements = [
-    measure("2026-08-01", { waist_cm: 84, chest_cm: 98, body_fat_pct: 19 }),
-    measure("2026-09-12", { waist_cm: 82.5, arm_cm: 34 }),
-    measure("2026-10-17", { waist_cm: 81, chest_cm: 101, arm_cm: 35 }),
-  ];
 
   it("uses the nearest values on or before each photo date", () => {
     const c = compareProgress({
       beforeDate: "2026-08-03",
       afterDate: "2026-10-20",
       weights,
-      measurements,
     });
     expect(c.daysApart).toBe(78);
     expect(c.weight).toEqual({ before: 72.4, after: 69.9, change: -2.5 });
-
-    const byKey = Object.fromEntries(c.measurements.map((m) => [m.key, m]));
-    expect(byKey.waist_cm).toMatchObject({ before: 84, after: 81, change: -3 });
-    expect(byKey.chest_cm).toMatchObject({ before: 98, after: 101, change: 3 });
-    expect(byKey.body_fat_pct).toBeUndefined(); // no value at the after date
-    expect(byKey.arm_cm).toBeUndefined(); // no value at the before date
   });
 
   it("skips weight when a date has no earlier entry", () => {
-    const c = compareProgress({ beforeDate: "2026-07-01", afterDate: "2026-10-20", weights, measurements });
+    const c = compareProgress({ beforeDate: "2026-07-01", afterDate: "2026-10-20", weights });
     expect(c.weight).toBeNull();
-    expect(c.measurements).toEqual([]);
   });
 
   it("reports a negative span if the dates are swapped", () => {
-    const c = compareProgress({ beforeDate: "2026-10-20", afterDate: "2026-10-10", weights, measurements });
+    const c = compareProgress({ beforeDate: "2026-10-20", afterDate: "2026-10-10", weights });
     expect(c.daysApart).toBe(-10);
-  });
-
-  it("omits a metric when both dates resolve to the same entry", () => {
-    const c = compareProgress({
-      beforeDate: "2026-08-03",
-      afterDate: "2026-09-20",
-      weights,
-      measurements,
-    });
-    // Body fat and chest were only recorded on 2026-08-01 before the second date,
-    // so there is nothing to compare. Waist has two entries.
-    expect(c.measurements.map((m) => m.key)).toEqual(["waist_cm"]);
   });
 
   it("omits weight when both dates resolve to the same entry", () => {
@@ -137,27 +98,8 @@ describe("compareProgress", () => {
       beforeDate: "2026-08-05",
       afterDate: "2026-09-01",
       weights,
-      measurements,
     });
     expect(c.weight).toBeNull();
-  });
-});
-
-describe("deltaVsPrevious", () => {
-  const rowsDesc = [
-    measure("2026-10-17", { waist_cm: 81, arm_cm: 35 }),
-    measure("2026-09-12", { waist_cm: 82.5 }),
-    measure("2026-08-01", { waist_cm: 84, arm_cm: 33.5 }),
-  ];
-
-  it("compares with the previous entry that has the metric", () => {
-    expect(deltaVsPrevious(rowsDesc, 0, "waist_cm")).toBe(-1.5);
-    expect(deltaVsPrevious(rowsDesc, 0, "arm_cm")).toBe(1.5); // skips the entry without arm
-  });
-
-  it("is null for the oldest entry or a missing value", () => {
-    expect(deltaVsPrevious(rowsDesc, 2, "waist_cm")).toBeNull();
-    expect(deltaVsPrevious(rowsDesc, 1, "arm_cm")).toBeNull();
   });
 });
 

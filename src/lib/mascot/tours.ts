@@ -65,7 +65,7 @@ export const TOURS: readonly Tour[] = [
     steps: [
       { target: "heatmap", title: "Muscle heatmap", text: "The more you train a muscle, the brighter it glows. Dark spots are muscles you have been skipping.", pose: "point" },
       { target: "body-tabs", title: "Muscles and weight", text: "Switch between the heatmap and your body weight. Logging your weight earns XP too.", pose: "point" },
-      { target: "progress-link", title: "Photos and measurements", text: "Keep progress photos and body measurements here, privately.", pose: "point" },
+      { target: "progress-link", title: "Progress photos", text: "Keep your progress photos here, privately, and compare two dates.", pose: "point" },
     ],
   },
   {

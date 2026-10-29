@@ -142,7 +142,7 @@ describe("rank trials", () => {
 
 describe("the comeback quest", () => {
   const START = "2026-10-28";
-  const empty: QuestInput = { checkins: [], weights: [], measurements: [], sessions: [], sets: [], recovery: true };
+  const empty: QuestInput = { checkins: [], weights: [], sessions: [], sets: [], recovery: true };
   const checkin = (date: string) => ({ date, kind: "gym" as const });
 
   it("does not appear for a new account or after a good day", () => {

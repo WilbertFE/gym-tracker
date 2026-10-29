@@ -136,7 +136,7 @@ describe("PUT /api/equipment", () => {
 });
 
 describe("the XP from a repeat", () => {
-  const base = { checkins: [], weights: [], measurements: [], photos: [], sessions: [], sets: [], welcomeBoost: false };
+  const base = { checkins: [], weights: [], photos: [], sessions: [], sets: [], welcomeBoost: false };
 
   it("counts on the day the chest was opened, as its own line", () => {
     const xp = computeXp({ ...base, chestBonuses: [{ date: "2026-11-02", xp: 6 }, { date: "2026-11-03", xp: 3 }] });

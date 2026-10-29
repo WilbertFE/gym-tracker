@@ -97,7 +97,6 @@ export function mergeGains(first: XpGain, next: XpGain): XpGain {
 const XP_ROUTES = [
   /^\/api\/checkins(\/|$)/,
   /^\/api\/weights(\/|$)/,
-  /^\/api\/measurements(\/|$)/,
   /^\/api\/photos(\/|$)/,
   /^\/api\/workouts\/[^/]+\/(finish|sets)(\/|$)/,
   /^\/api\/workouts\/[^/]+$/,
