@@ -45,7 +45,7 @@ export async function CollectionView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Panel label="Chests" variant="system">
+      <Panel label="Chests" variant="system" tour="chests">
         {chests.enabled ? (
           <>
             <p className="text-sm text-muted-foreground">
@@ -68,7 +68,7 @@ export async function CollectionView() {
       <CollectionClient rank={level.rank} level={level.level} name={displayName} title={title} owned={collection.owned} worn={worn} />
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Panel label="The odds" variant="plain">
+        <Panel label="The odds" variant="plain" tour="odds">
           <table className="w-full text-sm">
             <caption className="sr-only">Chance of each grade, by chest</caption>
             <thead>
@@ -110,7 +110,7 @@ export async function CollectionView() {
           </ul>
         </Panel>
 
-        <Panel label="Opened" variant="plain">
+        <Panel label="Opened" variant="plain" tour="opened">
           {history.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nothing opened yet. Your first chest is waiting for you to finish a day of quests.</p>
           ) : (

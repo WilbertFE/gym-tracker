@@ -28,7 +28,7 @@ export async function WorkoutsOverview() {
   return (
     <div className="flex flex-col gap-6">
       {active ? (
-        <Panel label="In progress">
+        <Panel label="In progress" tour="start">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex flex-col gap-1">
               <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -45,7 +45,7 @@ export async function WorkoutsOverview() {
           </div>
         </Panel>
       ) : (
-        <Panel label="Start">
+        <Panel label="Start" tour="start">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
               No workout in progress. Duration is tracked automatically.
@@ -55,7 +55,7 @@ export async function WorkoutsOverview() {
         </Panel>
       )}
 
-      <Panel label="History">
+      <Panel label="History" tour="history">
         {finished.length === 0 ? (
           <p className="text-sm text-muted-foreground">No finished workouts yet.</p>
         ) : (

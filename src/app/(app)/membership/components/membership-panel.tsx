@@ -19,7 +19,7 @@ export async function MembershipPanel() {
 
   if (!current) {
     return (
-      <Panel label="Membership">
+      <Panel label="Membership" tour="membership">
         <p className="mb-4 text-sm text-muted-foreground">
           No membership yet. Add your dates to get an expiry warning.
         </p>
@@ -40,7 +40,7 @@ export async function MembershipPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Panel label={current.gym_name}>
+      <Panel label={current.gym_name} tour="membership">
         <div className="flex flex-col gap-4">
           <LocationLine
             gymName={current.gym_name}
@@ -91,7 +91,7 @@ export async function MembershipPanel() {
         </div>
       </Panel>
 
-      <Panel label="Edit membership">
+      <Panel label="Edit membership" tour="edit-membership">
         <MembershipForm today={today} existing={current} defaultCurrency={settings.currency} />
       </Panel>
     </div>

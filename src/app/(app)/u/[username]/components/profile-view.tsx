@@ -34,7 +34,7 @@ function Header({ view }: { view: PublicProfile }) {
   const rank = view.level ? view.level.rank : null;
 
   return (
-    <section aria-label="Player" className="system-window p-4 sm:p-6" data-glow style={style}>
+    <section aria-label="Player" data-tour="player" className="system-window p-4 sm:p-6" data-glow style={style}>
       <div className="flex items-center gap-4 sm:gap-6">
         {rank ? (
           worn.aura ? (
@@ -85,7 +85,7 @@ function Stats({ view }: { view: PublicProfile }) {
   if (!view.stats) return null;
   const ceiling = Math.max(60, Math.ceil((Math.max(...view.stats.map((s) => s.value)) * 1.2) / 10) * 10);
   return (
-    <Panel label="Stats" variant="system">
+    <Panel label="Stats" variant="system" tour="profile-stats">
       <HiddenNote view={view} section="stats" />
       <div className="grid items-center gap-4 sm:grid-cols-2">
         <ul className="flex flex-col divide-y">
@@ -123,7 +123,7 @@ function Collection({ view }: { view: PublicProfile }) {
   const perGrade = GRADE_ORDER.map((g) => ({ grade: g, have: owned.filter((i) => i.grade === g).length, total: ITEMS.filter((i) => i.grade === g).length }));
 
   return (
-    <Panel label={`Collection, ${owned.length} of ${ITEMS.length}`} variant="system">
+    <Panel label={`Collection, ${owned.length} of ${ITEMS.length}`} variant="system" tour="profile-collection">
       <HiddenNote view={view} section="collection" />
       <ul className="mb-4 flex flex-wrap gap-2" aria-label="Items found by grade">
         {perGrade.map(({ grade, have, total }) => (

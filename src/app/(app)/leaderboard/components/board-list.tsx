@@ -72,7 +72,7 @@ export function BoardList({
   const meInList = me !== null && rows.some((r) => r.is_me);
 
   return (
-    <Panel label={label}>
+    <Panel label={label} tour="board">
       <p className="mb-3 text-xs text-muted-foreground">{note}</p>
 
       {rows.length === 0 ? (

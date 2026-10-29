@@ -24,7 +24,7 @@ export default function WorkoutsPage() {
       <Suspense fallback={<Skeleton className="h-64 w-full" />}>
         <WorkoutsOverview />
       </Suspense>
-      <nav aria-label="Workout tools">
+      <nav aria-label="Workout tools" data-tour="library">
         <Link
           href="/workouts/exercises"
           className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"

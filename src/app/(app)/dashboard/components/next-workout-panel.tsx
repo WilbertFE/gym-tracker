@@ -22,7 +22,7 @@ export async function NextWorkoutPanel() {
   const active = sessions.find((s) => s.ended_at === null);
   if (active) {
     return (
-      <Panel label="Workout in progress">
+      <Panel label="Workout in progress" tour="train">
         <div className="flex flex-col gap-4">
           <ElapsedTimer since={active.started_at} className="tabular text-5xl font-medium leading-none" />
           <Link
@@ -39,7 +39,7 @@ export async function NextWorkoutPanel() {
   const suggestion = suggestNextWorkout({ sessions, sets, exercises, today: todayISO() });
 
   return (
-    <Panel label="2. Start training">
+    <Panel label="2. Start training" tour="train">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <p className="text-3xl font-semibold">{FOCUS_LABELS[suggestion.focus]}</p>

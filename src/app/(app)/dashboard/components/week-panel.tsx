@@ -32,7 +32,7 @@ export async function WeekPanel() {
   const label = `This week, ${format(parseISO(start), "d MMM")} to ${format(parseISO(end), "d MMM")}`;
 
   return (
-    <Panel label={label}>
+    <Panel label={label} tour="week">
       <div className="flex flex-col gap-6">
         <div className="grid grid-cols-2 gap-4">
           <Stat

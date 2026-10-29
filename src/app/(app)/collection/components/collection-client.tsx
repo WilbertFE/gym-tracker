@@ -94,7 +94,7 @@ export function CollectionClient({ rank, level, name, title, owned, worn }: Coll
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
       <div className="flex flex-col gap-4 lg:sticky lg:top-6">
-        <Panel label="You, wearing" variant="system">
+        <Panel label="You, wearing" variant="system" tour="looks">
           <LoadoutPreview rank={rank} level={level} name={name} title={title} equipment={shown} previewing={changes.length > 0} />
 
           <ul className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">

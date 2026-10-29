@@ -7,16 +7,19 @@ type PanelProps = {
   variant?: "plain" | "system" | "danger";
   children: ReactNode;
   className?: string;
+  /** The `data-tour` target Sera's tours point at. */
+  tour?: string;
 };
 
 /** HUD card: a System window with a bracketed label in the display face. */
-export function Panel({ label, children, className, variant = "plain" }: PanelProps) {
+export function Panel({ label, children, className, tour, variant = "plain" }: PanelProps) {
   const plain = variant === "plain";
   return (
     <section
       className={cn("system-window p-4", className)}
       data-glow={plain ? undefined : ""}
       data-danger={variant === "danger" ? "" : undefined}
+      data-tour={tour}
     >
       <h2
         className={cn(

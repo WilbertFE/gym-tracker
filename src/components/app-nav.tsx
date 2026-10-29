@@ -70,6 +70,7 @@ export function AppNav({ level, showAll }: { level: number; showAll: boolean }) 
       {/* Desktop left rail */}
       <nav
         aria-label="Primary"
+        data-tour="nav"
         className="fixed inset-y-0 left-0 hidden w-56 flex-col border-r border-primary/25 bg-sidebar p-4 shadow-[8px_0_40px_-20px_var(--primary)] md:flex"
       >
         <p className="font-display mb-8 text-xs font-semibold uppercase tracking-[0.25em] text-primary [text-shadow:0_0_12px_var(--primary)]">
@@ -111,6 +112,7 @@ export function AppNav({ level, showAll }: { level: number; showAll: boolean }) 
       {/* Mobile bottom tab bar */}
       <nav
         aria-label="Primary"
+        data-tour="nav"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/30 bg-sidebar/95 shadow-[0_-8px_30px_-16px_var(--primary)] backdrop-blur md:hidden"
       >
         <ul className="grid auto-cols-fr grid-flow-col">

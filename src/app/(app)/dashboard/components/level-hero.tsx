@@ -19,13 +19,14 @@ export async function LevelHero() {
   const boostersOpen = isUnlocked("boosters", level.level, showAll);
   const leaderboardOpen = isUnlocked("leaderboard", level.level, showAll);
   const statusOpen = isUnlocked("status", level.level, showAll);
+  const profileOpen = isUnlocked("profile", level.level, showAll);
   const percent = Math.round(level.progress * 100);
   const frame = collection.equipment.frame ? itemById(collection.equipment.frame) : null;
   const aura = collection.equipment.aura ? itemById(collection.equipment.aura) : null;
 
   return (
     <section aria-label="Your level" className="system-window p-4 sm:p-6" data-glow style={aura ? ({ "--aura": aura.value } as CSSProperties) : undefined}>
-      <div className="flex items-center gap-4 sm:gap-6">
+      <div className="flex items-center gap-4 sm:gap-6" data-tour="level">
         {aura ? (
           <span className="flex size-[136px] shrink-0 items-center justify-center sm:size-[150px]">
             <AuraArt color={aura.value} kind={auraKindFor(aura.id)} size={104} animated>
@@ -128,12 +129,14 @@ export async function LevelHero() {
             Leaderboard
           </Link>
         )}
-        <Link
-          href="/profile"
-          className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Profile
-        </Link>
+        {profileOpen && (
+          <Link
+            href="/profile"
+            className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Profile
+          </Link>
+        )}
         <Link
           href="/guide"
           className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"

@@ -25,7 +25,7 @@ export async function BestTimesPanel() {
   const slots = suggestSlots({ blocks, sessions, now, durationMinutes: duration });
 
   return (
-    <Panel label="Best times to train">
+    <Panel label="Best times to train" tour="best-times">
       {slots.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No free slot in the next 7 days. Check your commitments below.

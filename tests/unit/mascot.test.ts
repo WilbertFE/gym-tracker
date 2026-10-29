@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { buildContext, currentStreak, type ContextInput } from "@/lib/mascot/context";
 import { pageHelp } from "@/lib/mascot/pages";
 import { NODE_IDS, renderNode } from "@/lib/mascot/script";
-import { DEFAULT_PREFS, emptyMemory, endOfDay, isSilenced, markTold, MAX_MOMENTS_PER_DAY, parseMemory, rollDay, withLevel, type Memory, type Prefs } from "@/lib/mascot/state";
+import { DEFAULT_PREFS, emptyMemory, endOfDay, isSilenced, markTold, MAX_MOMENTS_PER_DAY, MAX_STAGES_PER_DAY, parseMemory, rollDay, withLevel, type Memory, type Prefs } from "@/lib/mascot/state";
 import { suggestNext } from "@/lib/mascot/suggest";
 import { COMEBACK_DAYS, isWorkoutScreen, pickLockedPageMoment, pickMoment } from "@/lib/mascot/triggers";
 import { MOODS, type SeraContext } from "@/lib/mascot/types";
+import { TOUR_IDS } from "@/lib/mascot/tours";
 import { FEATURES } from "@/lib/unlocks";
 import { xpForLevel } from "@/lib/xp";
 
@@ -32,6 +33,7 @@ const input = (over: Partial<ContextInput> = {}): ContextInput => ({
   chestsWaiting: 0,
   quests: null,
   lastActivity: null,
+  gate: { weekStart: "2026-11-09", name: "Gate of Iron", boss: "Stone Warden", rank: "C", xp: 40, booster: false, cleared: false },
   ...over,
 });
 
@@ -139,7 +141,7 @@ describe("the script", () => {
     ["show all", ctx({ showAll: true })],
   ];
   const argsFor = (id: string) =>
-    id === "unlock" ? { features: ["body" as const, "quests" as const] } : id === "lockedPage" ? { featureId: "body" as const } : id === "page" ? { path: "/dashboard" } : {};
+    id === "lockedPage" ? { featureId: "body" as const } : id === "page" ? { path: "/dashboard" } : {};
 
   it("has every node render for every kind of user", () => {
     for (const id of NODE_IDS) {
@@ -170,7 +172,7 @@ describe("the script", () => {
     for (const id of NODE_IDS) {
       for (const [, c] of contexts) {
         for (const reply of renderNode(id, c, argsFor(id)).replies) {
-          const targets = [reply.next, reply.action, reply.href].filter((t) => t !== undefined);
+          const targets = [reply.next, reply.action, reply.href, reply.tour].filter((t) => t !== undefined);
           expect(targets.length, `${id}: ${reply.label}`).toBe(1);
           if (reply.next) expect(NODE_IDS, `${id} -> ${reply.next}`).toContain(reply.next);
           if (reply.href) expect(reply.href).toMatch(/^\//);
@@ -180,7 +182,7 @@ describe("the script", () => {
   });
 
   it("can be reached: every node is the target of another, or is a moment she speaks up with", () => {
-    const moments = new Set(["welcome", "intro", "unlock", "lockedPage", "firstWorkout", "chest", "comeback", "nudge", "menu", "quietDone", "offDone", "allOpen"]);
+    const moments = new Set(["intro", "lockedPage", "chest", "nudge", "tourOffer", "menu", "quietDone", "offDone", "allOpen"]);
     const reached = new Set<string>(moments);
     for (const id of NODE_IDS) for (const [, c] of contexts) for (const r of renderNode(id, c, argsFor(id)).replies) if (r.next) reached.add(r.next);
     for (const id of NODE_IDS) expect(reached.has(id), id).toBe(true);
@@ -210,12 +212,6 @@ describe("the script", () => {
     expect(renderNode("lockedPage", veteran(), { featureId: "body" }).lines.join(" ")).toContain("not open yet");
   });
 
-  it("says what opened, and links to the first thing", () => {
-    const node = renderNode("unlock", ctx({ level: 5 }), { features: ["quests", "schedule"] });
-    expect(node.lines[0]).toBe("Daily and weekly quests and Schedule just opened.");
-    expect(node.replies[0].href).toBe("/dashboard");
-  });
-
   it("has a line for every page of the app", () => {
     for (const path of ["/dashboard", "/workouts", "/workouts/abc", "/workouts/exercises", "/body", "/schedule", "/status", "/leaderboard", "/collection", "/profile", "/u/ayu", "/membership", "/settings", "/guide", "/dashboard/level", "/body/progress"]) {
       expect(pageHelp(path), path).not.toBeNull();
@@ -235,6 +231,7 @@ describe("what she remembers", () => {
       told: { welcome: "2026-11-01" },
       day: "2026-11-01",
       shownToday: 2,
+      stagesToday: 0,
       lastLevel: 4,
     });
     expect(parseMemory('{"v":1,"told":{"a":5,"b":"2026-11-01"},"day":3,"shownToday":"x","lastLevel":null}', TODAY).told).toEqual({ b: "2026-11-01" });
@@ -275,7 +272,11 @@ describe("what she remembers", () => {
 describe("when she speaks up", () => {
   const pick = (over: { ctx?: SeraContext; path?: string; memory?: Memory; prefs?: Prefs; chatOpen?: boolean } = {}) =>
     pickMoment({ ctx: over.ctx ?? ctx(), path: over.path ?? "/dashboard", memory: over.memory ?? emptyMemory(TODAY), prefs: over.prefs ?? DEFAULT_PREFS, now: NOW, today: TODAY, chatOpen: over.chatOpen ?? false });
-  const told = (...keys: string[]): Memory => ({ ...emptyMemory(TODAY), told: Object.fromEntries(keys.map((k) => [k, TODAY])) });
+  // Today's hello and every tour offer count as told, so each test sees only the moment it is about.
+  const told = (...keys: string[]): Memory => ({
+    ...emptyMemory(TODAY),
+    told: Object.fromEntries([...keys, `daily:${TODAY}`, ...TOUR_IDS.map((id) => `tour:${id}`)].map((k) => [k, TODAY])),
+  });
 
   it("welcomes a brand new account, once", () => {
     expect(pick()).toMatchObject({ key: "welcome", node: "welcome" });
@@ -344,7 +345,7 @@ describe("when she speaks up", () => {
   });
 
   it(`never says more than ${MAX_MOMENTS_PER_DAY} things on her own in a day`, () => {
-    const memory: Memory = { ...emptyMemory(TODAY), shownToday: MAX_MOMENTS_PER_DAY };
+    const memory: Memory = { ...emptyMemory(TODAY), shownToday: MAX_MOMENTS_PER_DAY, stagesToday: MAX_STAGES_PER_DAY };
     expect(pick({ memory })).toBeNull();
     // The next day it starts over.
     expect(pickMoment({ ctx: ctx(), path: "/dashboard", memory, prefs: DEFAULT_PREFS, now: new Date("2026-11-11T09:00:00"), today: "2026-11-11", chatOpen: false })).not.toBeNull();

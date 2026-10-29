@@ -17,7 +17,7 @@ export async function HeatmapPanel() {
   const stats = buildMuscleStats({ sessions, sets, exercises, today: todayISO() });
 
   return (
-    <Panel label="Muscle heatmap">
+    <Panel label="Muscle heatmap" tour="heatmap">
       <BodyHeatmap stats={stats} />
     </Panel>
   );

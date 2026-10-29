@@ -9,6 +9,9 @@ export const PREFS_EVENT = "ml:sera-prefs";
 /** A page that wants her to speak about itself sends this, with the locked feature in `detail`. */
 export const CUE_EVENT = "ml:sera-cue";
 
+/** The demo-only sheet sends this to play a stage or a tour on purpose, with `{ stage?, tour? }` in `detail`. */
+export const PLAY_EVENT = "ml:sera-play";
+
 const read = (key: string): string | null => {
   try {
     return localStorage.getItem(key);

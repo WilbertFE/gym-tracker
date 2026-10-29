@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export function MuscleLevels({ muscles }: { muscles: MuscleLevel[] }) {
   const sorted = [...muscles].sort((a, b) => b.level - a.level || b.weighted - a.weighted);
   return (
-    <Panel label="Muscle levels" variant="system">
+    <Panel label="Muscle levels" variant="system" tour="muscle-levels">
       <ul className="grid gap-x-6 sm:grid-cols-2">
         {sorted.map((m) => (
           <li key={m.muscle} className="flex flex-col gap-1 border-b py-2">
@@ -38,7 +38,7 @@ export function MuscleLevels({ muscles }: { muscles: MuscleLevel[] }) {
 /** Every title and how to earn it, the worn one marked. Opens at level 10. */
 export function Titles({ titles, worn }: { titles: TitleStatus[]; worn: string | null }) {
   return (
-    <Panel label="Titles" variant="system">
+    <Panel label="Titles" variant="system" tour="titles">
       <p className="mb-3 text-sm text-muted-foreground">
         {worn ? (
           <>

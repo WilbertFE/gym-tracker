@@ -102,7 +102,7 @@ export async function QuestsPanel() {
         </SystemTip>
       )}
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Panel label="Daily quests" variant="system">
+        <Panel label="Daily quests" variant="system" tour="quests">
           <ul className="flex flex-col divide-y" aria-label="Daily quests">
             {quests.recovery && <QuestRow key={quests.recovery.quest.id} status={quests.recovery} />}
             {quests.daily.map((s) => (

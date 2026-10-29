@@ -34,7 +34,7 @@ export async function CheckinPanel() {
   const trainedDays = week.filter((d) => d.checkin && didTrain(d.checkin.kind)).length;
 
   return (
-    <Panel label="1. Check in">
+    <Panel label="1. Check in" tour="checkin">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3">
           <Stat label="Streak" value={streak.current} unit="d" hint={`Trained ${trainedDays}x in the last 7 days`} />

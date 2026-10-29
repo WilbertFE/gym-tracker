@@ -15,7 +15,7 @@ export function GettingStarted({ steps, lockedSteps = {} }: { steps: GuideStep[]
   const next = steps.find((s) => !s.done && lockedSteps[s.id] === undefined);
 
   return (
-    <Panel label="Getting started" variant="system">
+    <Panel label="Getting started" variant="system" tour="guide">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">

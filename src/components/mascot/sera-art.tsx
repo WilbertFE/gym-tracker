@@ -141,10 +141,124 @@ function Eye({ cx, kind, clip, iris }: EyeProps) {
   );
 }
 
+export type Pose = "idle" | "wave" | "point" | "cheer";
+
+export const POSES: readonly Pose[] = ["idle", "wave", "point", "cheer"];
+
+/** A sleeve is a thick stroke with an outline under it, so an arm is one path. */
+function Sleeve({ d }: { d: string }) {
+  return (
+    <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d={d} stroke={COLOR.line} strokeWidth={34} />
+      <path d={d} stroke={COLOR.jacketLight} strokeWidth={30} />
+      <path d={d} stroke={COLOR.piping} strokeWidth={1.6} opacity={0.55} transform="translate(-9 0)" />
+    </g>
+  );
+}
+
+const skinStroke = { fill: COLOR.skin, stroke: COLOR.line, strokeWidth: 2, strokeLinejoin: "round" } as const;
+
+/** An open hand, fingers up, for waving. The origin is the wrist. */
+function OpenHand() {
+  return (
+    <g>
+      {[-12, -4, 4, 12].map((x, i) => (
+        <rect key={x} x={x - 3.6} y={-38 - (i === 1 || i === 2 ? 4 : 0)} width={7.2} height={26 + (i === 1 || i === 2 ? 4 : 0)} rx={3.6} {...skinStroke} />
+      ))}
+      <path d="M-16 -16 C-24 -22 -22 -34 -17 -30" {...skinStroke} />
+      <ellipse cx={0} cy={-8} rx={16} ry={14} {...skinStroke} />
+      <path d="M-8 -14 Q0 -10 8 -14" stroke={COLOR.skinShade} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+    </g>
+  );
+}
+
+/** A fist, for cheering. The origin is the middle of the fist. */
+function Fist() {
+  return (
+    <g>
+      <ellipse cx={0} cy={0} rx={15} ry={14} {...skinStroke} />
+      <path d="M-9 -4 Q0 -8 9 -4 M-9 3 Q0 -1 9 3" stroke={COLOR.skinShade} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+      <path d="M-13 6 C-18 8 -17 -1 -13 -2" {...skinStroke} />
+    </g>
+  );
+}
+
+/** A hand with one finger up, to say "look here". The origin is the wrist. */
+function PointingHand() {
+  return (
+    <g>
+      <rect x={-3.6} y={-50} width={7.2} height={34} rx={3.6} {...skinStroke} />
+      <ellipse cx={0} cy={-8} rx={15} ry={13} {...skinStroke} />
+      <path d="M-9 -10 Q0 -6 9 -10 M-9 -3 Q0 1 9 -3" stroke={COLOR.skinShade} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+    </g>
+  );
+}
+
+/** The arms and hands of the half body. The torso is already drawn; these sit over it. */
+function Arms({ pose }: { pose: Pose }) {
+  const down = (side: "l" | "r") => (side === "l" ? "M52 238 C30 290 38 345 62 392" : "M188 238 C210 290 202 345 178 392");
+  switch (pose) {
+    case "wave":
+      return (
+        <g>
+          <Sleeve d={down("l")} />
+          <ellipse cx={66} cy={398} rx={14} ry={11} {...skinStroke} />
+          <Sleeve d="M188 240 C226 250 238 206 222 166" />
+          <g transform="translate(222 164)">
+            <g className="sera-hand-wave">
+              <OpenHand />
+            </g>
+          </g>
+        </g>
+      );
+    case "point":
+      return (
+        <g>
+          <Sleeve d={down("l")} />
+          <ellipse cx={66} cy={398} rx={14} ry={11} {...skinStroke} />
+          <Sleeve d="M188 240 C222 246 232 210 220 172" />
+          <g transform="translate(220 170)">
+            <g className="sera-hand-bob">
+              <PointingHand />
+            </g>
+          </g>
+        </g>
+      );
+    case "cheer":
+      return (
+        <g>
+          <Sleeve d="M52 240 C16 236 6 196 24 158" />
+          <g transform="translate(24 150)">
+            <g className="sera-hand-bob">
+              <Fist />
+            </g>
+          </g>
+          <Sleeve d="M188 240 C224 236 234 196 216 158" />
+          <g transform="translate(216 150)">
+            <g className="sera-hand-bob">
+              <Fist />
+            </g>
+          </g>
+        </g>
+      );
+    default:
+      return (
+        <g>
+          <Sleeve d="M52 238 C30 290 46 346 100 366" />
+          <Sleeve d="M188 238 C210 290 194 346 140 366" />
+          <ellipse cx={120} cy={368} rx={24} ry={13} {...skinStroke} />
+          <path d="M104 366 Q120 374 136 366 M108 372 L132 372" stroke={COLOR.skinShade} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+        </g>
+      );
+  }
+}
+
 type SeraArtProps = {
   mood?: Mood;
-  /** `bust` is head and shoulders, `avatar` the head only. */
-  view?: "bust" | "avatar";
+  /** `bust` is head and shoulders, `half` is down to the waist with her arms, `avatar` the head only. */
+  view?: "bust" | "half" | "avatar";
+  /** What her arms do, in the half view. */
+  pose?: Pose;
   /** Width in pixels. The height follows. */
   size?: number;
   /** The mouth moves while she speaks. */
@@ -156,11 +270,12 @@ type SeraArtProps = {
 
 const VIEWS = {
   bust: { box: "0 0 240 300", w: 240, h: 300 },
+  half: { box: "0 0 240 400", w: 240, h: 400 },
   avatar: { box: "44 20 152 170", w: 152, h: 170 },
 } as const;
 
 /** Sera. Decorative: the words she says are always real text beside her. */
-export function SeraArt({ mood = "calm", view = "bust", size = 220, talking = false, src, className }: SeraArtProps) {
+export function SeraArt({ mood = "calm", view = "bust", pose = "idle", size = 220, talking = false, src, className }: SeraArtProps) {
   const uid = useId().replace(/:/g, "");
   const id = (name: string) => `${uid}-${name}`;
   const face = FACES[mood];
@@ -222,10 +337,16 @@ export function SeraArt({ mood = "calm", view = "bust", size = 220, talking = fa
           strokeLinejoin="round"
         />
 
-        {view === "bust" && (
+        {view !== "avatar" && (
           <g transform="translate(0 -10)">
-            {/* Jacket: dark, with a high collar, a light shirt and cyan piping. */}
-            <path d="M14 316 C20 244 58 212 100 200 L140 200 C182 212 220 244 226 316 Z" fill={`url(#${id("jacket")})`} stroke={COLOR.line} strokeWidth={2} strokeLinejoin="round" />
+            {/* Jacket: dark, with a high collar, a light shirt and cyan piping. The half body carries on to the waist. */}
+            <path
+              d={view === "half" ? "M10 420 L14 316 C20 244 58 212 100 200 L140 200 C182 212 220 244 226 316 L230 420 Z" : "M14 316 C20 244 58 212 100 200 L140 200 C182 212 220 244 226 316 Z"}
+              fill={`url(#${id("jacket")})`}
+              stroke={COLOR.line}
+              strokeWidth={2}
+              strokeLinejoin="round"
+            />
             <path d="M104 160 L104 198 C104 208 136 208 136 198 L136 160 Z" fill={COLOR.skinShade} stroke={COLOR.line} strokeWidth={2} strokeLinejoin="round" />
             <path d="M102 198 L120 238 L138 198 Z" fill={COLOR.shirt} stroke={COLOR.line} strokeWidth={1.8} strokeLinejoin="round" />
             <path d="M82 208 L102 197 L120 238 L92 246 Z" fill={COLOR.jacketLight} stroke={COLOR.line} strokeWidth={2} strokeLinejoin="round" />
@@ -239,6 +360,7 @@ export function SeraArt({ mood = "calm", view = "bust", size = 220, talking = fa
               <path d="M0 -11 L9 -7 V3 C9 9 4 12 0 14 C-4 12 -9 9 -9 3 V-7 Z" fill={COLOR.jacket} stroke={COLOR.piping} strokeWidth={1.8} strokeLinejoin="round" />
               <path d="M-4 0 L0 -5 L4 0" stroke={COLOR.piping} strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </g>
+            {view === "half" && <Arms pose={pose} />}
           </g>
         )}
 

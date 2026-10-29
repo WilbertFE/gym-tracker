@@ -37,7 +37,7 @@ export async function StatusView() {
         Your five stats grow as you train. Each one rises with a different habit, so the shape shows what kind of trainer you are.
       </SystemTip>
 
-      <Panel label="Rank" variant="system">
+      <Panel label="Rank" variant="system" tour="rank">
         <div className="flex items-center gap-5">
           {aura ? (
             <span className="flex size-[140px] shrink-0 items-center justify-center">
@@ -66,7 +66,7 @@ export async function StatusView() {
       </Panel>
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Panel label="Stats" variant="system">
+        <Panel label="Stats" variant="system" tour="stats">
           <ul className="flex flex-col divide-y">
             {stats.map((stat) => (
               <li key={stat.id} className="flex flex-col gap-1.5 py-3">
@@ -94,7 +94,7 @@ export async function StatusView() {
           </p>
         </Panel>
 
-        <Panel label="Shape" variant="system">
+        <Panel label="Shape" variant="system" tour="shape">
           <StatsRadar stats={stats.map((s) => ({ name: s.name, value: s.value }))} max={ceiling} />
         </Panel>
       </div>

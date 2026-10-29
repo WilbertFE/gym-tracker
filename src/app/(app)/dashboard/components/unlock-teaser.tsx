@@ -17,7 +17,7 @@ export function UnlockTeaser({ level, totalXp }: { level: number; totalXp: numbe
   const away = Math.max(0, xpForLevel(first) - totalXp);
 
   return (
-    <Panel label="Next unlock" variant="system">
+    <Panel label="Next unlock" variant="system" tour="next-unlock">
       <div className="flex items-center gap-4">
         <span aria-hidden className="flex size-12 shrink-0 items-center justify-center border border-primary/60 text-primary">
           <LockSimpleIcon className="size-6" />

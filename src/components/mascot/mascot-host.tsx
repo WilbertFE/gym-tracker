@@ -38,6 +38,15 @@ export async function MascotHost() {
     chestsWaiting: game.chests.available.length,
     quests: { done: game.quests.daily.filter((q) => q.done).length, total: game.quests.daily.length },
     lastActivity: dates.length > 0 ? dates.reduce((a, b) => (a > b ? a : b)) : null,
+    gate: {
+      weekStart: game.gate.gate.weekStart,
+      name: game.gate.gate.name,
+      boss: game.gate.gate.boss,
+      rank: game.gate.gate.rank.letter,
+      xp: game.gate.gate.rank.xp,
+      booster: game.gate.gate.rank.booster,
+      cleared: game.gate.cleared,
+    },
   });
 
   return <Mascot context={context} today={today} />;

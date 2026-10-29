@@ -24,7 +24,7 @@ export function BoardControls({ scope: initialScope, period: initialPeriod }: { 
   };
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between" aria-busy={pending}>
+    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between" aria-busy={pending} data-tour="board-controls">
       <SegmentedControl
         label="Where"
         className="w-full sm:w-72"

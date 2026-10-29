@@ -23,7 +23,7 @@ export async function GatePanel() {
         Every week a boss appears. Each set you log hurts it, and clearing it before Sunday earns XP and sometimes a booster.
       </SystemTip>
 
-      <Panel label={`${gate.name}, rank ${gate.rank.letter}`} variant={status.cleared ? "system" : "danger"}>
+      <Panel label={`${gate.name}, rank ${gate.rank.letter}`} variant={status.cleared ? "system" : "danger"} tour="gate">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <span

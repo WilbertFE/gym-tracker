@@ -1,6 +1,6 @@
-import { featureById } from "@/lib/unlocks";
 import { pageHelp } from "./pages";
 import { suggestNext } from "./suggest";
+import { tourForPath } from "./tours";
 import type { Mood, NodeArgs, RenderedNode, Reply, SeraContext } from "./types";
 
 /**
@@ -13,49 +13,25 @@ type NodeDef = (ctx: SeraContext, args: NodeArgs) => { mood: Mood; lines: string
 const BACK: Reply = { label: "Back", next: "menu" };
 const CLOSE: Reply = { label: "Okay", action: "close" };
 
-const list = (names: string[]) => (names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
-
 const NODES: Record<string, NodeDef> = {
-  menu: (ctx) => ({
-    mood: "calm",
-    lines: ["What would you like to know?"],
-    replies: [
-      { label: "What should I do next?", next: "next" },
-      { label: "How does XP work?", next: "xp" },
-      { label: "What is locked?", next: "locked" },
-      { label: "About this page", next: "page" },
-      ...(ctx.locked.length > 0 ? [{ label: "Show me everything now", next: "showAllAsk" } as Reply] : []),
-      { label: "Be quiet for today", action: "quietToday" },
-      { label: "Turn Sera off", action: "off" },
-    ],
-  }),
-
-  welcome: () => ({
-    mood: "happy",
-    lines: ["Welcome, Player.", "I am Sera, your guide. I will keep the first days simple.", "Check in, train, level up. The rest opens as you grow."],
-    replies: [
-      { label: "Show me around", next: "tour1" },
-      { label: "Not now", action: "close" },
-    ],
-  }),
-  tour1: () => ({
-    mood: "calm",
-    lines: ["Every day starts with a check-in.", "Tell me how you trained: the gym, a workout at home, or a rest day. Rest days count too."],
-    replies: [{ label: "Next", next: "tour2" }],
-  }),
-  tour2: () => ({
-    mood: "calm",
-    lines: ["Then you train.", "Log your sets between exercises, and tap Finish when you are done. Every set earns XP."],
-    replies: [{ label: "Next", next: "tour3" }],
-  }),
-  tour3: () => ({
-    mood: "happy",
-    lines: ["More opens at every level, and I will tell you when it does.", "Tap me any time you need help."],
-    replies: [
-      { label: "What should I do first?", next: "next" },
-      { label: "Got it", action: "close" },
-    ],
-  }),
+  menu: (ctx, args) => {
+    const tour = tourForPath(args.path ?? "");
+    const canTour = tour !== undefined && (tour.feature === null || ctx.open[tour.feature]);
+    return {
+      mood: "calm",
+      lines: ["What would you like to know?"],
+      replies: [
+        { label: "What should I do next?", next: "next" },
+        ...(canTour ? [{ label: "Show me around this page", tour: "here" } as Reply] : []),
+        { label: "How does XP work?", next: "xp" },
+        { label: "What is locked?", next: "locked" },
+        { label: "About this page", next: "page" },
+        ...(ctx.locked.length > 0 ? [{ label: "Show me everything now", next: "showAllAsk" } as Reply] : []),
+        { label: "Be quiet for today", action: "quietToday" },
+        { label: "Turn Sera off", action: "off" },
+      ],
+    };
+  },
 
   intro: () => ({
     mood: "calm",
@@ -120,22 +96,6 @@ const NODES: Record<string, NodeDef> = {
   offDone: () => ({ mood: "calm", lines: ["I will stay out of the way.", "You can turn me back on in Settings, under Sera."], replies: [CLOSE] }),
   allOpen: () => ({ mood: "cheer", lines: ["Everything is open now.", "You can switch that off again in Settings."], replies: [CLOSE] }),
 
-  // Moments she speaks up about.
-  unlock: (ctx, args) => {
-    const ids = args.features ?? [];
-    const features = ids.map((id) => featureById(id));
-    const first = features[0];
-    return {
-      mood: "cheer",
-      lines: [
-        `${list(features.map((f) => f.name))} just opened.`,
-        first ? first.blurb : "There is something new to try.",
-        `You are level ${ctx.level}.`,
-      ],
-      replies: [...(first ? [{ label: "Take me there", href: first.href } as Reply] : []), { label: "Later", action: "close" }],
-    };
-  },
-
   lockedPage: (ctx, args) => {
     const feature = args.featureId ? ctx.locked.find((f) => f.id === args.featureId) : undefined;
     if (!feature) {
@@ -152,22 +112,16 @@ const NODES: Record<string, NodeDef> = {
     };
   },
 
-  firstWorkout: () => ({
-    mood: "cheer",
-    lines: ["Your first workout is done. Well done, Player.", "Every set and every workout earns XP, and your level is climbing."],
-    replies: [{ label: "What should I do next?", next: "next" }, { label: "Thanks", action: "close" }],
-  }),
-
   chest: () => ({
     mood: "happy",
     lines: ["A chest is waiting for you.", "It holds a cosmetic item, and it runs out after a while."],
     replies: [{ label: "Open it", href: "/dashboard" }, { label: "Later", action: "close" }],
   }),
 
-  comeback: (ctx) => ({
-    mood: "sleepy",
-    lines: [`It has been ${ctx.daysAway} days.`, "No pressure. One check-in is enough to get going again."],
-    replies: [{ label: "Take me to the check-in", href: "/dashboard#daily-checkin" }, { label: "Not today", action: "close" }],
+  tourOffer: () => ({
+    mood: "happy",
+    lines: ["Want a quick tour of this page?", "I will point at each part and keep it short."],
+    replies: [{ label: "Yes, show me", tour: "here" }, { label: "No thanks", action: "close" }],
   }),
 
   nudge: () => ({

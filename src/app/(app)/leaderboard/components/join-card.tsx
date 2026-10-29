@@ -80,7 +80,7 @@ export function JoinCard({ joined, displayName, profileName }: JoinCardProps) {
   // With a profile there is one name for everything, so joining is one tap and renaming happens in Settings.
   if (profileName && !joined) {
     return (
-      <Panel label="Join the leaderboard">
+      <Panel label="Join the leaderboard" tour="join">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm">
             You would be listed as <span className="font-medium">{profileName}</span>, the display name of your profile.
@@ -96,7 +96,7 @@ export function JoinCard({ joined, displayName, profileName }: JoinCardProps) {
 
   if (joined && !editing) {
     return (
-      <Panel label="Your entry">
+      <Panel label="Your entry" tour="join">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm">
             You are listed as <span className="font-medium">{displayName}</span>. Others see your nickname, country,
@@ -136,7 +136,7 @@ export function JoinCard({ joined, displayName, profileName }: JoinCardProps) {
   }
 
   return (
-    <Panel label={joined ? "Change nickname" : "Join the leaderboard"}>
+    <Panel label={joined ? "Change nickname" : "Join the leaderboard"} tour="join">
       <form onSubmit={save} className="flex flex-col gap-4" noValidate>
         {!joined && (
           <p className="text-sm text-muted-foreground">

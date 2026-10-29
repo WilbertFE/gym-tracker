@@ -10,6 +10,8 @@ export type Memory = {
   /** The day `shownToday` counts, and how many times she spoke up on her own that day. */
   day: string;
   shownToday: number;
+  /** How many big appearances (stages) she has made on `day`. */
+  stagesToday: number;
   /** The level the last page load saw, to notice a level up. Null before the first look. */
   lastLevel: number | null;
 };
@@ -27,10 +29,17 @@ export const DEFAULT_PREFS: Prefs = { mode: "normal", quietUntil: null };
 /** The most times she speaks up on her own in a day. */
 export const MAX_MOMENTS_PER_DAY = 3;
 
-/** Told moments are forgotten after this many days, so a daily one can come back and the memory stays small. */
-const KEEP_DAYS = 14;
+/** The most big appearances in a day. The daily hello counts as one. */
+export const MAX_STAGES_PER_DAY = 2;
 
-export const emptyMemory = (today: string): Memory => ({ v: 1, told: {}, day: today, shownToday: 0, lastLevel: null });
+/**
+ * Moments told on a day (their key ends in `:YYYY-MM-DD`) are forgotten after this many days, so the memory stays small.
+ * Every other key is told once for good: the welcome, a level's unlock, a tour offer, a streak milestone.
+ */
+const KEEP_DAYS = 14;
+const DATED_KEY = /:\d{4}-\d{2}-\d{2}$/;
+
+export const emptyMemory = (today: string): Memory => ({ v: 1, told: {}, day: today, shownToday: 0, stagesToday: 0, lastLevel: null });
 
 /** Reads a memory from stored text, or starts a new one. Anything odd counts as empty. */
 export function parseMemory(raw: string | null, today: string): Memory {
@@ -44,6 +53,7 @@ export function parseMemory(raw: string | null, today: string): Memory {
       told,
       day: typeof value.day === "string" ? value.day : today,
       shownToday: Number.isInteger(value.shownToday) ? (value.shownToday as number) : 0,
+      stagesToday: Number.isInteger(value.stagesToday) ? (value.stagesToday as number) : 0,
       lastLevel: Number.isInteger(value.lastLevel) ? (value.lastLevel as number) : null,
     };
   } catch {
@@ -52,18 +62,23 @@ export function parseMemory(raw: string | null, today: string): Memory {
 }
 
 /** A new day starts the count over. */
-export const rollDay = (memory: Memory, today: string): Memory => (memory.day === today ? memory : { ...memory, day: today, shownToday: 0 });
+export const rollDay = (memory: Memory, today: string): Memory => (memory.day === today ? memory : { ...memory, day: today, shownToday: 0, stagesToday: 0 });
 
 const daysBefore = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
 
-/** Records a moment as told, counts it for today, and forgets the old ones. */
-export function markTold(memory: Memory, key: string, today: string): Memory {
+/** Records a moment as told, counts it for today (a stage against the stage budget, anything else against the bubbles), and forgets old daily ones. */
+export function markTold(memory: Memory, key: string, today: string, kind: "bubble" | "stage" | "tourOffer" = "bubble"): Memory {
   const rolled = rollDay(memory, today);
   const told: Record<string, string> = {};
-  for (const [k, day] of Object.entries(rolled.told)) if (daysBefore(day, today) <= KEEP_DAYS) told[k] = day;
+  for (const [k, day] of Object.entries(rolled.told)) if (!DATED_KEY.test(k) || daysBefore(day, today) <= KEEP_DAYS) told[k] = day;
   told[key] = today;
-  return { ...rolled, told, shownToday: rolled.shownToday + 1 };
+  return kind === "stage"
+    ? { ...rolled, told, stagesToday: rolled.stagesToday + 1 }
+    : { ...rolled, told, shownToday: rolled.shownToday + 1 };
 }
+
+/** Notes that something was seen (a finished tour) without counting it against today's moments. */
+export const markSeen = (memory: Memory, key: string, today: string): Memory => ({ ...memory, told: { ...memory.told, [key]: today } });
 
 /** Notes the level seen, without counting anything. */
 export const withLevel = (memory: Memory, level: number): Memory => (memory.lastLevel === level ? memory : { ...memory, lastLevel: level });

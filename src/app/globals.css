@@ -679,6 +679,43 @@ body {
   50%, 100% { opacity: 1; }
 }
 
+@keyframes sera-hand-wave {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(14deg); }
+}
+
+@keyframes sera-hand-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Sera on the stage: she rises from the bottom edge, the glow behind her breathes, the daily hello counts down. */
+@keyframes stage-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes stage-rise {
+  0% { opacity: 0; transform: translateY(14%); }
+  70% { opacity: 1; transform: translateY(-1.5%); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes stage-halo {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.06); }
+}
+
+@keyframes stage-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@keyframes tour-pulse {
+  0%, 100% { box-shadow: 0 0 0 9999px rgba(2, 6, 16, 0.78), 0 0 0 2px var(--primary), 0 0 18px 2px var(--primary); }
+  50% { box-shadow: 0 0 0 9999px rgba(2, 6, 16, 0.78), 0 0 0 2px var(--primary), 0 0 30px 6px var(--primary); }
+}
+
 @keyframes sera-twinkle {
   0%, 100% { opacity: 0.55; transform: scale(0.9); }
   50% { opacity: 1; transform: scale(1.08); }
@@ -689,6 +726,8 @@ body {
   .sera-eyes { transform-box: fill-box; transform-origin: center; animation: sera-blink 5.2s ease-in-out infinite; }
   .sera-glow { animation: sera-glow 2.8s ease-in-out infinite; }
   .sera-sway { transform-box: fill-box; transform-origin: 50% 0%; animation: sera-sway 5.6s ease-in-out infinite; }
+  .sera-hand-wave { transform-box: fill-box; transform-origin: 50% 100%; animation: sera-hand-wave 1.1s ease-in-out infinite; }
+  .sera-hand-bob { animation: sera-hand-bob 2.2s ease-in-out infinite; }
   .sera-talking .sera-mouth-rest { animation: sera-rest 0.42s steps(1) infinite; }
   .sera-talking .sera-mouth-talk { animation: sera-talk 0.42s steps(1) infinite; }
   .sera-sparkle { transform-box: fill-box; transform-origin: center; animation: sera-twinkle 1.8s ease-in-out infinite; }

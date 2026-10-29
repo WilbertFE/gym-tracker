@@ -28,6 +28,7 @@ export default function BodyPage() {
         <FeatureGate id="body">
       <SectionTabs
         label="Body views"
+        tour="body-tabs"
         tabs={[
           {
             value: "muscles",
@@ -49,7 +50,7 @@ export default function BodyPage() {
           },
         ]}
       />
-      <nav aria-label="Physique tools">
+      <nav aria-label="Physique tools" data-tour="progress-link">
         <Link
           href="/body/progress"
           className="flex min-h-12 items-center justify-between border border-primary/25 bg-card px-4 text-sm hover:border-primary/60 hover:bg-surface-raised"

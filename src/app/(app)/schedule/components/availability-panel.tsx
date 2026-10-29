@@ -10,7 +10,7 @@ export async function AvailabilityPanel() {
 
   return (
     <>
-      <Panel label="Weekly commitments">
+      <Panel label="Weekly commitments" tour="commitments">
         <div className="flex flex-col gap-4">
           <p className="text-xs text-muted-foreground">
             Classes, work and anything else that repeats every week. Training times are suggested

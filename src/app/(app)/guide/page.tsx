@@ -38,7 +38,7 @@ const CARDS = [
   },
   {
     title: "Sera, your guide",
-    body: "Sera is in the corner of every page. Tap her to ask what to do next, what is locked or how something works. She only speaks up at key moments, and you can quiet her in Settings.",
+    body: "Sera is in the corner of every page. Tap her to ask what to do next, what is locked or how something works. She appears big for key moments, like a new unlock or a defeated boss. Ask her to show you around any page, and she will highlight each part. You can quiet her in Settings.",
   },
   {
     title: "Profile",
