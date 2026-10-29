@@ -5,6 +5,7 @@ import { format, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EntryPhotos } from "@/components/entry-photos";
 import {
   Table,
@@ -85,15 +86,23 @@ export function WeightHistory({ logs, photosByWeight, unit }: WeightHistoryProps
                   </button>
                 </TableCell>
                 <TableCell>
-                  <button
-                    type="button"
-                    onClick={() => remove(log.id)}
-                    disabled={busyId === log.id}
-                    aria-label={`Delete entry from ${day}`}
-                    className="flex size-11 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-50"
-                  >
-                    <TrashIcon className="size-4" aria-hidden />
-                  </button>
+                  <ConfirmDialog
+                    title="Delete this weigh-in?"
+                    description={`The entry from ${day} and its photos are removed.`}
+                    confirmLabel="Delete entry"
+                    destructive
+                    onConfirm={() => remove(log.id)}
+                    trigger={
+                      <button
+                        type="button"
+                        disabled={busyId === log.id}
+                        aria-label={`Delete entry from ${day}`}
+                        className="flex size-11 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-50"
+                      >
+                        <TrashIcon className="size-4" aria-hidden />
+                      </button>
+                    }
+                  />
                 </TableCell>
               </TableRow>
               {open && (

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -163,9 +164,18 @@ export function MembershipForm({ today, existing, defaultCurrency }: MembershipF
           {isSubmitting ? "Saving" : existing ? "Update membership" : "Save membership"}
         </Button>
         {existing && (
-          <Button type="button" variant="outline" className="h-11" onClick={remove} disabled={deleting}>
-            {deleting ? "Deleting" : "Delete"}
-          </Button>
+          <ConfirmDialog
+            title="Delete this membership?"
+            description="Your membership details and the gym pin are removed. Gym check-ins need a pinned gym, so pin it again to check in."
+            confirmLabel="Delete membership"
+            destructive
+            onConfirm={remove}
+            trigger={
+              <Button type="button" variant="outline" className="h-11" disabled={deleting}>
+                {deleting ? "Deleting" : "Delete"}
+              </Button>
+            }
+          />
         )}
       </div>
     </form>

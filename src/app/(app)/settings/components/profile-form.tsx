@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { SegmentedControl } from "@/components/segmented-control";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,7 +58,6 @@ export function ProfileForm({ available, initial, suggestedName }: ProfileFormPr
   const [nameProblem, setNameProblem] = useState<string | null>(null);
   const [bioProblem, setBioProblem] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const request = useRef(0);
@@ -138,7 +138,6 @@ export function ProfileForm({ available, initial, suggestedName }: ProfileFormPr
       return;
     }
     toast.success("Profile deleted");
-    setConfirmDelete(false);
     setUsername("");
     setBio("");
     setVisibility("private");
@@ -290,21 +289,20 @@ export function ProfileForm({ available, initial, suggestedName }: ProfileFormPr
             View my profile
           </Link>
         )}
-        {initial &&
-          (confirmDelete ? (
-            <>
-              <Button type="button" variant="destructive" className="h-11" onClick={remove} disabled={saving}>
-                Confirm delete
+        {initial && (
+          <ConfirmDialog
+            title="Delete your profile?"
+            description="Your public profile page and its username are removed. You can make a new one later."
+            confirmLabel="Delete profile"
+            destructive
+            onConfirm={remove}
+            trigger={
+              <Button type="button" variant="outline" className="h-11" disabled={saving}>
+                Delete profile
               </Button>
-              <Button type="button" variant="outline" className="h-11" onClick={() => setConfirmDelete(false)}>
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <Button type="button" variant="outline" className="h-11" onClick={() => setConfirmDelete(true)}>
-              Delete profile
-            </Button>
-          ))}
+            }
+          />
+        )}
       </div>
     </form>
   );

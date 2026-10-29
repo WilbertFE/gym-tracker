@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SegmentedControl } from "@/components/segmented-control";
 import { apiRequest } from "@/lib/api-client";
 import type { PhotoPose, ProgressPhoto } from "@/lib/types";
@@ -11,11 +12,10 @@ import { PhotoImage } from "./photo-image";
 
 type Filter = PhotoPose | "all";
 
-/** Gallery of all photos, newest first, with a pose filter and a two step delete. */
+/** Gallery of all photos, newest first, with a pose filter and a confirmed delete. */
 export function PhotoBrowser({ photos }: { photos: ProgressPhoto[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
-  const [confirmId, setConfirmId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const visible = filter === "all" ? photos : photos.filter((p) => p.pose === filter);
@@ -25,7 +25,6 @@ export function PhotoBrowser({ photos }: { photos: ProgressPhoto[] }) {
     setBusyId(id);
     const result = await apiRequest(`/api/photos/${id}`, "DELETE");
     setBusyId(null);
-    setConfirmId(null);
     if (!result.ok) {
       toast.error(result.error);
       return;
@@ -43,10 +42,7 @@ export function PhotoBrowser({ photos }: { photos: ProgressPhoto[] }) {
       <SegmentedControl
         label="Filter by pose"
         value={filter}
-        onChange={(v) => {
-          setFilter(v);
-          setConfirmId(null);
-        }}
+        onChange={setFilter}
         options={[
           { value: "all", label: "All" },
           { value: "front", label: "Front" },
@@ -67,34 +63,23 @@ export function PhotoBrowser({ photos }: { photos: ProgressPhoto[] }) {
                   {format(parseISO(photo.date), "d MMM yyyy")}
                   <span className="ml-2 uppercase text-muted-foreground">{photo.pose}</span>
                 </p>
-                {confirmId === photo.id ? (
-                  <span className="flex items-center gap-1">
+                <ConfirmDialog
+                  title="Delete this photo?"
+                  description="The photo is removed for good."
+                  confirmLabel="Delete photo"
+                  destructive
+                  onConfirm={() => remove(photo.id)}
+                  trigger={
                     <button
                       type="button"
-                      onClick={() => remove(photo.id)}
                       disabled={busyId === photo.id}
-                      className="min-h-11 px-2 text-xs text-destructive disabled:opacity-50"
+                      aria-label={`Delete ${photo.pose} photo from ${format(parseISO(photo.date), "d MMM yyyy")}`}
+                      className="min-h-11 px-2 text-xs text-muted-foreground hover:text-destructive disabled:opacity-50"
                     >
-                      {busyId === photo.id ? "Deleting" : "Confirm"}
+                      {busyId === photo.id ? "Deleting" : "Delete"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmId(null)}
-                      className="min-h-11 px-2 text-xs text-muted-foreground"
-                    >
-                      Cancel
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmId(photo.id)}
-                    aria-label={`Delete ${photo.pose} photo from ${format(parseISO(photo.date), "d MMM yyyy")}`}
-                    className="min-h-11 px-2 text-xs text-muted-foreground hover:text-destructive"
-                  >
-                    Delete
-                  </button>
-                )}
+                  }
+                />
               </div>
             </li>
           ))}

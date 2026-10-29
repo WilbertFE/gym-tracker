@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { LogPhotoImage } from "@/components/log-photo-image";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api-client";
 import { prepareImageForUpload } from "@/lib/image-resize";
@@ -29,7 +30,6 @@ export function EntryPhotos({ kind, entryId, photos }: EntryPhotosProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const room = MAX_LOG_PHOTOS_PER_ENTRY - photos.length;
@@ -82,7 +82,6 @@ export function EntryPhotos({ kind, entryId, photos }: EntryPhotosProps) {
     setDeletingId(id);
     const result = await apiRequest(`/api/log-photos/${id}`, "DELETE");
     setDeletingId(null);
-    setConfirmId(null);
     if (!result.ok) {
       toast.error(result.error);
       return;
@@ -114,34 +113,23 @@ export function EntryPhotos({ kind, entryId, photos }: EntryPhotosProps) {
               >
                 <LogPhotoImage id={photo.id} alt={`${NOUN[kind]} photo ${index + 1}`} />
               </a>
-              {confirmId === photo.id ? (
-                <span className="flex items-center gap-1">
+              <ConfirmDialog
+                title="Delete this photo?"
+                description="The photo is removed for good."
+                confirmLabel="Delete photo"
+                destructive
+                onConfirm={() => remove(photo.id)}
+                trigger={
                   <button
                     type="button"
-                    onClick={() => remove(photo.id)}
                     disabled={deletingId === photo.id}
-                    className="min-h-11 px-2 text-xs text-destructive disabled:opacity-50"
+                    aria-label={`Delete ${NOUN[kind].toLowerCase()} photo ${index + 1}`}
+                    className="min-h-11 self-start px-2 text-xs text-muted-foreground hover:text-destructive disabled:opacity-50"
                   >
-                    {deletingId === photo.id ? "Deleting" : "Confirm"}
+                    {deletingId === photo.id ? "Deleting" : "Delete"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmId(null)}
-                    className="min-h-11 px-2 text-xs text-muted-foreground"
-                  >
-                    Cancel
-                  </button>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmId(photo.id)}
-                  aria-label={`Delete ${NOUN[kind].toLowerCase()} photo ${index + 1}`}
-                  className="min-h-11 self-start px-2 text-xs text-muted-foreground hover:text-destructive"
-                >
-                  Delete
-                </button>
-              )}
+                }
+              />
             </li>
           ))}
         </ul>

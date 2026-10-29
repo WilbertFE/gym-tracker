@@ -14,6 +14,7 @@ import {
   UserCircleIcon,
 } from "@phosphor-icons/react";
 import Link from "next/link";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { usePathname, useRouter } from "next/navigation";
 import { SITE_NAME } from "@/lib/site";
 import { isUnlocked, type FeatureId } from "@/lib/unlocks";
@@ -99,14 +100,21 @@ export function AppNav({ level, showAll }: { level: number; showAll: boolean }) 
             );
           })}
         </ul>
-        <button
-          type="button"
-          onClick={signOut}
-          className="flex min-h-11 items-center gap-3 px-3 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <SignOutIcon className="size-4" aria-hidden />
-          Sign out
-        </button>
+        <ConfirmDialog
+          title="Sign out?"
+          description="You will need to sign in again to see your training."
+          confirmLabel="Sign out"
+          onConfirm={signOut}
+          trigger={
+            <button
+              type="button"
+              className="flex min-h-11 items-center gap-3 px-3 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <SignOutIcon className="size-4" aria-hidden />
+              Sign out
+            </button>
+          }
+        />
       </nav>
 
       {/* Mobile bottom tab bar */}

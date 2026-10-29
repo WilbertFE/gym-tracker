@@ -4,6 +4,7 @@ import { TrashIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { apiRequest } from "@/lib/api-client";
 import { MUSCLE_LABELS } from "@/lib/muscles";
 import { displayWeight, type WeightUnit } from "@/lib/units";
@@ -72,15 +73,23 @@ export function SetList({ sessionId, groups, editable, unit, rest, at }: SetList
                   {rest[set.id] !== undefined && <span>rest {formatElapsed(rest[set.id])}</span>}
                 </span>
                 {editable && (
-                  <button
-                    type="button"
-                    onClick={() => remove(set.id)}
-                    disabled={busyId === set.id}
-                    aria-label={`Delete set ${set.set_number} of ${group.exercise?.name ?? "exercise"}`}
-                    className="flex size-11 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-50"
-                  >
-                    <TrashIcon className="size-4" aria-hidden />
-                  </button>
+                  <ConfirmDialog
+                    title={`Delete set ${set.set_number}?`}
+                    description={`Set ${set.set_number} of ${group.exercise?.name ?? "this exercise"} is removed from the workout.`}
+                    confirmLabel="Delete set"
+                    destructive
+                    onConfirm={() => remove(set.id)}
+                    trigger={
+                      <button
+                        type="button"
+                        disabled={busyId === set.id}
+                        aria-label={`Delete set ${set.set_number} of ${group.exercise?.name ?? "exercise"}`}
+                        className="flex size-11 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-50"
+                      >
+                        <TrashIcon className="size-4" aria-hidden />
+                      </button>
+                    }
+                  />
                 )}
               </li>
             ))}

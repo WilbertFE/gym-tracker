@@ -4,6 +4,7 @@ import { getBestPosition } from "@/lib/browser-location";
 import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -184,13 +185,18 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
         {value ? (
           <>
             <span className="tabular">Pinned: {formatCoordinates(value.latitude, value.longitude)}</span>
-            <button
-              type="button"
-              onClick={() => onChange(null)}
-              className="min-h-11 px-2 underline underline-offset-4 hover:text-foreground"
-            >
-              Clear pin
-            </button>
+            <ConfirmDialog
+              title="Clear the gym pin?"
+              description="Gym check-ins need a pinned gym. The pin is only removed when you save the membership."
+              confirmLabel="Clear pin"
+              destructive
+              onConfirm={() => onChange(null)}
+              trigger={
+                <button type="button" className="min-h-11 px-2 underline underline-offset-4 hover:text-foreground">
+                  Clear pin
+                </button>
+              }
+            />
           </>
         ) : (
           <span>Search, use your location, or tap the map to drop a pin, then drag it to adjust. Zoom with the + and - buttons.</span>

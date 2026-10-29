@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api-client";
 import { XP_CHECK_EVENT } from "@/lib/xp-diff";
@@ -37,9 +38,17 @@ export function UseBoosterButton({ day, label, blockedReason }: UseBoosterButton
 
   return (
     <div className="flex flex-col gap-1">
-      <Button type="button" className="h-11" onClick={use} disabled={busy || blockedReason !== null}>
-        {busy ? "Using" : label}
-      </Button>
+      <ConfirmDialog
+        title="Use a Double XP booster?"
+        description="It is spent on this day and cannot be taken back. Every XP you earn that day counts twice."
+        confirmLabel="Use booster"
+        onConfirm={use}
+        trigger={
+          <Button type="button" className="h-11" disabled={busy || blockedReason !== null}>
+            {busy ? "Using" : label}
+          </Button>
+        }
+      />
       {blockedReason && <p className="text-xs text-muted-foreground">{blockedReason}</p>}
     </div>
   );

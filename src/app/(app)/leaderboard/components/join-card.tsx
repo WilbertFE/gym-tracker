@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Panel } from "@/components/panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,6 @@ export function JoinCard({ joined, displayName, profileName }: JoinCardProps) {
   const router = useRouter();
   const [name, setName] = useState(displayName ?? "");
   const [editing, setEditing] = useState(false);
-  const [confirmLeave, setConfirmLeave] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -72,7 +72,6 @@ export function JoinCard({ joined, displayName, profileName }: JoinCardProps) {
       return;
     }
     toast.success("You left the leaderboard");
-    setConfirmLeave(false);
     setName("");
     router.refresh();
   }
@@ -115,20 +114,18 @@ export function JoinCard({ joined, displayName, profileName }: JoinCardProps) {
                 Change nickname
               </Button>
             )}
-            {confirmLeave ? (
-              <>
-                <Button type="button" variant="destructive" className="h-11" onClick={leave} disabled={busy}>
-                  {busy ? "Leaving" : "Confirm leave"}
+            <ConfirmDialog
+              title="Leave the leaderboard?"
+              description="Your entry is deleted and others stop seeing your nickname, level and XP. You can join again later."
+              confirmLabel="Leave"
+              destructive
+              onConfirm={leave}
+              trigger={
+                <Button type="button" variant="outline" className="h-11" disabled={busy}>
+                  {busy ? "Leaving" : "Leave"}
                 </Button>
-                <Button type="button" variant="outline" className="h-11" onClick={() => setConfirmLeave(false)}>
-                  Cancel
-                </Button>
-              </>
-            ) : (
-              <Button type="button" variant="outline" className="h-11" onClick={() => setConfirmLeave(true)}>
-                Leave
-              </Button>
-            )}
+              }
+            />
           </div>
         </div>
       </Panel>
