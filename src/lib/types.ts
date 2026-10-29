@@ -49,6 +49,8 @@ export type Exercise = {
   primary_muscle: MuscleGroup;
   secondary_muscles: MuscleGroup[];
   equipment: string | null;
+  /** For a bodyweight exercise, the percent of the body weight it moves. Null when the load is all external. */
+  bodyweight_pct: number | null;
 };
 
 export type WorkoutSession = {

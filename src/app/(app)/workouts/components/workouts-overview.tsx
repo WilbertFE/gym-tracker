@@ -3,7 +3,9 @@ import Link from "next/link";
 import { ElapsedTimer } from "@/components/elapsed-timer";
 import { Panel } from "@/components/panel";
 import { getCurrentUserId } from "@/lib/auth";
+import { withBodyweightLoad } from "@/lib/load";
 import { listExercises } from "@/lib/repositories/exercises";
+import { listWeights } from "@/lib/repositories/weights";
 import { getSettings } from "@/lib/repositories/settings";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { displayVolume } from "@/lib/units";
@@ -13,12 +15,14 @@ import { StartWorkoutButton } from "@/components/start-workout-button";
 
 export async function WorkoutsOverview() {
   const userId = await getCurrentUserId();
-  const [sessions, sets, exercises, settings] = await Promise.all([
+  const [sessions, loggedSets, exercises, settings, weights] = await Promise.all([
     listSessions(userId),
     listAllSets(userId),
     listExercises(userId),
     getSettings(userId),
+    listWeights(userId),
   ]);
+  const sets = withBodyweightLoad(loggedSets, exercises, sessions, weights);
   const unit = settings.weight_unit;
 
   const gate = await getWorkoutGate(userId);

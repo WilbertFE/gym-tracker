@@ -1,7 +1,9 @@
 import { itemById } from "@/lib/items";
 import { getCheckinByDate } from "@/lib/repositories/checkins";
 import { listMemberships } from "@/lib/repositories/memberships";
+import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
+import { bodyWeightOn } from "@/lib/load";
 import { loadLevel } from "@/lib/level";
 import { buildShareCard, workoutLocation } from "@/lib/share";
 import type { Exercise, WorkoutSession, WorkoutSet } from "@/lib/types";
@@ -24,12 +26,13 @@ type WorkoutShareProps = {
  * to the dialog. It loads after the rest of the page, so it never slows the workout down.
  */
 export async function WorkoutShare({ userId, session, sets, exercises, unit, shareOnLoad }: WorkoutShareProps) {
-  const [allSessions, allSets, checkin, [membership], { level, collection }] = await Promise.all([
+  const [allSessions, allSets, checkin, [membership], { level, collection }, weights] = await Promise.all([
     listSessions(userId),
     listAllSets(userId),
     getCheckinByDate(userId, session.date),
     listMemberships(userId),
     loadLevel(userId),
+    listWeights(userId),
   ]);
 
   const card = buildShareCard({
@@ -37,6 +40,7 @@ export async function WorkoutShare({ userId, session, sets, exercises, unit, sha
     sets,
     exercises,
     unit,
+    bodyWeightKg: bodyWeightOn(session.date, weights),
     body: workoutBody({ allSessions, allSets, session, sets, exercises }),
     location: workoutLocation({
       kind: checkin?.kind ?? null,

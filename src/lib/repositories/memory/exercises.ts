@@ -20,6 +20,7 @@ export async function createExercise(userId: string, input: ExerciseInput): Prom
     primary_muscle: input.primary_muscle,
     secondary_muscles: input.secondary_muscles.filter((m) => m !== input.primary_muscle),
     equipment: input.equipment || null,
+    bodyweight_pct: input.bodyweight_pct ?? null,
   };
   getStore(userId).exercises.push(row);
   return row;

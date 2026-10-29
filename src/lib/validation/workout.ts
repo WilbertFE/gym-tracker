@@ -9,6 +9,8 @@ export const exerciseSchema = z.object({
   primary_muscle: muscle,
   secondary_muscles: z.array(muscle).max(5).default([]),
   equipment: z.string().trim().max(40).nullish(),
+  /** A bodyweight exercise: the percent of the body weight it moves, 1 to 150. */
+  bodyweight_pct: z.number().min(1).max(150).nullish(),
 });
 
 export type ExerciseInput = z.infer<typeof exerciseSchema>;

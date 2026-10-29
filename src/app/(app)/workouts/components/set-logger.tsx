@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { NumberStepper } from "@/components/number-stepper";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -15,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/api-client";
+import { isBodyweightExercise } from "@/lib/load";
+import { searchExercises } from "@/lib/exercise-search";
 import { MUSCLE_GROUPS, MUSCLE_LABELS } from "@/lib/muscles";
 import type { Exercise } from "@/lib/types";
 import { displayWeight, toKg, type WeightUnit } from "@/lib/units";
@@ -32,6 +35,8 @@ type SetLoggerProps = {
   focusExerciseId?: string;
   /** The unit the weight box is typed and shown in. Sets are stored in kilograms. */
   unit: WeightUnit;
+  /** Today's body weight in kilograms (60 when none is logged), for the share a bodyweight exercise moves. */
+  bodyWeightKg: number;
 };
 
 export function SetLogger({
@@ -41,6 +46,7 @@ export function SetLogger({
   sessionExerciseIds,
   focusExerciseId,
   unit,
+  bodyWeightKg,
 }: SetLoggerProps) {
   const router = useRouter();
   const initial = focusExerciseId ?? sessionExerciseIds[sessionExerciseIds.length - 1] ?? "";
@@ -50,11 +56,17 @@ export function SetLogger({
     initial && lastSets[initial] ? displayWeight(lastSets[initial].weight_kg, unit) : "",
   );
   const [submitting, setSubmitting] = useState(false);
+  const [query, setQuery] = useState("");
 
   const byId = new Map(exercises.map((e) => [e.id, e]));
 
+  const chosen = byId.get(exerciseId);
+  const bodyweight = isBodyweightExercise(chosen);
+  const found = query.trim() === "" ? [] : searchExercises(exercises, query).slice(0, 8);
+
   function pick(id: string) {
     setExerciseId(id);
+    setQuery("");
     const last = lastSets[id];
     setReps(last ? String(last.reps) : "");
     setWeight(last ? displayWeight(last.weight_kg, unit) : "");
@@ -113,6 +125,33 @@ export function SetLogger({
 
       <div className="flex flex-col gap-2">
         <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Exercise</span>
+        <Input
+          type="search"
+          className="h-11"
+          placeholder="Search, for example dumbbell press or curl"
+          aria-label="Search exercises"
+          autoComplete="off"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {query.trim() !== "" && (
+          <ul className="flex flex-col divide-y border" aria-label="Search results">
+            {found.length === 0 ? (
+              <li className="px-3 py-3 text-sm text-muted-foreground">No exercise matches. You can add your own on the exercise library page.</li>
+            ) : (
+              found.map((e) => (
+                <li key={e.id}>
+                  <button type="button" onClick={() => pick(e.id)} className="flex min-h-11 w-full flex-col px-3 py-2 text-left hover:bg-surface-raised">
+                    <span className="text-sm">{e.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {[MUSCLE_LABELS[e.primary_muscle], e.equipment].filter(Boolean).join(" · ")}
+                    </span>
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        )}
         <Select value={exerciseId} onValueChange={pick}>
           <SelectTrigger className="h-12 w-full" aria-label="Exercise">
             <SelectValue placeholder="Choose an exercise" />
@@ -140,7 +179,7 @@ export function SetLogger({
         <NumberStepper id="reps" label="Reps" value={reps} onChange={setReps} step={1} max={1000} />
         <NumberStepper
           id="weight"
-          label="Weight"
+          label={bodyweight ? "Added weight (optional)" : "Weight"}
           unit={unit}
           value={weight}
           onChange={setWeight}
@@ -148,6 +187,12 @@ export function SetLogger({
           max={1000}
         />
       </div>
+
+      {bodyweight && chosen && (
+        <p className="text-xs text-muted-foreground">
+          {chosen.name} moves about {chosen.bodyweight_pct}% of your body weight ({displayWeight((bodyWeightKg * (chosen.bodyweight_pct as number)) / 100, unit)} {unit} at {displayWeight(bodyWeightKg, unit)} {unit}). Leave the weight empty for no extra load, or add what you wear or hold.
+        </p>
+      )}
 
       <Button className="h-14 text-base" onClick={log} disabled={submitting}>
         {submitting ? "Logging" : "Log set"}

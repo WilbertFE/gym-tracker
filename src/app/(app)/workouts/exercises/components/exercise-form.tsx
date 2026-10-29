@@ -26,6 +26,8 @@ export function ExerciseForm() {
   const [equipment, setEquipment] = useState("");
   const [primary, setPrimary] = useState<MuscleGroup | "">("");
   const [secondary, setSecondary] = useState<MuscleGroup[]>([]);
+  const [bodyweight, setBodyweight] = useState(false);
+  const [percent, setPercent] = useState("65");
   const [submitting, setSubmitting] = useState(false);
 
   function toggleSecondary(m: MuscleGroup) {
@@ -41,9 +43,10 @@ export function ExerciseForm() {
       primary_muscle: primary,
       secondary_muscles: secondary.filter((m) => m !== primary),
       equipment: equipment || null,
+      bodyweight_pct: bodyweight ? Number(percent) : null,
     });
     if (!parsed.success) {
-      toast.error("Enter a name and choose the primary muscle");
+      toast.error(bodyweight ? "Enter a name, the primary muscle and a body weight share from 1 to 150" : "Enter a name and choose the primary muscle");
       return;
     }
 
@@ -60,6 +63,7 @@ export function ExerciseForm() {
     setEquipment("");
     setPrimary("");
     setSecondary([]);
+    setBodyweight(false);
     router.refresh();
   }
 
@@ -110,6 +114,39 @@ export function ExerciseForm() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:col-span-2">
+        <label className="flex min-h-11 items-start gap-3 py-2 text-sm">
+          <input
+            type="checkbox"
+            checked={bodyweight}
+            onChange={(e) => setBodyweight(e.target.checked)}
+            className="mt-0.5 size-4 accent-[var(--primary)]"
+          />
+          <span className="flex flex-col">
+            <span>A bodyweight exercise</span>
+            <span className="text-xs text-muted-foreground">
+              Push ups, pull ups and the like. Its volume counts a share of your body weight, and the weight you log is only what you add.
+            </span>
+          </span>
+        </label>
+        {bodyweight && (
+          <div className="flex flex-col gap-2 sm:max-w-48">
+            <Label htmlFor="ex-pct" className={labelClass}>Share of body weight (%)</Label>
+            <Input
+              id="ex-pct"
+              type="number"
+              inputMode="decimal"
+              min={1}
+              max={150}
+              className="tabular h-11"
+              value={percent}
+              onChange={(e) => setPercent(e.target.value)}
+            />
+            <span className="text-xs text-muted-foreground">For example 64 for a push up, 100 for a pull up.</span>
+          </div>
+        )}
       </div>
 
       <Button type="submit" className="h-11 sm:col-span-2" disabled={submitting}>

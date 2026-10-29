@@ -87,7 +87,7 @@ export async function GatePanel() {
           )}
 
           <p className="text-xs text-muted-foreground">
-            Each set deals its volume, weight times reps, as damage. A bodyweight rep counts 20.
+            Each set deals its volume, weight times reps, as damage. A push up or pull up counts a share of your body weight.
           </p>
         </div>
       </Panel>

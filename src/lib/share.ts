@@ -1,4 +1,5 @@
 import { format, parseISO } from "date-fns";
+import { DEFAULT_BODY_WEIGHT_KG, effectiveLoadKg, isBodyweightExercise } from "@/lib/load";
 import type { IntensityLevel } from "@/lib/muscle-intensity";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
 import type { Rank } from "@/lib/ranks";
@@ -81,23 +82,25 @@ export function buildShareCard(input: {
   body: Pick<WorkoutBody, "levels" | "worked">;
   location?: string | null;
   progress?: { level: number; rank: Rank } | null;
+  /** The body weight on the day, for the volume of bodyweight exercises. 60 kg when none is known. */
+  bodyWeightKg?: number;
 }): ShareCard {
-  const { session, sets, exercises, unit, body, location = null, progress = null } = input;
+  const { session, sets, exercises, unit, body, location = null, progress = null, bodyWeightKg = DEFAULT_BODY_WEIGHT_KG } = input;
   const byId = new Map(exercises.map((e) => [e.id, e]));
 
   const muscleSets = new Map<MuscleGroup, number>();
-  const lifts = new Map<string, { name: string; volume: number; best: WorkoutSet }>();
+  const lifts = new Map<string, { name: string; volume: number; best: WorkoutSet; bodyweight: boolean }>();
   let volumeKg = 0;
 
   for (const set of sets) {
     const exercise = byId.get(set.exercise_id);
-    const setVolume = set.reps * set.weight_kg;
+    const setVolume = set.reps * effectiveLoadKg(set.weight_kg, exercise, bodyWeightKg);
     volumeKg += setVolume;
     if (!exercise) continue;
 
     muscleSets.set(exercise.primary_muscle, (muscleSets.get(exercise.primary_muscle) ?? 0) + 1);
 
-    const lift = lifts.get(exercise.id) ?? { name: exercise.name, volume: 0, best: set };
+    const lift = lifts.get(exercise.id) ?? { name: exercise.name, volume: 0, best: set, bodyweight: isBodyweightExercise(exercise) };
     lift.volume += setVolume;
     // The heaviest set, and among equal weights the one with more reps.
     if (set.weight_kg > lift.best.weight_kg || (set.weight_kg === lift.best.weight_kg && set.reps > lift.best.reps)) {
@@ -125,11 +128,12 @@ export function buildShareCard(input: {
     topLifts: [...lifts.values()]
       .sort((a, b) => b.volume - a.volume || a.name.localeCompare(b.name))
       .slice(0, MAX_LIFTS)
-      .map(({ name, best }) => ({
+      .map(({ name, best, bodyweight }) => ({
         name,
+        // A bodyweight exercise shows what was added on top, or just "Bodyweight".
         best:
           best.weight_kg > 0
-            ? `${displayWeight(best.weight_kg, unit)} ${unit} x ${best.reps}`
+            ? `${bodyweight ? "+" : ""}${displayWeight(best.weight_kg, unit)} ${unit} x ${best.reps}`
             : `Bodyweight x ${best.reps}`,
       })),
     bodyLevels: body.levels,

@@ -61,6 +61,7 @@ describe("pickFocusExercise", () => {
       primary_muscle: "traps",
       secondary_muscles: [],
       equipment: null,
+      bodyweight_pct: null,
     };
     expect(pickFocusExercise([custom], "traps", ["mine"])?.id).toBe("mine");
     expect(pickFocusExercise([custom], "calves", [])).toBeNull();

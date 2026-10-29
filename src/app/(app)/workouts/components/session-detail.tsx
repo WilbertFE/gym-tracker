@@ -7,7 +7,9 @@ import { RestTimer } from "@/components/rest-timer";
 import { Stat } from "@/components/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
+import { bodyWeightOn, withBodyweightLoad } from "@/lib/load";
 import { listExercises } from "@/lib/repositories/exercises";
+import { listWeights } from "@/lib/repositories/weights";
 import { getSettings } from "@/lib/repositories/settings";
 import { getSessionWithSets, lastSetsByExercise } from "@/lib/repositories/workouts";
 import { displayVolume } from "@/lib/units";
@@ -36,16 +38,18 @@ export async function SessionDetail({
 
   const { session, sets } = found;
   const active = session.ended_at === null;
-  const [exercises, lastSets, settings] = await Promise.all([
+  const [exercises, lastSets, settings, weights] = await Promise.all([
     listExercises(userId),
     lastSetsByExercise(userId, id),
     getSettings(userId),
+    listWeights(userId),
   ]);
   const unit = settings.weight_unit;
 
   const groups = groupSetsByExercise(sets, exercises);
   const focusExercise = focus ? pickFocusExercise(exercises, focus, Object.keys(lastSets)) : null;
-  const volume = sessionVolume(sets);
+  const volume = sessionVolume(withBodyweightLoad(sets, exercises, [session], weights));
+  const bodyWeightKg = bodyWeightOn(session.date, weights);
   const rest = Object.fromEntries(restBeforeSets(sets));
   const at = Object.fromEntries(elapsedAtSets(sets, session.started_at));
 
@@ -66,7 +70,7 @@ export async function SessionDetail({
           )}
           <Stat label="Sets" value={sets.length} />
           <Stat label="Exercises" value={groups.length} />
-          <Stat label="Volume" value={displayVolume(volume, unit)} unit={unit} hint="Weight x reps, all sets" />
+          <Stat label="Volume" value={displayVolume(volume, unit)} unit={unit} hint="Weight x reps, all sets. Bodyweight exercises count a share of your body weight." />
         </div>
       </Panel>
 
@@ -87,6 +91,7 @@ export async function SessionDetail({
             exercises={exercises}
             lastSets={lastSets}
             unit={unit}
+            bodyWeightKg={bodyWeightKg}
             sessionExerciseIds={groups.map((g) => g.exercise_id)}
             focusExerciseId={focusExercise?.id}
           />

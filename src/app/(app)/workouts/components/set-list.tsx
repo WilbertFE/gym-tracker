@@ -62,7 +62,9 @@ export function SetList({ sessionId, groups, editable, unit, rest, at }: SetList
                   {"  "}
                   {set.weight_kg > 0 ? (
                     <>
+                      {group.exercise?.bodyweight_pct ? "+" : ""}
                       {displayWeight(set.weight_kg, unit)} <span className="text-muted-foreground">{unit}</span>
+                      {group.exercise?.bodyweight_pct ? <span className="text-muted-foreground"> on bodyweight</span> : null}
                     </>
                   ) : (
                     <span className="text-muted-foreground">bodyweight</span>

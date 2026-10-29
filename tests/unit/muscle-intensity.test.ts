@@ -179,6 +179,7 @@ describe("buildMuscleStats", () => {
       primary_muscle: "biceps",
       secondary_muscles: ["forearms", "biceps"],
       equipment: null,
+      bodyweight_pct: null,
     };
     const result = stats(
       [session("a", "2026-10-20")],

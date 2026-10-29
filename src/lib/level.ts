@@ -6,6 +6,7 @@ import { itemById, NO_EQUIPMENT, SLOTS, type Equipment } from "@/lib/items";
 import { todayISO } from "@/lib/dates";
 import { listBoosts } from "@/lib/repositories/boosts";
 import type { ProfileActivity } from "@/lib/profile";
+import { withBodyweightLoad } from "@/lib/load";
 import { getEquipment, listExtraChests, listOpenings } from "@/lib/repositories/chests";
 import { listCheckins } from "@/lib/repositories/checkins";
 import { listExercises } from "@/lib/repositories/exercises";
@@ -57,7 +58,7 @@ export type GameState = {
  * Cached for the request, so the level card and the quests card on one page share a single load.
  */
 export const loadLevel = cache(async (userId: string): Promise<GameState> => {
-  const [checkins, weights, photos, sessions, sets, boostRows, exercises, trialRows, recovery, openingRows, wornRaw, extraChests] = await Promise.all([
+  const [checkins, weights, photos, sessions, loggedSets, boostRows, exercises, trialRows, recovery, openingRows, wornRaw, extraChests] = await Promise.all([
     listCheckins(userId),
     listWeights(userId),
     listPhotos(userId),
@@ -72,6 +73,8 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     listExtraChests(userId),
   ]);
   const today = todayISO();
+  // A bodyweight exercise counts its share of the body weight (and what was added) as its load, for volume, strength and gates.
+  const sets = withBodyweightLoad(loggedSets, exercises, sessions, weights);
   const exerciseMuscles = Object.fromEntries(exercises.map((e) => [e.id, e.primary_muscle]));
   // A repeat from a chest pays a little XP, on the day the chest was opened.
   const chestBonuses = openingRows.openings.filter((o) => o.duplicate && o.bonus_xp > 0).map((o) => ({ date: o.opened_on, xp: o.bonus_xp }));

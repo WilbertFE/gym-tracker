@@ -1,0 +1,73 @@
+-- More built-in exercises, and how much of your body weight a bodyweight exercise moves.
+-- `bodyweight_pct` is the share of body mass the movement lifts (null for exercises with only external load). The weight
+-- you log on such an exercise is only what you add on top, and the app adds the share of your body weight (60 kg when
+-- no weigh-in exists). Sources and the numbers are listed in the README (Exercises and bodyweight load).
+-- Safe to run more than once: new rows are inserted, existing built-ins only get their share updated.
+
+alter table public.exercises
+  add column if not exists bodyweight_pct numeric(5, 1)
+  check (bodyweight_pct is null or bodyweight_pct between 1 and 150);
+
+insert into public.exercises (user_id, name, primary_muscle, secondary_muscles, equipment, bodyweight_pct) values
+  (null, 'Push Up', 'chest', '{triceps,front_delts}'::public.muscle_group[], 'Bodyweight', 64),
+  (null, 'Dips', 'triceps', '{chest,front_delts}'::public.muscle_group[], 'Bodyweight', 95),
+  (null, 'Pull Up', 'lats', '{biceps,rear_delts}'::public.muscle_group[], 'Bodyweight', 100),
+  (null, 'Hanging Leg Raise', 'abs', '{obliques}'::public.muscle_group[], 'Bodyweight', 45),
+  (null, 'Back Extension', 'lower_back', '{glutes,hamstrings}'::public.muscle_group[], 'Bodyweight', 50),
+  (null, 'Dumbbell Bench Press', 'chest', '{front_delts,triceps}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Incline Barbell Bench Press', 'chest', '{front_delts,triceps}'::public.muscle_group[], 'Barbell', null),
+  (null, 'Chest Press Machine', 'chest', '{front_delts,triceps}'::public.muscle_group[], 'Machine', null),
+  (null, 'Pec Deck Fly', 'chest', '{front_delts}'::public.muscle_group[], 'Machine', null),
+  (null, 'Knee Push Up', 'chest', '{triceps,front_delts}'::public.muscle_group[], 'Bodyweight', 49),
+  (null, 'Incline Push Up', 'chest', '{triceps,front_delts}'::public.muscle_group[], 'Bodyweight', 41),
+  (null, 'Decline Push Up', 'chest', '{front_delts,triceps}'::public.muscle_group[], 'Bodyweight', 74),
+  (null, 'Dumbbell Shoulder Press', 'front_delts', '{side_delts,triceps}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Arnold Press', 'front_delts', '{side_delts,triceps}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Machine Shoulder Press', 'front_delts', '{side_delts,triceps}'::public.muscle_group[], 'Machine', null),
+  (null, 'Front Raise', 'front_delts', '{side_delts}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Pike Push Up', 'front_delts', '{side_delts,triceps}'::public.muscle_group[], 'Bodyweight', 70),
+  (null, 'Cable Lateral Raise', 'side_delts', '{}'::public.muscle_group[], 'Cable', null),
+  (null, 'Upright Row', 'side_delts', '{traps,biceps}'::public.muscle_group[], 'Barbell', null),
+  (null, 'Rear Delt Fly', 'rear_delts', '{traps}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Dumbbell Curl', 'biceps', '{forearms}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'EZ Bar Curl', 'biceps', '{forearms}'::public.muscle_group[], 'Barbell', null),
+  (null, 'Reverse Curl', 'biceps', '{forearms}'::public.muscle_group[], 'Barbell', null),
+  (null, 'Preacher Curl', 'biceps', '{}'::public.muscle_group[], 'Barbell', null),
+  (null, 'Concentration Curl', 'biceps', '{}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Cable Curl', 'biceps', '{forearms}'::public.muscle_group[], 'Cable', null),
+  (null, 'Overhead Triceps Extension', 'triceps', '{}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Triceps Kickback', 'triceps', '{}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Close Grip Bench Press', 'triceps', '{chest,front_delts}'::public.muscle_group[], 'Barbell', null),
+  (null, 'Cable Overhead Triceps Extension', 'triceps', '{}'::public.muscle_group[], 'Cable', null),
+  (null, 'Diamond Push Up', 'triceps', '{chest,front_delts}'::public.muscle_group[], 'Bodyweight', 64),
+  (null, 'Reverse Wrist Curl', 'forearms', '{}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Farmer''s Carry', 'forearms', '{traps}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Dumbbell Row', 'lats', '{biceps,rear_delts}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'T-Bar Row', 'lats', '{rear_delts,biceps,lower_back}'::public.muscle_group[], 'Barbell', null),
+  (null, 'Straight Arm Pulldown', 'lats', '{}'::public.muscle_group[], 'Cable', null),
+  (null, 'Dumbbell Pullover', 'lats', '{chest,triceps}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Chin Up', 'lats', '{biceps}'::public.muscle_group[], 'Bodyweight', 100),
+  (null, 'Inverted Row', 'lats', '{biceps,rear_delts}'::public.muscle_group[], 'Bodyweight', 60),
+  (null, 'Dumbbell Shrug', 'traps', '{forearms}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Good Morning', 'lower_back', '{hamstrings,glutes}'::public.muscle_group[], 'Barbell', null),
+  (null, 'Superman', 'lower_back', '{glutes}'::public.muscle_group[], 'Bodyweight', 40),
+  (null, 'Goblet Squat', 'quads', '{glutes}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Front Squat', 'quads', '{glutes,lower_back}'::public.muscle_group[], 'Barbell', null),
+  (null, 'Hack Squat', 'quads', '{glutes}'::public.muscle_group[], 'Machine', null),
+  (null, 'Dumbbell Lunge', 'quads', '{glutes,hamstrings}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Walking Lunge', 'quads', '{glutes,hamstrings}'::public.muscle_group[], 'Bodyweight', 65),
+  (null, 'Bodyweight Squat', 'quads', '{glutes}'::public.muscle_group[], 'Bodyweight', 70),
+  (null, 'Dumbbell Romanian Deadlift', 'hamstrings', '{glutes,lower_back}'::public.muscle_group[], 'Dumbbell', null),
+  (null, 'Seated Leg Curl', 'hamstrings', '{}'::public.muscle_group[], 'Machine', null),
+  (null, 'Glute Bridge', 'glutes', '{hamstrings}'::public.muscle_group[], 'Bodyweight', 50),
+  (null, 'Cable Glute Kickback', 'glutes', '{hamstrings}'::public.muscle_group[], 'Cable', null),
+  (null, 'Hip Abduction Machine', 'glutes', '{}'::public.muscle_group[], 'Machine', null),
+  (null, 'Bodyweight Calf Raise', 'calves', '{}'::public.muscle_group[], 'Bodyweight', 100),
+  (null, 'Crunch', 'abs', '{}'::public.muscle_group[], 'Bodyweight', 30),
+  (null, 'Sit Up', 'abs', '{}'::public.muscle_group[], 'Bodyweight', 50),
+  (null, 'Leg Raise', 'abs', '{obliques}'::public.muscle_group[], 'Bodyweight', 45),
+  (null, 'Mountain Climber', 'abs', '{obliques}'::public.muscle_group[], 'Bodyweight', 60),
+  (null, 'Ab Wheel Rollout', 'abs', '{}'::public.muscle_group[], 'Bodyweight', 60),
+  (null, 'Machine Crunch', 'abs', '{}'::public.muscle_group[], 'Machine', null),
+  (null, 'Bicycle Crunch', 'obliques', '{abs}'::public.muscle_group[], 'Bodyweight', 30)
+on conflict (name) where user_id is null do update set bodyweight_pct = excluded.bodyweight_pct;

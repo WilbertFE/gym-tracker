@@ -4,6 +4,9 @@ import { Stat } from "@/components/stat";
 import { getCurrentUserId } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
 import { getSettings } from "@/lib/repositories/settings";
+import { withBodyweightLoad } from "@/lib/load";
+import { listExercises } from "@/lib/repositories/exercises";
+import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { displayVolume } from "@/lib/units";
 import {
@@ -16,11 +19,14 @@ import { cn } from "@/lib/utils";
 
 export async function WeekPanel() {
   const userId = await getCurrentUserId();
-  const [sessions, sets, settings] = await Promise.all([
+  const [sessions, loggedSets, settings, exercises, weights] = await Promise.all([
     listSessions(userId),
     listAllSets(userId),
     getSettings(userId),
+    listExercises(userId),
+    listWeights(userId),
   ]);
+  const sets = withBodyweightLoad(loggedSets, exercises, sessions, weights);
   const unit = settings.weight_unit;
 
   const today = todayISO();
