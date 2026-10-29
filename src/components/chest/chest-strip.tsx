@@ -4,7 +4,7 @@ import { TreasureChestIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { ChestOpener } from "./chest-opener";
 import { Button } from "@/components/ui/button";
-import type { AvailableChest, ChestKind } from "@/lib/chests";
+import { CHEST_NAMES, chestColor, type AvailableChest, type ChestKind } from "@/lib/chests";
 import type { Equipment } from "@/lib/items";
 import type { Rank } from "@/lib/ranks";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,8 @@ type ChestStripProps = {
 export function ChestStrip({ kind, available, done, total, rank, worn, quick }: ChestStripProps) {
   const [open, setOpen] = useState(false);
   const ready = available.length > 0;
-  const name = kind === "daily" ? "Daily" : "Weekly";
+  const name = CHEST_NAMES[kind];
+  const color = chestColor(kind);
   const soonest = ready ? Math.min(...available.map((c) => c.daysLeft)) : null;
 
   const expiry =
@@ -45,7 +46,8 @@ export function ChestStrip({ kind, available, done, total, rank, worn, quick }: 
         <TreasureChestIcon
           aria-hidden
           weight="duotone"
-          className={cn("size-8 shrink-0", ready ? "text-primary" : "text-muted-foreground")}
+          className={cn("size-8 shrink-0", !ready && "opacity-60")}
+          style={{ color }}
         />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <p className="font-display text-xs font-semibold uppercase tracking-[0.2em]">
@@ -54,7 +56,9 @@ export function ChestStrip({ kind, available, done, total, rank, worn, quick }: 
           <p className="text-xs text-muted-foreground">
             {ready
               ? `${available.length > 1 ? `${available.length} waiting. ` : ""}${expiry}`
-              : `Finish all ${total} quests to earn it (${done} of ${total}).${kind === "weekly" ? " Better odds for Rare items." : ""}`}
+              : kind === "gate"
+                ? "Clear this week's gate to earn it. Better odds for rare items."
+                : `Finish all ${total} quests to earn it (${done} of ${total}).${kind === "weekly" ? " Better odds for rarer items." : ""}`}
           </p>
         </div>
         {ready && (

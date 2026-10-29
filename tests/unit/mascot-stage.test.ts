@@ -97,8 +97,8 @@ describe("the stages", () => {
     expect(stage.halo).toBe("gold");
     expect(stage.beats.join(" ")).toContain("Stone Warden");
     expect(stage.beats.join(" ")).toContain("Gate of Iron");
-    expect(stage.facts).toEqual(["Rank A gate", "+90 XP", "A booster is yours"]);
-    expect(renderStage("boss", ctx({ gate: { ...input().gate, rank: "D", xp: 25, booster: false, cleared: true } })).facts).toEqual(["Rank D gate", "+25 XP"]);
+    expect(stage.facts).toEqual(["Rank A gate", "+90 XP", "A rare chest is yours", "A booster is yours"]);
+    expect(renderStage("boss", ctx({ gate: { ...input().gate, rank: "D", xp: 25, booster: false, cleared: true } })).facts).toEqual(["Rank D gate", "+25 XP", "A rare chest is yours"]);
   });
 
   it("says what unlocked and offers the tour of that page", () => {

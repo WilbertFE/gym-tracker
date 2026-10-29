@@ -1,9 +1,11 @@
 import { format, parseISO } from "date-fns";
 import { Panel } from "@/components/panel";
 import { SystemTip } from "@/components/system-tip";
+import { ChestStrip } from "@/components/chest/chest-strip";
 import { getCurrentUserId } from "@/lib/auth";
 import { loadLevel } from "@/lib/level";
 import { notice } from "@/lib/system-voice";
+import { getQuickChests } from "@/lib/unlock-state";
 import { cn } from "@/lib/utils";
 
 /**
@@ -12,7 +14,7 @@ import { cn } from "@/lib/utils";
  */
 export async function GatePanel() {
   const userId = await getCurrentUserId();
-  const { gate: status } = await loadLevel(userId);
+  const [{ gate: status, chests, level, collection }, quick] = await Promise.all([loadLevel(userId), getQuickChests()]);
   const { gate } = status;
   const left = Math.max(0, gate.hp - status.damage);
   const percentLeft = Math.round((1 - status.progress) * 100);
@@ -20,7 +22,7 @@ export async function GatePanel() {
   return (
     <div className="flex flex-col gap-4">
       <SystemTip id="gates" title={notice("Weekly gates unlocked")}>
-        Every week a boss appears. Each set you log hurts it, and clearing it before Sunday earns XP and sometimes a booster.
+        Every week a boss appears. Each set you log hurts it, and clearing it before Sunday earns XP, a rare chest and sometimes a booster.
       </SystemTip>
 
       <Panel label={`${gate.name}, rank ${gate.rank.letter}`} variant={status.cleared ? "system" : "danger"} tour="gate">
@@ -45,7 +47,7 @@ export async function GatePanel() {
             <p className="tabular shrink-0 text-right text-xs text-muted-foreground">
               Reward
               <span className="block text-sm text-primary">
-                +{gate.rank.xp} XP{gate.rank.booster ? " and a booster" : ""}
+                +{gate.rank.xp} XP and a chest{gate.rank.booster ? ", plus a booster" : ""}
               </span>
             </p>
           </div>
@@ -71,6 +73,18 @@ export async function GatePanel() {
               <span>{status.cleared ? "GATE CLEARED" : `${left.toLocaleString("en-US")} HP left`}</span>
             </p>
           </div>
+
+          {chests.enabled && (
+            <ChestStrip
+              kind="gate"
+              available={chests.available.filter((c) => c.kind === "gate")}
+              done={0}
+              total={0}
+              rank={level.rank}
+              worn={collection.equipment}
+              quick={quick}
+            />
+          )}
 
           <p className="text-xs text-muted-foreground">
             Each set deals its volume, weight times reps, as damage. A bodyweight rep counts 20.

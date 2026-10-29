@@ -3,24 +3,38 @@ import { GRADE_ORDER, GRADES, gradeRank, itemsOfGrade, type Grade, type Item } f
 import { addDaysISO, weekRange } from "@/lib/week";
 
 /**
- * Quest chests. Finishing all three quests of a day earns a daily chest, finishing all three of a week
- * earns a weekly chest with better odds for rare items. Like XP, what has been earned is worked out from
- * the logged data (the quest bonus days), and only an opened chest is stored, so it can never be opened
- * twice. An unopened chest expires after a while.
+ * Chests. Finishing all three quests of a day earns a daily chest, all three of a week a weekly chest, and
+ * clearing a weekly gate a gate chest. Each chest has a rarity of its own, shown by its color: the daily chest
+ * is Common (white), the weekly one Uncommon (green) and the gate one Rare (blue), and a rarer chest has better
+ * odds for rare items. Like XP, what has been earned is worked out from the logged data, and only an opened
+ * chest is stored, so it can never be opened twice. An unopened chest expires after a while.
  */
 
 /** Chests are earned for days from this one on, so nothing is handed out for the past. */
 export const CHEST_START_DATE = "2026-10-29";
 
-export type ChestKind = "daily" | "weekly";
+export type ChestKind = "daily" | "weekly" | "gate";
+
+/** The chest kinds, rarest last. */
+export const CHEST_KINDS: readonly ChestKind[] = ["daily", "weekly", "gate"];
+
+/** What each kind of chest is worth: its rarity, which colors it. Nothing beyond Rare can be earned yet. */
+export const CHEST_TIER: Record<ChestKind, Grade> = { daily: "common", weekly: "uncommon", gate: "rare" };
+
+/** The color of a chest, from its rarity. */
+export const chestColor = (kind: ChestKind): string => GRADES[CHEST_TIER[kind]].color;
+
+export const CHEST_NAMES: Record<ChestKind, string> = { daily: "Daily", weekly: "Weekly", gate: "Gate" };
 
 /** A chest can be opened this many days after it was earned. */
-export const CHEST_EXPIRY_DAYS: Record<ChestKind, number> = { daily: 7, weekly: 14 };
+export const CHEST_EXPIRY_DAYS: Record<ChestKind, number> = { daily: 7, weekly: 14, gate: 14 };
 
 /** Chance of each grade, in percent. Each kind adds up to 100. */
 export const CHEST_ODDS: Record<ChestKind, Record<Grade, number>> = {
-  daily: { common: 62, rare: 27, epic: 9, legendary: 2 },
-  weekly: { common: 30, rare: 42, epic: 20, legendary: 8 },
+  // Mythic is 0 on purpose: nothing in the app can earn a chest that rare yet, and there are no Mythic items.
+  daily: { common: 55, uncommon: 28, rare: 12, epic: 4, legendary: 1, mythic: 0 },
+  weekly: { common: 15, uncommon: 35, rare: 30, epic: 14, legendary: 6, mythic: 0 },
+  gate: { common: 0, uncommon: 20, rare: 45, epic: 25, legendary: 10, mythic: 0 },
 };
 
 /**
@@ -30,10 +44,11 @@ export const CHEST_ODDS: Record<ChestKind, Record<Grade, number>> = {
 export const CHEST_PITY: Record<ChestKind, { after: number; atLeast: Grade }> = {
   daily: { after: 10, atLeast: "rare" },
   weekly: { after: 3, atLeast: "epic" },
+  gate: { after: 2, atLeast: "epic" },
 };
 
 export type Chest = {
-  /** `d:2026-10-29` for a daily chest, `w:2026-10-26` (the week's Monday) for a weekly one. */
+  /** `d:2026-10-29` for a daily chest, `w:2026-10-26` (the week's Monday) for a weekly one, `g:2026-10-26` for that week's gate. */
   id: string;
   kind: ChestKind;
   /** The day the last quest was finished. */
@@ -42,14 +57,14 @@ export type Chest = {
   expiresOn: string;
 };
 
-export const chestKind = (id: string): ChestKind => (id.startsWith("w:") ? "weekly" : "daily");
+export const chestKind = (id: string): ChestKind => (id.startsWith("w:") ? "weekly" : id.startsWith("g:") ? "gate" : "daily");
 
 export function chestId(kind: ChestKind, date: string): string {
-  return kind === "daily" ? `d:${date}` : `w:${weekRange(date).start}`;
+  return kind === "daily" ? `d:${date}` : `${kind === "gate" ? "g" : "w"}:${weekRange(date).start}`;
 }
 
 /** A well formed chest id, or false. */
-export const isChestId = (id: string): boolean => /^[dw]:\d{4}-\d{2}-\d{2}$/.test(id);
+export const isChestId = (id: string): boolean => /^[dwg]:\d{4}-\d{2}-\d{2}$/.test(id);
 
 /** The chests the quest bonus days have earned, oldest first. */
 export function earnedChests(
@@ -64,6 +79,21 @@ export function earnedChests(
     chests.set(id, { id, kind, earnedOn: reward.date, expiresOn: addDaysISO(reward.date, CHEST_EXPIRY_DAYS[kind]) });
   }
   return [...chests.values()].sort((a, b) => a.earnedOn.localeCompare(b.earnedOn) || a.id.localeCompare(b.id));
+}
+
+/** The gate chests earned by cleared weekly gates, dated the day the boss fell, from `start` on. */
+export function gateChests(
+  gates: readonly { gate: { weekStart: string }; clearedOn: string | null }[],
+  start: string = CHEST_START_DATE,
+): Chest[] {
+  return gates
+    .filter((g): g is { gate: { weekStart: string }; clearedOn: string } => g.clearedOn !== null && g.clearedOn >= start)
+    .map((g) => ({
+      id: chestId("gate", g.gate.weekStart),
+      kind: "gate" as const,
+      earnedOn: g.clearedOn,
+      expiresOn: addDaysISO(g.clearedOn, CHEST_EXPIRY_DAYS.gate),
+    }));
 }
 
 export type AvailableChest = Chest & {
@@ -157,7 +187,8 @@ export function rollChest(input: {
   const odds = effectiveOdds(input.kind, input.history);
   const total = GRADE_ORDER.reduce((sum, g) => sum + odds[g], 0);
   let pick = input.rng() * total;
-  let grade: Grade = GRADE_ORDER[GRADE_ORDER.length - 1];
+  // The last grade that can come up, in case rounding leaves a sliver at the top.
+  let grade: Grade = [...GRADE_ORDER].reverse().find((g) => odds[g] > 0) ?? GRADE_ORDER[0];
   for (const candidate of GRADE_ORDER) {
     if (odds[candidate] <= 0) continue;
     if (pick < odds[candidate]) {

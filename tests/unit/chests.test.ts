@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  CHEST_KINDS,
   CHEST_ODDS,
   CHEST_PITY,
   CHEST_START_DATE,
+  CHEST_TIER,
+  chestColor,
   chestId,
   chestKind,
   chestState,
   earnedChests,
   effectiveOdds,
+  gateChests,
   isChestId,
   pityActive,
   rollChest,
@@ -36,7 +40,21 @@ describe("the item catalog", () => {
   it("has 21 items with unique ids and the planned spread of grades", () => {
     expect(ITEMS).toHaveLength(21);
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(21);
-    expect(GRADE_ORDER.map((g) => itemsOfGrade(g).length)).toEqual([6, 6, 5, 4]);
+    // Common, Uncommon, Rare, Epic, Legendary, Mythic. Mythic has no items yet.
+    expect(GRADE_ORDER.map((g) => itemsOfGrade(g).length)).toEqual([3, 3, 6, 5, 4, 0]);
+  });
+
+  it("has six grades with the usual colors, white to red", () => {
+    expect(GRADE_ORDER).toEqual(["common", "uncommon", "rare", "epic", "legendary", "mythic"]);
+    expect(GRADE_ORDER.map((g) => GRADES[g].color)).toEqual(["#e5e9f0", "#4ade80", "#4aa8ff", "#b07cff", "#ffb83d", "#ff4d5e"]);
+  });
+
+  it("never gives a chest odds for a grade that has no items", () => {
+    for (const kind of CHEST_KINDS) {
+      for (const grade of GRADE_ORDER) {
+        if (CHEST_ODDS[kind][grade] > 0) expect(itemsOfGrade(grade).length, `${kind} ${grade}`).toBeGreaterThan(0);
+      }
+    }
   });
 
   it("fills every slot, and each value fits its slot", () => {
@@ -56,7 +74,7 @@ describe("the item catalog", () => {
   it("pays more XP for a repeat of a higher grade", () => {
     const pay = GRADE_ORDER.map((g) => GRADES[g].duplicateXp);
     expect(pay).toEqual([...pay].sort((a, b) => a - b));
-    expect(new Set(pay).size).toBe(4);
+    expect(new Set(pay).size).toBe(6);
   });
 
   it("wears only items that exist and fit their slot", () => {
@@ -90,11 +108,31 @@ describe("earning chests", () => {
     expect(chestId("daily", "2026-11-01")).toBe("d:2026-11-01");
     expect(chestKind("w:2026-10-26")).toBe("weekly");
     expect(chestKind("d:2026-10-26")).toBe("daily");
+    expect(chestKind("g:2026-10-26")).toBe("gate");
+    expect(chestId("gate", "2026-11-01")).toBe("g:2026-10-26");
+  });
+
+  it("colors each chest by its rarity: white, green, blue", () => {
+    expect(CHEST_TIER).toEqual({ daily: "common", weekly: "uncommon", gate: "rare" });
+    expect(CHEST_KINDS.map((k) => chestColor(k))).toEqual([GRADES.common.color, GRADES.uncommon.color, GRADES.rare.color]);
+  });
+
+  it("earns a gate chest for every cleared gate from the start date on, dated the day the boss fell", () => {
+    const gates = [
+      { gate: { weekStart: "2026-10-19" }, clearedOn: "2026-10-21" },
+      { gate: { weekStart: "2026-10-26" }, clearedOn: "2026-10-30" },
+      { gate: { weekStart: "2026-11-02" }, clearedOn: null },
+    ];
+    const chests = gateChests(gates);
+    expect(chests).toEqual([{ id: "g:2026-10-26", kind: "gate", earnedOn: "2026-10-30", expiresOn: "2026-11-13" }]);
+    expect(chestState(chests, new Set(), "2026-11-13").available).toHaveLength(1);
+    expect(chestState(chests, new Set(), "2026-11-14").expired).toHaveLength(1);
   });
 
   it("accepts only well formed chest ids", () => {
     expect(isChestId("d:2026-10-29")).toBe(true);
     expect(isChestId("w:2026-10-26")).toBe(true);
+    expect(isChestId("g:2026-10-26")).toBe(true);
     for (const bad of ["", "x:2026-10-29", "d:2026-1-29", "d:2026-10-29; drop table", "2026-10-29"]) expect(isChestId(bad), bad).toBe(false);
   });
 
@@ -122,29 +160,39 @@ describe("earning chests", () => {
 });
 
 describe("the odds", () => {
-  it("add up to 100 for both kinds", () => {
-    for (const kind of ["daily", "weekly"] as const) {
+  it("add up to 100 for every kind", () => {
+    for (const kind of CHEST_KINDS) {
       expect(GRADE_ORDER.reduce((sum, g) => sum + CHEST_ODDS[kind][g], 0)).toBe(100);
     }
   });
 
-  it("are better in a weekly chest at every grade above Common", () => {
+  it("are better in a rarer chest at the top: weekly beats daily, gate beats weekly", () => {
     for (const grade of ["rare", "epic", "legendary"] as const) {
       expect(CHEST_ODDS.weekly[grade], grade).toBeGreaterThan(CHEST_ODDS.daily[grade]);
     }
+    for (const grade of ["rare", "epic", "legendary"] as const) {
+      expect(CHEST_ODDS.gate[grade], grade).toBeGreaterThan(CHEST_ODDS.weekly[grade]);
+    }
     expect(CHEST_ODDS.weekly.common).toBeLessThan(CHEST_ODDS.daily.common);
+    expect(CHEST_ODDS.gate.common).toBe(0);
+    // Nothing can earn a Mythic chest yet, and there are no Mythic items.
+    for (const kind of CHEST_KINDS) expect(CHEST_ODDS[kind].mythic, kind).toBe(0);
   });
 
   it("land on the grade whose slice the number falls in", () => {
     const owned = new Set<string>();
-    const grade = (kind: "daily" | "weekly", r: number) => rollChest({ kind, owned, history: [], rng: sequence(r, 0) }).grade;
-    // Daily: 0 to 62 common, 62 to 89 rare, 89 to 98 epic, 98 to 100 legendary.
-    expect([0, 0.61, 0.62, 0.88, 0.89, 0.97, 0.98, 0.999].map((r) => grade("daily", r))).toEqual([
-      "common", "common", "rare", "rare", "epic", "epic", "legendary", "legendary",
+    const grade = (kind: "daily" | "weekly" | "gate", r: number) => rollChest({ kind, owned, history: [], rng: sequence(r, 0) }).grade;
+    // Daily: 0 to 55 common, 55 to 83 uncommon, 83 to 95 rare, 95 to 99 epic, 99 to 100 legendary.
+    expect([0, 0.54, 0.55, 0.82, 0.83, 0.94, 0.95, 0.98, 0.99, 0.999].map((r) => grade("daily", r))).toEqual([
+      "common", "common", "uncommon", "uncommon", "rare", "rare", "epic", "epic", "legendary", "legendary",
     ]);
-    // Weekly: 0 to 30, 30 to 72, 72 to 92, 92 to 100.
-    expect([0.29, 0.3, 0.71, 0.72, 0.91, 0.92].map((r) => grade("weekly", r))).toEqual([
-      "common", "rare", "rare", "epic", "epic", "legendary",
+    // Weekly: 0 to 15, 15 to 50, 50 to 80, 80 to 94, 94 to 100.
+    expect([0.14, 0.15, 0.49, 0.5, 0.79, 0.8, 0.93, 0.94].map((r) => grade("weekly", r))).toEqual([
+      "common", "uncommon", "uncommon", "rare", "rare", "epic", "epic", "legendary",
+    ]);
+    // Gate: no common at all. 0 to 20 uncommon, 20 to 65 rare, 65 to 90 epic, 90 to 100 legendary.
+    expect([0, 0.19, 0.2, 0.64, 0.65, 0.89, 0.9, 0.999].map((r) => grade("gate", r))).toEqual([
+      "uncommon", "uncommon", "rare", "rare", "epic", "epic", "legendary", "legendary",
     ]);
   });
 
@@ -152,7 +200,7 @@ describe("the odds", () => {
     // A small deterministic generator, so the test never flakes.
     let seed = 12345;
     const rng = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32);
-    const counts = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    const counts = { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0, mythic: 0 };
     const rolls = 20000;
     for (let i = 0; i < rolls; i++) counts[rollChest({ kind: "weekly", owned: new Set(), history: [], rng }).grade] += 1;
     for (const grade of GRADE_ORDER) {
@@ -193,7 +241,7 @@ describe("the pity rule", () => {
     expect(rollChest({ kind: "weekly", owned: new Set(), history: weekly, rng: sequence(0, 0) }).grade).toBe("epic");
     // The odds shown for the next chest are renormalized and still add up to 100.
     const odds = effectiveOdds("weekly", weekly);
-    expect(odds.common + odds.rare).toBe(0);
+    expect(odds.common + odds.uncommon + odds.rare).toBe(0);
     expect(odds.epic + odds.legendary).toBeCloseTo(100);
   });
 });
@@ -201,7 +249,7 @@ describe("the pity rule", () => {
 describe("what a chest holds", () => {
   it("never repeats an item while one of its grade is missing", () => {
     const common = itemsOfGrade("common");
-    const missing = common[3];
+    const missing = common[2];
     const owned = new Set(common.filter((i) => i.id !== missing.id).map((i) => i.id));
     for (const r of [0, 0.3, 0.6, 0.99]) {
       const roll = rollChest({ kind: "daily", owned, history: [], rng: sequence(0, r) });
@@ -222,7 +270,7 @@ describe("what a chest holds", () => {
 
   it("can give every item of a grade, so none is out of reach", () => {
     const seen = new Set<string>();
-    for (let i = 0; i < 6; i++) seen.add(rollChest({ kind: "daily", owned: new Set(), history: [], rng: sequence(0, i / 6 + 0.01) }).item.id);
+    for (let i = 0; i < 3; i++) seen.add(rollChest({ kind: "daily", owned: new Set(), history: [], rng: sequence(0, i / 3 + 0.01) }).item.id);
     expect(seen).toEqual(new Set(itemsOfGrade("common").map((i) => i.id)));
   });
 
@@ -233,13 +281,13 @@ describe("what a chest holds", () => {
     const history: Opening[] = [];
     let repeats = 0;
     for (let i = 0; i < 400 && owned.size < ITEMS.length; i++) {
-      const kind = i % 4 === 3 ? "weekly" : "daily";
+      const kind = i % 5 === 4 ? "gate" : i % 5 === 3 ? "weekly" : "daily";
       const roll = rollChest({ kind, owned, history, rng });
       if (roll.duplicate) repeats += 1;
       // A repeat can only come up when its whole grade is owned.
       if (roll.duplicate) expect(itemsOfGrade(roll.grade).every((x) => owned.has(x.id))).toBe(true);
       owned.add(roll.item.id);
-      history.push({ chest_id: `${kind === "daily" ? "d" : "w"}:2027-01-${String(i).padStart(2, "0")}`, item_id: roll.item.id, grade: roll.grade, duplicate: roll.duplicate, bonus_xp: roll.bonusXp, opened_at: `2027-02-${String(i).padStart(3, "0")}`, opened_on: "2027-02-01" });
+      history.push({ chest_id: `${kind === "daily" ? "d" : kind === "weekly" ? "w" : "g"}:2027-01-${String(i).padStart(2, "0")}`, item_id: roll.item.id, grade: roll.grade, duplicate: roll.duplicate, bonus_xp: roll.bonusXp, opened_at: `2027-02-${String(i).padStart(3, "0")}`, opened_on: "2027-02-01" });
     }
     expect(owned.size).toBe(ITEMS.length);
     expect(repeats).toBeGreaterThanOrEqual(0);

@@ -23,13 +23,13 @@ beforeEach(() => {
 });
 
 describe("GET /api/chests", () => {
-  it("lists the chests waiting, daily and weekly, with the days left", async () => {
+  it("lists the chests waiting, daily, weekly and gate, with the days left", async () => {
     const data = await state();
     expect(data.enabled).toBe(true);
-    expect(data.available.map((c: { kind: string }) => c.kind).sort()).toEqual(["daily", "daily", "daily", "daily", "daily", "weekly", "weekly"]);
+    expect(data.available.map((c: { kind: string }) => c.kind).sort()).toEqual(["daily", "daily", "daily", "daily", "daily", "gate", "weekly", "weekly"]);
     for (const chest of data.available) {
       expect(chest.daysLeft).toBeGreaterThanOrEqual(0);
-      expect(chest.id).toMatch(/^[dw]:\d{4}-\d{2}-\d{2}$/);
+      expect(chest.id).toMatch(/^[dwg]:\d{4}-\d{2}-\d{2}$/);
     }
     expect(data.openings).toEqual([]);
     expect(data.collection.owned).toEqual([]);
@@ -46,10 +46,10 @@ describe("POST /api/chests/open", () => {
     expect(ITEMS.map((i) => i.id)).toContain(data.item.id);
     expect(data.item.grade).toBe(data.grade);
     expect(data.duplicate).toBe(false);
-    expect(data.remaining).toBe(6);
+    expect(data.remaining).toBe(7);
 
     const after = await state();
-    expect(after.available).toHaveLength(6);
+    expect(after.available).toHaveLength(7);
     expect(after.openings).toHaveLength(1);
     expect(after.collection.owned).toEqual([data.item.id]);
   });
@@ -84,18 +84,21 @@ describe("POST /api/chests/open", () => {
     expect(last).toBe(429);
   });
 
-  it("opens every chest and the collection grows without a repeat", async () => {
+  it("opens every chest and a repeat only comes up when its whole grade is owned", async () => {
     const ids = (await state()).available.map((c: { id: string }) => c.id);
     const got: string[] = [];
+    const owned = new Set<string>();
     for (const id of ids) {
       const res = await post({ chestId: id });
       expect(res.status).toBe(201);
       const { data } = await res.json();
-      expect(data.duplicate).toBe(false);
-      got.push(data.item.id);
+      // A repeat can only come up once the whole grade is owned (a grade can run out, with only a few items).
+      if (data.duplicate) expect(itemsOfGrade(data.grade).every((i) => owned.has(i.id))).toBe(true);
+      else got.push(data.item.id);
+      owned.add(data.item.id);
     }
-    expect(new Set(got).size).toBe(ids.length);
-    expect(ids).toHaveLength(7);
+    expect(new Set(got).size).toBe(got.length);
+    expect(ids).toHaveLength(8);
     expect((await state()).available).toEqual([]);
   });
 });

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api-client";
-import type { AvailableChest } from "@/lib/chests";
+import { CHEST_NAMES, chestColor, type AvailableChest, type ChestKind } from "@/lib/chests";
 import { GRADE_ORDER, GRADES, gradeRank, SLOTS, type Equipment, type Grade, type Item } from "@/lib/items";
 import type { Rank } from "@/lib/ranks";
 import { SYSTEM } from "@/lib/system-voice";
@@ -18,7 +18,7 @@ import { ItemMedal } from "@/components/items/item-icon";
 /** What `POST /api/chests/open` returns. */
 type OpenResult = {
   chestId: string;
-  kind: "daily" | "weekly";
+  kind: ChestKind;
   item: Item;
   grade: Grade;
   gradeName: string;
@@ -32,7 +32,10 @@ const SHAKE_MS = 800;
 const OPEN_MS = 450;
 const OPEN_LEGENDARY_MS = 700;
 /** One burst of small shards when the lid opens. Common gets none. */
-const SHARDS: Record<Grade, number> = { common: 0, rare: 10, epic: 18, legendary: 30 };
+const SHARDS: Record<Grade, number> = { common: 0, uncommon: 5, rare: 10, epic: 18, legendary: 30, mythic: 42 };
+
+/** The two highest grades get the slower, bigger reveal. */
+const isGrand = (grade: Grade | undefined) => grade === "legendary" || grade === "mythic";
 /** Where the lid meets the body, in the stage's own coordinates. Effects start here. */
 const SEAM_Y = 174;
 
@@ -73,8 +76,8 @@ type Props = {
 
 /**
  * The chest opening. A tap starts it, the chest shakes while the server rolls, the lid opens with a beam in
- * the color of what was won, and the item turns up out of the chest. It stays short, plays once, has no
- * sound, can be skipped with a tap anywhere, and with reduced motion (or the quick setting) it is a fade.
+ * the color of what was won, and the item turns up out of the chest. It stays short, plays once, can be
+ * skipped with a tap anywhere, and with reduced motion (or the quick setting) it is a fade.
  */
 export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
   const router = useRouter();
@@ -82,7 +85,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
   const [phase, setPhase] = useState<ChestPhase>("idle");
   const [waiting, setWaiting] = useState(false);
   const [result, setResult] = useState<OpenResult | null>(null);
-  const [glow, setGlow] = useState<string>(GRADES.rare.color);
+  const [glow, setGlow] = useState<string>(() => chestColor(chests[0]?.kind ?? "daily"));
   const [calm, setCalm] = useState(quick);
   const [wornNow, setWornNow] = useState<Equipment>(worn);
   const [equipping, setEquipping] = useState(false);
@@ -139,7 +142,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
     setCalm(calmNow);
     setResult(null);
     setWaiting(false);
-    setGlow(GRADES.rare.color);
+    setGlow(chestColor(chest.kind));
     setPhase("shaking");
 
     // The server rolls while the chest shakes, so the animation never waits for it and it never waits for the animation.
@@ -169,7 +172,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
       GRADE_ORDER.slice(0, gradeRank(data.grade) + 1).forEach((grade, i) => {
         setTimeout(() => alive.current && setGlow(GRADES[grade].color), i * 90);
       });
-      await wait(data.grade === "legendary" ? OPEN_LEGENDARY_MS : OPEN_MS);
+      await wait(isGrand(data.grade) ? OPEN_LEGENDARY_MS : OPEN_MS);
       if (!alive.current) return;
     }
     setGlow(color);
@@ -180,7 +183,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
     setIndex((i) => i + 1);
     setResult(null);
     setPhase("idle");
-    setGlow(GRADES.rare.color);
+    setGlow(chestColor(chests[index + 1]?.kind ?? chest.kind));
   }
 
   async function equip() {
@@ -212,7 +215,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
   if (!chest) return null;
 
   const gradeColor = result ? GRADES[result.grade].color : glow;
-  const legendary = result?.grade === "legendary";
+  const legendary = isGrand(result?.grade);
   const busy = phase === "shaking" || phase === "opening";
   const stage = {
     "--glow": glow,
@@ -228,7 +231,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={chest.kind === "daily" ? "Daily chest" : "Weekly chest"}
+      aria-label={`${CHEST_NAMES[chest.kind]} chest`}
       className="fixed inset-0 z-[60] overflow-y-auto bg-black/85 backdrop-blur-sm motion-safe:animate-[xp-in_0.3s_ease-out]"
       onClick={busy ? skip : undefined}
     >
@@ -236,7 +239,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
         <div
           aria-hidden
           className="chest-fade pointer-events-none fixed inset-0"
-          style={{ background: "radial-gradient(ellipse at 50% 45%, transparent 38%, rgba(255, 184, 61, 0.2) 100%)" }}
+          style={{ background: `radial-gradient(ellipse at 50% 45%, transparent 38%, color-mix(in srgb, ${gradeColor} 22%, transparent) 100%)` }}
         />
       )}
       {showEffects && phase === "opening" && (
@@ -250,7 +253,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="flex w-full max-w-sm flex-col items-center gap-3 text-center">
           <p className="font-display relative z-10 text-[11px] font-semibold uppercase tracking-[0.3em] text-primary">
-            [ {chest.kind === "daily" ? "Daily chest" : "Weekly chest"} ]
+            [ {CHEST_NAMES[chest.kind]} chest ]
             {chests.length > 1 && (
               <span className="tabular ml-2 text-muted-foreground">
                 {index + 1} / {chests.length}
@@ -354,7 +357,7 @@ export function ChestOpener({ chests, rank, worn, quick, onClose }: Props) {
                   Open chest
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  {chest.kind === "weekly" ? "A weekly chest has better odds for Rare items." : "Tap the chest or press Enter."}
+                  {chest.kind === "daily" ? "Tap the chest or press Enter." : `A ${CHEST_NAMES[chest.kind].toLowerCase()} chest has better odds for rarer items.`}
                   {chest.daysLeft <= 2 && <span className="text-foreground"> {chest.daysLeft === 0 ? "Last day to open it." : `${chest.daysLeft} day${chest.daysLeft === 1 ? "" : "s"} left.`}</span>}
                 </p>
                 <Button type="button" variant="ghost" className="h-9" onClick={close}>

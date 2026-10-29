@@ -57,9 +57,9 @@ export const auraKindFor = (itemId: string | null | undefined): AuraKind => (ite
 export type PlateStyle = "plain" | "bracket" | "gradient" | "crest";
 
 export const plateStyleFor = (grade: Grade): PlateStyle =>
-  ({ common: "plain", rare: "bracket", epic: "gradient", legendary: "crest" } as const)[grade];
+  ({ common: "plain", uncommon: "plain", rare: "bracket", epic: "gradient", legendary: "crest", mythic: "crest" } as const)[grade];
 
-/** The small diamonds next to a grade name: one for Common up to four for Legendary. */
+/** The small diamonds next to a grade name: one for Common up to six for Mythic. */
 export const gradePips = (grade: Grade): number => gradeRank(grade) + 1;
 
 /** What is being tried on. A slot with a string previews that item, `null` previews taking it off, a missing slot is left as worn. */

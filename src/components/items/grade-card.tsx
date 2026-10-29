@@ -14,7 +14,7 @@ type GradeCardProps = {
 };
 
 /**
- * A card that wears its grade: flat for Common, an inner glow for Rare, a gradient edge and brackets for Epic, a
+ * A card that wears its grade: flat for Common, a green edge for Uncommon, an inner glow for Rare, a gradient edge and brackets for Epic, a
  * double gold edge with a gem for Legendary. The look is in `globals.css` (`.item-card`).
  */
 export function GradeCard({ grade, children, className, as: Tag = "div", dim = false }: GradeCardProps) {
@@ -24,8 +24,8 @@ export function GradeCard({ grade, children, className, as: Tag = "div", dim = f
       data-grade={grade}
       style={{ "--grade": GRADES[grade].color } as CSSProperties}
     >
-      {grade === "legendary" && <span aria-hidden className="item-gem" />}
-      {(grade === "epic" || grade === "legendary") && (
+      {(grade === "legendary" || grade === "mythic") && <span aria-hidden className="item-gem" />}
+      {(grade === "epic" || grade === "legendary" || grade === "mythic") && (
         <span aria-hidden className="item-shine-wrap">
           <span className="item-shine" />
         </span>

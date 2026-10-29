@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { boostersEarned, summarizeBoosts, type BoostSummary } from "@/lib/boosters";
-import { chestState, earnedChests, type AvailableChest, type Chest, type Opening } from "@/lib/chests";
+import { chestState, earnedChests, gateChests, type AvailableChest, type Chest, type Opening } from "@/lib/chests";
 import { itemById, NO_EQUIPMENT, SLOTS, type Equipment } from "@/lib/items";
 import { todayISO } from "@/lib/dates";
 import { listBoosts } from "@/lib/repositories/boosts";
@@ -103,9 +103,10 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
   const questInput = { checkins, weights, sessions, sets, exerciseMuscles, recovery };
   const quests = buildQuestBoard(questInput, today);
 
-  // Chests: one for every day or week whose quests were all finished, minus the opened and the expired.
+  // Chests: one for every day or week whose quests were all finished and every gate cleared, minus the opened and the expired.
   const chestsEarned = new Map<string, Chest>();
-  for (const chest of [...earnedChests(questRewards(questInput, { start: QUEST_START_DATE, today }).rewards), ...extraChests]) {
+  const earnedFromPlay = [...earnedChests(questRewards(questInput, { start: QUEST_START_DATE, today }).rewards), ...gateChests(gatesThrough(gateInput, today))];
+  for (const chest of [...earnedFromPlay, ...extraChests]) {
     chestsEarned.set(chest.id, chest);
   }
   const openedIds = new Set(openingRows.openings.map((o) => o.chest_id));

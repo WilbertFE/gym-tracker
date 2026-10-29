@@ -78,7 +78,7 @@ const STAGES: Record<string, StageDef> = {
       halo: "gold",
       tag: "Gate cleared",
       beats: ["The boss is down.", gate ? `${gate.boss} has fallen. ${gate.name} is cleared.` : "This week's gate is cleared.", "Obviously. ...I mean, well done."],
-      facts: gate ? [`Rank ${gate.rank} gate`, `+${gate.xp} XP`, ...(gate.booster ? ["A booster is yours"] : [])] : [],
+      facts: gate ? [`Rank ${gate.rank} gate`, `+${gate.xp} XP`, "A rare chest is yours", ...(gate.booster ? ["A booster is yours"] : [])] : [],
       replies: [{ label: "See the gate", href: "/dashboard" }, CLOSE("Nice")],
       auto: false,
     };

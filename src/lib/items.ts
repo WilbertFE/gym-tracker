@@ -1,12 +1,12 @@
 /**
  * The cosmetic items that quest chests hold. They change how things look and never how much XP you earn,
- * so the leaderboard stays fair. Every item has a grade, from Common to Legendary, and fits one slot.
+ * so the leaderboard stays fair. Every item has a grade, from Common to Mythic, and fits one slot.
  * Names are plain words on purpose, nothing here comes from any game or film.
  */
-export type Grade = "common" | "rare" | "epic" | "legendary";
+export type Grade = "common" | "uncommon" | "rare" | "epic" | "legendary" | "mythic";
 
-/** Lowest to highest. */
-export const GRADE_ORDER: readonly Grade[] = ["common", "rare", "epic", "legendary"];
+/** Lowest to highest. The colors follow the usual game ladder: white, green, blue, purple, gold, red. */
+export const GRADE_ORDER: readonly Grade[] = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
 
 export type GradeInfo = {
   id: Grade;
@@ -18,10 +18,12 @@ export type GradeInfo = {
 };
 
 export const GRADES: Record<Grade, GradeInfo> = {
-  common: { id: "common", name: "Common", color: "#9aa8c4", duplicateXp: 3 },
+  common: { id: "common", name: "Common", color: "#e5e9f0", duplicateXp: 3 },
+  uncommon: { id: "uncommon", name: "Uncommon", color: "#4ade80", duplicateXp: 4 },
   rare: { id: "rare", name: "Rare", color: "#4aa8ff", duplicateXp: 6 },
   epic: { id: "epic", name: "Epic", color: "#b07cff", duplicateXp: 12 },
   legendary: { id: "legendary", name: "Legendary", color: "#ffb83d", duplicateXp: 25 },
+  mythic: { id: "mythic", name: "Mythic", color: "#ff4d5e", duplicateXp: 50 },
 };
 
 export const gradeRank = (grade: Grade): number => GRADE_ORDER.indexOf(grade);
@@ -60,11 +62,12 @@ export type Item = {
 export const ITEMS: readonly Item[] = [
   // Common
   { id: "aura-frost", slot: "aura", grade: "common", name: "Frost", blurb: "A cold, pale blue glow.", value: "#8ecbff" },
-  { id: "aura-mint", slot: "aura", grade: "common", name: "Mint", blurb: "A fresh, cool green glow.", value: "#6fe3c1" },
   { id: "aura-sand", slot: "aura", grade: "common", name: "Sand", blurb: "A warm, soft glow.", value: "#e8d8a8" },
   { id: "plate-rookie", slot: "plate", grade: "common", name: "Rookie", blurb: "Everyone starts somewhere.", value: "Rookie" },
-  { id: "plate-early", slot: "plate", grade: "common", name: "Early Bird", blurb: "For the morning sessions.", value: "Early Bird" },
-  { id: "plate-night", slot: "plate", grade: "common", name: "Night Owl", blurb: "For the late sessions.", value: "Night Owl" },
+  // Uncommon
+  { id: "aura-mint", slot: "aura", grade: "uncommon", name: "Mint", blurb: "A fresh, cool green glow.", value: "#6fe3c1" },
+  { id: "plate-early", slot: "plate", grade: "uncommon", name: "Early Bird", blurb: "For the morning sessions.", value: "Early Bird" },
+  { id: "plate-night", slot: "plate", grade: "uncommon", name: "Night Owl", blurb: "For the late sessions.", value: "Night Owl" },
   // Rare
   { id: "frame-steel", slot: "frame", grade: "rare", name: "Steel", blurb: "A plain steel ring around the badge.", value: "steel" },
   { id: "frame-cobalt", slot: "frame", grade: "rare", name: "Cobalt", blurb: "A blue double ring.", value: "cobalt" },
@@ -78,7 +81,7 @@ export const ITEMS: readonly Item[] = [
   { id: "aura-gilded", slot: "aura", grade: "epic", name: "Gilded", blurb: "A rich golden glow.", value: "#ffcf5c" },
   { id: "plate-relentless", slot: "plate", grade: "epic", name: "Relentless", blurb: "It does not stop.", value: "Relentless" },
   { id: "look-ember", slot: "look", grade: "epic", name: "Ember", blurb: "A glowing orange look for share images.", value: "ember" },
-  // Legendary
+  // Legendary (Mythic has no items yet; the tier, its color and its art are ready for when it gets some)
   { id: "frame-apex", slot: "frame", grade: "legendary", name: "Apex", blurb: "A gold crest with a slow shimmer.", value: "apex" },
   { id: "aura-sovereign", slot: "aura", grade: "legendary", name: "Sovereign", blurb: "A pale gold glow, the brightest there is.", value: "#ffe08a" },
   { id: "plate-ascendant", slot: "plate", grade: "legendary", name: "Ascendant", blurb: "Always climbing.", value: "Ascendant" },

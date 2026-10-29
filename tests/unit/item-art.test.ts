@@ -27,14 +27,14 @@ describe("item icons and art", () => {
     expect(auraKindFor("nope")).toBe("halo");
   });
 
-  it("dress a nameplate differently for every grade", () => {
+  it("dress a nameplate for its grade, with four looks across the six grades", () => {
     const styles = GRADE_ORDER.map(plateStyleFor);
-    expect(styles).toEqual(["plain", "bracket", "gradient", "crest"]);
+    expect(styles).toEqual(["plain", "plain", "bracket", "gradient", "crest", "crest"]);
     expect(new Set(styles).size).toBe(4);
   });
 
-  it("count one pip for Common up to four for Legendary", () => {
-    expect(GRADE_ORDER.map(gradePips)).toEqual([1, 2, 3, 4]);
+  it("count one pip for Common up to six for Mythic", () => {
+    expect(GRADE_ORDER.map(gradePips)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 });
 

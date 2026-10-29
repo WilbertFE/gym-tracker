@@ -98,7 +98,7 @@ export async function QuestsPanel() {
       </SystemTip>
       {chests.enabled && (
         <SystemTip id="chests" title={notice("Chests unlocked")}>
-          Finish all three quests of a day for a chest with a random item. A weekly chest has better odds for rare ones.
+          Finish all three quests of a day for a chest with a random item. A weekly chest is a rarer chest, with better odds for rare items.
         </SystemTip>
       )}
       <div className="grid items-start gap-6 lg:grid-cols-2">

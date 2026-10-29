@@ -139,6 +139,8 @@ export function CollectionClient({ rank, level, name, title, owned, worn }: Coll
       <div className="flex flex-col gap-6">
         {[...GRADE_ORDER].reverse().map((grade) => {
           const items = itemsOfGrade(grade);
+          // A grade nothing has been made for yet (Mythic) has no panel to show.
+          if (items.length === 0) return null;
           const have = items.filter((i) => ownedSet.has(i.id)).length;
           return (
             <Panel key={grade} label={`${GRADES[grade].name}, ${have} of ${items.length}`} variant="plain">
