@@ -1,3 +1,5 @@
+import { monsterFor } from "@/lib/battle/monsters";
+import { computeStats } from "@/lib/stats";
 import { addDaysISO, weekRange } from "@/lib/week";
 
 /**
@@ -45,7 +47,7 @@ const HISTORY_WEEKS = 4;
 export const BODYWEIGHT_REP_DAMAGE = 20;
 
 const BOSSES = [
-  "Iron Golem",
+  "Granite Warden",
   "Rep Wraith",
   "Plate Titan",
   "Barbell Hydra",
@@ -68,22 +70,97 @@ function hash(text: string): number {
 
 export type GateInput = {
   sessions: { id: string; date: string }[];
-  sets: { session_id: string; reps: number; weight_kg: number }[];
+  /** `id`, `exercise_id` and `completed_at` are only needed for the battle replay and its critical hits. */
+  sets: { session_id: string; reps: number; weight_kg: number; id?: string; exercise_id?: string; completed_at?: string }[];
+  /** Primary muscle of each exercise, by id. Agility counts the muscles you train, so it needs this. */
+  exerciseMuscles?: Record<string, string>;
 };
 
 /** Damage of one set: its volume, or a fixed amount per rep for a bodyweight set. */
 export const setDamage = (reps: number, weightKg: number): number =>
   weightKg > 0 ? reps * weightKg : reps * BODYWEIGHT_REP_DAMAGE;
 
+/** The most extra damage Strength can give, as a share (0.25 is 25 percent). */
+export const MAX_ATTACK_BONUS = 0.25;
+/** The best chance of a critical hit Agility can give. */
+export const MAX_CRIT_CHANCE = 0.25;
+/** A critical hit deals this many times the damage. */
+export const CRIT_MULTIPLIER = 1.5;
+
+/** What the hero brings into a week: the two stats that change damage, and what they turn into. */
+export type Power = {
+  strength: number;
+  agility: number;
+  /** Damage multiplier from Strength, from 1 up to 1.25. */
+  attack: number;
+  /** Chance of a critical hit from Agility, up to 0.25. */
+  critChance: number;
+};
+
+export const powerFromStats = (strength: number, agility: number): Power => ({
+  strength,
+  agility,
+  attack: 1 + Math.min(MAX_ATTACK_BONUS, strength / 400),
+  critChance: Math.min(MAX_CRIT_CHANCE, agility / 400),
+});
+
+/**
+ * The power the hero has on the first day of a week: Strength and Agility worked out from the sets logged before that
+ * week only, so training this week never changes this week's bonus and a gate already cleared stays cleared. Your
+ * history is your power: the more you have trained before, the harder each set hits.
+ */
+export function powerBefore(weekStart: string, input: GateInput): Power {
+  const dateOf = new Map(input.sessions.map((s) => [s.id, s.date]));
+  const before = input.sets.filter((s) => {
+    const date = dateOf.get(s.session_id);
+    return date !== undefined && date < weekStart;
+  });
+  if (before.length === 0) return powerFromStats(0, 0);
+  const stats = computeStats({
+    checkins: [],
+    sessions: [],
+    sets: before.map((s) => ({ session_id: s.session_id, exercise_id: s.exercise_id ?? s.session_id, reps: s.reps, weight_kg: s.weight_kg })),
+    exerciseMuscles: input.exerciseMuscles,
+    questsCompleted: 0,
+  });
+  const value = (id: string) => stats.find((s) => s.id === id)?.value ?? 0;
+  return powerFromStats(value("strength"), value("agility"));
+}
+
+/** A number from 0 up to but not including 1, the same for the same text, so a critical hit replays the same every time. */
+export const seeded = (text: string): number => hash(text) / 2 ** 32;
+
+export type Hit = {
+  /** What the set is worth before any bonus. */
+  base: number;
+  crit: boolean;
+  damage: number;
+};
+
+/** One set's hit: its volume, times the Strength bonus, times 1.5 on a critical hit. `index` is the set's place in the input, the seed when it has no id. */
+export function hitFor(set: GateInput["sets"][number], index: number, weekStart: string, power: Power): Hit {
+  const base = setDamage(set.reps, set.weight_kg);
+  const key = set.id ?? `${set.session_id}:${index}`;
+  const crit = seeded(`crit:${weekStart}:${key}`) < power.critChance;
+  return { base, crit, damage: Math.round(base * power.attack * (crit ? CRIT_MULTIPLIER : 1)) };
+}
+
 /** Damage dealt on each date. */
 export function dailyDamage(input: GateInput): Map<string, number> {
   const dateOf = new Map(input.sessions.map((s) => [s.id, s.date]));
   const days = new Map<string, number>();
-  for (const set of input.sets) {
+  const powers = new Map<string, Power>();
+  input.sets.forEach((set, index) => {
     const date = dateOf.get(set.session_id);
-    if (!date) continue;
-    days.set(date, (days.get(date) ?? 0) + setDamage(set.reps, set.weight_kg));
-  }
+    if (!date) return;
+    const week = weekRange(date).start;
+    let power = powers.get(week);
+    if (!power) {
+      power = powerBefore(week, input);
+      powers.set(week, power);
+    }
+    days.set(date, (days.get(date) ?? 0) + hitFor(set, index, week, power).damage);
+  });
   return days;
 }
 
@@ -120,7 +197,8 @@ export function gateFor(weekStart: string, days: Map<string, number>): Gate {
     weekEnd: addDaysISO(weekStart, 6),
     rank,
     name: `Gate of ${DOMAINS[hash(`domain:${weekStart}`) % DOMAINS.length]}`,
-    boss: BOSSES[hash(`boss:${weekStart}`) % BOSSES.length],
+    // A gate rank with a monster of its own is guarded by it, the others by a boss picked from the list.
+    boss: monsterFor(rank.letter)?.name ?? BOSSES[hash(`boss:${weekStart}`) % BOSSES.length],
     hp: Math.max(500, Math.round((base * rank.multiplier) / 100) * 100),
   };
 }

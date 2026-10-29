@@ -79,7 +79,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
   // A repeat from a chest pays a little XP, on the day the chest was opened.
   const chestBonuses = openingRows.openings.filter((o) => o.duplicate && o.bonus_xp > 0).map((o) => ({ date: o.opened_on, xp: o.bonus_xp }));
   const input = { checkins, weights, photos, sessions, sets, quests: { today, exerciseMuscles, recovery }, gates: { today }, chestBonuses };
-  const gateInput = { sessions, sets };
+  const gateInput = { sessions, sets, exerciseMuscles };
   const gateBoosters = boosterGates(gateInput, today);
 
   // Boosters beyond the number earned are ignored (the oldest ones are kept), so rows added to the
