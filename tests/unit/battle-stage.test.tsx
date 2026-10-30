@@ -26,7 +26,7 @@ function mockMotion(reduce: boolean) {
   }));
 }
 
-const renderStage = () => render(<BattleStage battle={battle} rank={RANKS[3]} equipment={NO_EQUIPMENT} gateName="Gate of Iron, rank E" />);
+const renderStage = () => render(<BattleStage battle={battle} level={30} rank={RANKS[3]} equipment={NO_EQUIPMENT} gateName="Gate of Iron, rank E" />);
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -73,6 +73,15 @@ describe("BattleStage", () => {
     });
     expect(screen.getByText("Set 2 of 2")).toBeTruthy();
     expect(screen.getByText(/The Iron Golem fell on set 2/)).toBeTruthy();
+  });
+
+  it("lists the skills as active, coming next week or locked, by level", () => {
+    mockMotion(true);
+    renderStage();
+    // The battle was built with no skill level, so none is active; at level 30 only the first is waiting for next week.
+    expect(screen.getByText("Power Strike")).toBeTruthy();
+    expect(screen.getByText("Next week")).toBeTruthy();
+    expect(screen.getAllByText(/^Level \d+$/).length).toBe(4);
   });
 
   it("shows what the hero brings this week", () => {

@@ -1,4 +1,5 @@
 import { monsterFor } from "@/lib/battle/monsters";
+import { COMBO_BONUS, COMBO_EVERY, NO_SKILLS, RHYTHM_BONUS, RHYTHM_DAYS, skillEffects, type SkillEffects } from "@/lib/battle/skills";
 import { computeStats } from "@/lib/stats";
 import { addDaysISO, weekRange } from "@/lib/week";
 
@@ -63,7 +64,50 @@ export type GateInput = {
   sets: { session_id: string; reps: number; weight_kg: number; id?: string; exercise_id?: string; completed_at?: string }[];
   /** Primary muscle of each exercise, by id. Agility counts the muscles you train, so it needs this. */
   exerciseMuscles?: Record<string, string>;
+  /**
+   * The level you had on the first day of a week, counting every source of XP except the gates themselves. It unlocks the
+   * hero's skills. Left out, no skills are unlocked, which is the plain rules.
+   */
+  levelBefore?: (weekStart: string) => number;
 };
+
+/** The skills the hero has on the first day of a week. */
+export const skillsBefore = (weekStart: string, input: GateInput): SkillEffects => skillEffects(input.levelBefore?.(weekStart) ?? 0);
+
+/** Where a set falls in its week: which set it is, and which training day. */
+export type SetPlace = { n: number; dayN: number };
+
+/**
+ * The place of every set in its week, by the set's index in `input.sets`. Sets are in the order they were done (date, then
+ * the time they were logged, then the order given), the same order the fight is played in, so a skill that counts sets or
+ * days means the same thing for the gate and for the replay.
+ */
+export function weekOrder(input: GateInput): Map<number, SetPlace> {
+  const dateOf = new Map(input.sessions.map((s) => [s.id, s.date]));
+  const byWeek = new Map<string, { index: number; date: string; at: string }[]>();
+  input.sets.forEach((set, index) => {
+    const date = dateOf.get(set.session_id);
+    if (!date) return;
+    const week = weekRange(date).start;
+    const list = byWeek.get(week) ?? [];
+    list.push({ index, date, at: set.completed_at ?? "" });
+    byWeek.set(week, list);
+  });
+  const places = new Map<number, SetPlace>();
+  for (const list of byWeek.values()) {
+    list.sort((a, b) => a.date.localeCompare(b.date) || a.at.localeCompare(b.at) || a.index - b.index);
+    let dayN = 0;
+    let lastDate = "";
+    list.forEach((entry, position) => {
+      if (entry.date !== lastDate) {
+        dayN += 1;
+        lastDate = entry.date;
+      }
+      places.set(entry.index, { n: position + 1, dayN });
+    });
+  }
+  return places;
+}
 
 /** Damage of one set: its volume, or a fixed amount per rep for a bodyweight set. */
 export const setDamage = (reps: number, weightKg: number): number =>
@@ -134,6 +178,10 @@ export type Hit = {
   crit: boolean;
   /** The set trained the week's weak point. */
   weak: boolean;
+  /** Power Strike: it was the fifth set of a run. */
+  combo: boolean;
+  /** Steady Rhythm: it was done from the third training day of the week on. */
+  rhythm: boolean;
   damage: number;
 };
 
@@ -141,29 +189,45 @@ export type Hit = {
  * One set's hit: its volume, times the Strength bonus, times 1.15 when it trains the week's weak point (`muscles` maps an
  * exercise to its primary muscle), times 1.5 on a critical hit. `index` is the set's place in the input, the seed when it has no id.
  */
-export function hitFor(set: GateInput["sets"][number], index: number, weekStart: string, power: Power, muscles?: Record<string, string>): Hit {
+export function hitFor(
+  set: GateInput["sets"][number],
+  index: number,
+  weekStart: string,
+  power: Power,
+  muscles?: Record<string, string>,
+  /** The set's place in its week and the skills unlocked, for the skills that count sets and days. Left out, there are none. */
+  context?: { place?: SetPlace; skills?: SkillEffects },
+): Hit {
+  const skills = context?.skills ?? NO_SKILLS;
+  const place = context?.place;
   const base = setDamage(set.reps, set.weight_kg);
   const key = set.id ?? `${set.session_id}:${index}`;
   const crit = seeded(`crit:${weekStart}:${key}`) < power.critChance;
   const weak = !!muscles && !!set.exercise_id && muscles[set.exercise_id] === weakPointFor(weekStart);
-  return { base, crit, weak, damage: Math.round(base * power.attack * (weak ? 1 + WEAK_POINT_BONUS : 1) * (crit ? CRIT_MULTIPLIER : 1)) };
+  const combo = skills.combo && !!place && place.n % COMBO_EVERY === 0;
+  const rhythm = skills.rhythm && !!place && place.dayN >= RHYTHM_DAYS;
+  const damage = Math.round(
+    base * power.attack * (weak ? 1 + skills.weakBonus : 1) * (combo ? 1 + COMBO_BONUS : 1) * (rhythm ? 1 + RHYTHM_BONUS : 1) * (crit ? skills.critMultiplier : 1),
+  );
+  return { base, crit, weak, combo, rhythm, damage };
 }
 
 /** Damage dealt on each date. */
 export function dailyDamage(input: GateInput): Map<string, number> {
   const dateOf = new Map(input.sessions.map((s) => [s.id, s.date]));
   const days = new Map<string, number>();
-  const powers = new Map<string, Power>();
+  const powers = new Map<string, { power: Power; skills: SkillEffects }>();
+  const order = weekOrder(input);
   input.sets.forEach((set, index) => {
     const date = dateOf.get(set.session_id);
     if (!date) return;
     const week = weekRange(date).start;
-    let power = powers.get(week);
-    if (!power) {
-      power = powerBefore(week, input);
-      powers.set(week, power);
+    let week_ = powers.get(week);
+    if (!week_) {
+      week_ = { power: powerBefore(week, input), skills: skillsBefore(week, input) };
+      powers.set(week, week_);
     }
-    days.set(date, (days.get(date) ?? 0) + hitFor(set, index, week, power, input.exerciseMuscles).damage);
+    days.set(date, (days.get(date) ?? 0) + hitFor(set, index, week, week_.power, input.exerciseMuscles, { place: order.get(index), skills: week_.skills }).damage);
   });
   return days;
 }
@@ -231,13 +295,13 @@ export type GateFlow = {
  * {@link HEAL_SHARE_PER_DAY} of its HP a day, up to {@link MAX_HEAL_SHARE} in a week, and never beyond full. A monster
  * that has fallen stays down. A normal training week with a rest day or two between sessions never gives it a thing.
  */
-export function gateFlow(gate: Gate, days: Map<string, number>, today: string): GateFlow {
+export function gateFlow(gate: Gate, days: Map<string, number>, today: string, healFactor = 1): GateFlow {
   let lost = 0;
   let healed = 0;
   let idle = 0;
   let clearedOn: string | null = null;
   const heals = new Map<string, number>();
-  const cap = Math.round(gate.hp * MAX_HEAL_SHARE);
+  const cap = Math.round(gate.hp * MAX_HEAL_SHARE * healFactor);
   const last = today < gate.weekEnd ? today : gate.weekEnd;
   for (let d = gate.weekStart; d <= last; d = addDaysISO(d, 1)) {
     const damage = days.get(d) ?? 0;
@@ -248,7 +312,7 @@ export function gateFlow(gate: Gate, days: Map<string, number>, today: string): 
     } else if (d < today && clearedOn === null) {
       idle += 1;
       if (idle >= IDLE_DAYS_BEFORE_HEAL) {
-        const heal = Math.min(Math.round(gate.hp * HEAL_SHARE_PER_DAY), cap - healed, lost);
+        const heal = Math.min(Math.round(gate.hp * HEAL_SHARE_PER_DAY * healFactor), cap - healed, lost);
         if (heal > 0) {
           lost -= heal;
           healed += heal;
@@ -280,8 +344,8 @@ export type GateStatus = {
 };
 
 /** How a gate stands, counting damage up to `today`. */
-export function gateStatus(gate: Gate, days: Map<string, number>, today: string): GateStatus {
-  const flow = gateFlow(gate, days, today);
+export function gateStatus(gate: Gate, days: Map<string, number>, today: string, healFactor = 1): GateStatus {
+  const flow = gateFlow(gate, days, today, healFactor);
   let damage = 0;
   const last = today < gate.weekEnd ? today : gate.weekEnd;
   for (let d = gate.weekStart; d <= last; d = addDaysISO(d, 1)) damage += days.get(d) ?? 0;
@@ -306,7 +370,7 @@ export function gatesThrough(input: GateInput, today: string, start = GATE_START
   const results: GateStatus[] = [];
   for (let week = weekRange(start).start; week <= weekRange(today).start; week = addDaysISO(week, 7)) {
     if (week < start) continue;
-    results.push(gateStatus(gateFor(week, days), days, today));
+    results.push(gateStatus(gateFor(week, days), days, today, skillsBefore(week, input).healFactor));
   }
   return results;
 }
@@ -314,7 +378,8 @@ export function gatesThrough(input: GateInput, today: string, start = GATE_START
 /** The gate of the current week. */
 export function currentGate(input: GateInput, today: string): GateStatus {
   const days = dailyDamage(input);
-  return gateStatus(gateFor(weekRange(today).start, days), days, today);
+  const week = weekRange(today).start;
+  return gateStatus(gateFor(week, days), days, today, skillsBefore(week, input).healFactor);
 }
 
 /** XP for each cleared gate, dated on the day it fell, so a boosted day doubles it. */

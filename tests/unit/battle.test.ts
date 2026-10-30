@@ -93,7 +93,7 @@ describe("one set's hit", () => {
 
   it("is its volume with no power, and the same every time", () => {
     const none = powerFromStats(0, 0);
-    expect(hitFor(s, 0, MON, none)).toEqual({ base: 500, crit: false, weak: false, damage: 500 });
+    expect(hitFor(s, 0, MON, none)).toEqual({ base: 500, crit: false, weak: false, combo: false, rhythm: false, damage: 500 });
     expect(hitFor(s, 0, MON, none)).toEqual(hitFor(s, 0, MON, none));
   });
 

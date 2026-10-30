@@ -42,6 +42,8 @@ type SetLoggerProps = {
   bodyWeightKg: number;
   /** This week's gate fight, or null when there is none to hit (no monster yet, or this workout is from another week). */
   fight?: FightSummary | null;
+  /** The day of this workout, for the skills that count training days. */
+  sessionDate?: string;
 };
 
 export function SetLogger({
@@ -53,6 +55,7 @@ export function SetLogger({
   unit,
   bodyWeightKg,
   fight = null,
+  sessionDate,
 }: SetLoggerProps) {
   const router = useRouter();
   const initial = focusExerciseId ?? sessionExerciseIds[sessionExerciseIds.length - 1] ?? "";
@@ -111,10 +114,15 @@ export function SetLogger({
         fight.weekStart,
         fight.power,
         { [chosen.id]: chosen.primary_muscle },
+        {
+          // This set comes next in the week, on this workout's day.
+          place: { n: fight.setsThisWeek + 1, dayN: new Set([...fight.trainingDays, ...(sessionDate ? [sessionDate] : [])]).size },
+          skills: fight.skills,
+        },
       );
       const left = Math.max(0, fight.hpLeft - hit.damage);
       const falls = fight.hpLeft > 0 && left === 0;
-      toast(`${hit.crit ? "Critical hit! " : ""}${hit.weak ? "Weak point! " : ""}${fight.monster} takes ${hit.damage.toLocaleString("en-US")} damage`, {
+      toast(`${hit.crit ? "Critical hit! " : ""}${hit.weak ? "Weak point! " : ""}${hit.combo ? "Power Strike! " : ""}${fight.monster} takes ${hit.damage.toLocaleString("en-US")} damage`, {
         description: falls ? `The ${fight.monster} falls!` : left > 0 ? `${left.toLocaleString("en-US")} HP left` : undefined,
       });
       playSound(falls ? "victory" : hit.crit ? "crit" : "hit");

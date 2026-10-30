@@ -1,4 +1,5 @@
-import { dailyDamage, gateFlow, hitFor, powerBefore, seeded, weakPointFor, type Gate, type GateInput, type Power } from "@/lib/gates";
+import { dailyDamage, gateFlow, hitFor, powerBefore, seeded, skillsBefore, weakPointFor, weekOrder, type Gate, type GateInput, type Power } from "@/lib/gates";
+import type { SkillEffects } from "./skills";
 import { addDaysISO } from "@/lib/week";
 import type { Stat } from "@/lib/stats";
 import { heroCombat, type HeroCombat } from "./hero";
@@ -39,6 +40,10 @@ export type Turn = {
   crit: boolean;
   /** The set trained the week's weak point, for extra damage. */
   weak: boolean;
+  /** Power Strike: this was the fifth set of a run, for extra damage. */
+  combo: boolean;
+  /** Steady Rhythm: this set came from the third training day of the week on, for extra damage. */
+  rhythm: boolean;
   damage: number;
   /** HP the monster recovered since your last turn, on idle days. */
   healed: number;
@@ -56,6 +61,10 @@ export type Battle = {
   monster: Monster;
   /** The muscle the monster is weak against this week. */
   weakMuscle: string;
+  /** What the hero's unlocked skills change this week. */
+  skills: SkillEffects;
+  /** The level that unlocked them: the level on the first day of the week, without the gates' XP. */
+  skillLevel: number;
   monsterHpMax: number;
   hero: HeroCombat;
   turns: Turn[];
@@ -83,6 +92,8 @@ export function buildBattle(input: {
 
   const dateOf = new Map(gateInput.sessions.map((s) => [s.id, s.date]));
   const power: Power = powerBefore(gate.weekStart, gateInput);
+  const skills = skillsBefore(gate.weekStart, gateInput);
+  const order = weekOrder(gateInput);
   const hero = heroCombat(stats, power);
 
   // The week's sets in the order they were done. A set without a time keeps its place in the list.
@@ -92,7 +103,7 @@ export function buildBattle(input: {
     .sort((a, b) => a.date.localeCompare(b.date) || (a.set.completed_at ?? "").localeCompare(b.set.completed_at ?? "") || a.index - b.index);
 
   // The days it recovered, worked out by the gate itself, so the fight and the gate always agree.
-  const flow = gateFlow(gate, dailyDamage(gateInput), today);
+  const flow = gateFlow(gate, dailyDamage(gateInput), today, skills.healFactor);
   const turns: Turn[] = [];
   let hp = gate.hp;
   let total = 0;
@@ -101,7 +112,7 @@ export function buildBattle(input: {
   let lastDate: string | null = null;
 
   for (const { set, index, date } of inWeek) {
-    const hit = hitFor(set, index, gate.weekStart, power, gateInput.exerciseMuscles);
+    const hit = hitFor(set, index, gate.weekStart, power, gateInput.exerciseMuscles, { place: order.get(index), skills });
     total += hit.damage;
 
     // A new training day brings some stamina back.
@@ -146,6 +157,8 @@ export function buildBattle(input: {
       base: hit.base,
       crit: hit.crit,
       weak: hit.weak,
+      combo: hit.combo,
+      rhythm: hit.rhythm,
       damage: hit.damage,
       healed,
       monsterHp: hp,
@@ -155,14 +168,14 @@ export function buildBattle(input: {
     });
   }
 
-  return { monster, weakMuscle: weakPointFor(gate.weekStart), monsterHpMax: gate.hp, hero, turns, totalDamage: total, defeatedAt };
+  return { monster, weakMuscle: weakPointFor(gate.weekStart), skills, skillLevel: gateInput.levelBefore?.(gate.weekStart) ?? 0, monsterHpMax: gate.hp, hero, turns, totalDamage: total, defeatedAt };
 }
 
 /** The line a turn gets in the log, in words. */
 export function describeTurn(turn: Turn, monster: Monster): string {
   const what = turn.exercise ? `${turn.exercise}, ${turn.reps} reps` : `${turn.reps} reps`;
   const rested = turn.healed > 0 ? `The ${monster.name} recovered ${turn.healed.toLocaleString("en-US")} HP while you rested. ` : "";
-  const hit = `${rested}${turn.crit ? "Critical hit! " : ""}${turn.weak ? "Weak point! " : ""}${what} deal ${turn.damage.toLocaleString("en-US")} damage.`;
+  const hit = `${rested}${turn.crit ? "Critical hit! " : ""}${turn.weak ? "Weak point! " : ""}${turn.combo ? "Power Strike! " : ""}${turn.rhythm ? "Steady Rhythm. " : ""}${what} deal ${turn.damage.toLocaleString("en-US")} damage.`;
   const answer = turn.monsterHp === 0 ? ` The ${monster.name} falls.` : turn.strike ? ` The ${monster.name} ${turn.strike.line}${turn.strike.taken > 0 ? `, and you lose ${turn.strike.taken} stamina` : ""}.` : "";
   return hit + answer;
 }

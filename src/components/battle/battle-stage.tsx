@@ -8,6 +8,7 @@ import type { Equipment } from "@/lib/items";
 import { useReducedMotion } from "@/components/mascot/typed-text";
 import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
 import { HEAL_SHARE_PER_DAY, IDLE_DAYS_BEFORE_HEAL, WEAK_POINT_BONUS } from "@/lib/gates";
+import { SKILLS } from "@/lib/battle/skills";
 import type { Rank } from "@/lib/ranks";
 import { playSound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ type Phase = "idle" | "hero" | "impact" | "monster";
 
 type BattleStageProps = {
   battle: Battle;
+  /** Your level now, which decides the skills that open next week. */
+  level: number;
   rank: Rank;
   equipment: Equipment;
   /** The gate's rank letter and name, for the heading and the summary. */
@@ -37,7 +40,7 @@ const bar = "h-3 w-full overflow-hidden bg-intensity-none";
  * The gate fight, played turn by turn: your hero swings at the monster for each set of the week, in order, and the
  * monster answers. Tap Skip to see where it ended. With reduced motion it opens at the end and shows only the log.
  */
-export function BattleStage({ battle, rank, equipment, gateName }: BattleStageProps) {
+export function BattleStage({ battle, level, rank, equipment, gateName }: BattleStageProps) {
   const reduced = useReducedMotion();
   const total = battle.turns.length;
   const [shown, setShown] = useState(0);
@@ -262,6 +265,31 @@ export function BattleStage({ battle, rank, equipment, gateName }: BattleStagePr
             <dd className="tabular">{Math.round(battle.hero.regen * 100)}% a day</dd>
           </div>
         </dl>
+      </section>
+
+      <section aria-label="Skills" className="system-window flex flex-col gap-2 p-4">
+        <h2 className="font-display text-xs font-semibold uppercase tracking-[0.2em]">Skills</h2>
+        <p className="text-xs text-muted-foreground">
+          Your hero learns skills as she levels up. They switch on by themselves in the fight, once the week begins with the level they need
+          (counted without the XP from gates).
+        </p>
+        <ul className="flex flex-col divide-y border">
+          {SKILLS.map((skill) => {
+            const active = battle.skillLevel >= skill.level;
+            const soon = !active && level >= skill.level;
+            return (
+              <li key={skill.id} className="flex items-start justify-between gap-3 px-3 py-2 text-sm">
+                <span className="flex flex-col">
+                  <span className={cn("font-medium", !active && "text-muted-foreground")}>{skill.name}</span>
+                  <span className="text-xs text-muted-foreground">{skill.blurb}</span>
+                </span>
+                <span className={cn("tabular shrink-0 text-[11px] uppercase tracking-widest", active ? "text-primary" : "text-muted-foreground")}>
+                  {active ? "Active" : soon ? "Next week" : `Level ${skill.level}`}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
       <section aria-label="The log" className="system-window flex flex-col gap-2 p-4">

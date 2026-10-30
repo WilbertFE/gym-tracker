@@ -28,7 +28,7 @@ async function GateFight() {
     );
   }
 
-  return <BattleStage battle={battle} rank={level.rank} equipment={collection.equipment} gateName={`${gate.gate.name}, rank ${gate.gate.rank.letter}`} />;
+  return <BattleStage battle={battle} level={level.level} rank={level.rank} equipment={collection.equipment} gateName={`${gate.gate.name}, rank ${gate.gate.rank.letter}`} />;
 }
 
 export default function GateFightPage() {

@@ -99,6 +99,7 @@ export async function SessionDetail({
             unit={unit}
             bodyWeightKg={bodyWeightKg}
             fight={fight}
+            sessionDate={session.date}
             sessionExerciseIds={groups.map((g) => g.exercise_id)}
             focusExerciseId={focusExercise?.id}
           />

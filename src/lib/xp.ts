@@ -1,6 +1,6 @@
 import { dayMultiplier, firstActivityDate, welcomeWindow } from "@/lib/boosters";
 import { nextRankAfter, rankForLevel, type Rank } from "@/lib/ranks";
-import { boosterGatesNote, gateRewards, GATE_START_DATE } from "@/lib/gates";
+import { boosterGatesNote, gateRewards, GATE_START_DATE, type GateInput } from "@/lib/gates";
 import { DAILY_SWEEP_XP, QUEST_START_DATE, questRewards, WEEKLY_SWEEP_XP } from "@/lib/quests";
 import { longestStreak } from "@/lib/streak";
 import type {
@@ -106,8 +106,12 @@ export type XpInput = {
   quests?: { today: string; start?: string; exerciseMuscles?: Record<string, string>; recovery?: boolean };
   /** XP paid for duplicate chest items, each on the day the chest was opened. */
   chestBonuses?: readonly { date: string; xp: number }[];
-  /** Turns weekly gates on, with today's date. Needs reps and weight on the sets. */
-  gates?: { today: string; start?: string };
+  /**
+   * Turns weekly gates on, with today's date. Needs reps and weight on the sets. `input` is the gate's own input (the sets
+   * with their ids and times, the exercise muscles, the level that unlocks skills): pass the one the gate card uses, so the
+   * XP for a cleared gate and the gate itself always agree. Left out, the plain sets are used.
+   */
+  gates?: { today: string; start?: string; input?: GateInput };
   /** Set to false to leave the welcome boost out. Only tests do this. */
   welcomeBoost?: boolean;
 };
@@ -192,7 +196,7 @@ export function computeXp(input: XpInput): XpSummary {
 
   if (input.gates) {
     const rewards = gateRewards(
-      {
+      input.gates.input ?? {
         sessions: input.sessions,
         sets: input.sets.map((s) => ({ session_id: s.session_id, reps: s.reps ?? 0, weight_kg: s.weight_kg ?? 0 })),
       },

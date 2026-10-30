@@ -14,7 +14,8 @@ import { listPhotos } from "@/lib/repositories/photos";
 import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { buildBattle, type Battle } from "@/lib/battle/engine";
-import { boosterGates, currentGate, gatesThrough, weakPointFor, type GateStatus, type Power } from "@/lib/gates";
+import type { SkillEffects } from "@/lib/battle/skills";
+import { boosterGates, currentGate, gatesThrough, weakPointFor, type GateInput, type GateStatus, type Power } from "@/lib/gates";
 import { guideDone, guideSteps, type GuideStep } from "@/lib/guide";
 import { muscleLevels, type MuscleLevel } from "@/lib/muscle-levels";
 import { clearTrial, listClearedTrials } from "@/lib/repositories/trials";
@@ -67,6 +68,10 @@ export type FightSummary = {
   power: Power;
   /** The muscle this week's monster is weak against, and the exercises' primary muscles, so a logged set can tell if it hit the weak point. */
   weakMuscle: string;
+  /** The skills unlocked this week, and how many sets and which training days the week has so far, for the skills that count them. */
+  skills: SkillEffects;
+  setsThisWeek: number;
+  trainingDays: string[];
 };
 
 /**
@@ -94,8 +99,21 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
   const exerciseMuscles = Object.fromEntries(exercises.map((e) => [e.id, e.primary_muscle]));
   // A repeat from a chest pays a little XP, on the day the chest was opened.
   const chestBonuses = openingRows.openings.filter((o) => o.duplicate && o.bonus_xp > 0).map((o) => ({ date: o.opened_on, xp: o.bonus_xp }));
-  const input = { checkins, weights, photos, sessions, sets, quests: { today, exerciseMuscles, recovery }, gates: { today }, chestBonuses };
-  const gateInput = { sessions, sets, exerciseMuscles };
+  const baseInput = { checkins, weights, photos, sessions, sets, quests: { today, exerciseMuscles, recovery }, chestBonuses };
+  // The level that unlocks a week's skills: what you had on its first day, from every source of XP except the gates, so a
+  // gate can never unlock the skill that would clear it.
+  const levelByDate = Object.entries(computeXp(baseInput).byDate).sort(([a], [b]) => a.localeCompare(b));
+  const levelBefore = (weekStart: string): number => {
+    let total = 0;
+    for (const [date, earned] of levelByDate) {
+      if (date >= weekStart) break;
+      total += earned;
+    }
+    return levelForXp(total).level;
+  };
+  const gateInput: GateInput = { sessions, sets, exerciseMuscles, levelBefore };
+  // The XP for a cleared gate is worked out from the very same input as the gate card, so the two always agree.
+  const input = { ...baseInput, gates: { today, input: gateInput } };
   const gateBoosters = boosterGates(gateInput, today);
 
   // Boosters beyond the number earned are ignored (the oldest ones are kept), so rows added to the
@@ -192,7 +210,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     stats,
     gate: gate,
     battle,
-    fight: battle ? { monster: battle.monster.name, weekStart: gate.gate.weekStart, hpLeft: gate.hpLeft, power: battle.hero.power, weakMuscle: weakPointFor(gate.gate.weekStart) } : null,
+    fight: battle ? { monster: battle.monster.name, weekStart: gate.gate.weekStart, hpLeft: gate.hpLeft, power: battle.hero.power, weakMuscle: weakPointFor(gate.gate.weekStart), skills: battle.skills, setsThisWeek: battle.turns.length, trainingDays: [...new Set(battle.turns.map((t) => t.date))] } : null,
     muscles,
     titles: titleStatuses(titleInput),
     title: bestTitle(titleInput),
