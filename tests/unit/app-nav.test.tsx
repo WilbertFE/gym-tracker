@@ -35,8 +35,19 @@ describe("the phone bar", () => {
   it("opens a sheet with every other open page, in the order of the desktop rail, and Sign out", () => {
     render(<AppNav level={30} showAll={false} />);
     openMore();
-    expect(sheetLinks()).toEqual(["Schedule", "Status", "Collection", "Leaderboard", "Friends", "Profile", "Membership", "Settings"]);
+    expect(sheetLinks()).toEqual(["Status", "Collection", "Profile", "Leaderboard", "Friends", "Schedule", "Membership", "Settings"]);
     expect(within(screen.getByRole("dialog")).getByRole("button", { name: "Sign out" })).toBeTruthy();
+  });
+
+  it("groups the sheet into Progress, Social and Manage, and leaves out a section with nothing open", () => {
+    render(<AppNav level={30} showAll={false} />);
+    openMore();
+    const headings = () => within(screen.getByRole("dialog")).getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+    expect(headings()).toEqual(["Progress", "Social", "Manage"]);
+    cleanup();
+    render(<AppNav level={5} showAll={false} />);
+    openMore();
+    expect(headings()).toEqual(["Manage"]);
   });
 
   it("leaves out pages that are still locked, as the desktop rail does", () => {
@@ -86,6 +97,13 @@ describe("the phone bar", () => {
 });
 
 describe("the desktop rail", () => {
+  it("has the same sections as the sheet, each a labelled list", () => {
+    render(<AppNav level={30} showAll={false} />);
+    const rail = screen.getAllByRole("navigation", { name: "Primary" })[0];
+    expect(within(rail).getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Progress", "Social", "Manage"]);
+    expect(within(within(rail).getByRole("region", { name: "Social" })).getAllByRole("link").map((a) => a.textContent?.trim())).toEqual(["Leaderboard", "Friends"]);
+  });
+
   it("still lists every open page", () => {
     render(<AppNav level={30} showAll={false} />);
     const rail = screen.getAllByRole("navigation", { name: "Primary" })[0];
@@ -93,12 +111,12 @@ describe("the desktop rail", () => {
       "Dashboard",
       "Workouts",
       "Body",
-      "Schedule",
       "Status",
       "Collection",
+      "Profile",
       "Leaderboard",
       "Friends",
-      "Profile",
+      "Schedule",
       "Membership",
       "Settings",
     ]);

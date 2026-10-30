@@ -93,7 +93,7 @@ export function SettingsForm({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">Used for local rankings later. It is not shown to anyone yet.</p>
+        <p className="text-xs text-muted-foreground">Used for the My country leaderboard, and shown on your row if you join the leaderboard.</p>
       </div>
 
       <div className="flex flex-col gap-2">
