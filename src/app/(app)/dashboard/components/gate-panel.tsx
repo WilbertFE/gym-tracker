@@ -1,6 +1,9 @@
 import { format, parseISO } from "date-fns";
 import { Panel } from "@/components/panel";
 import { SystemTip } from "@/components/system-tip";
+import Link from "next/link";
+import { HeroFigure } from "@/components/battle/hero-art";
+import { MonsterArt } from "@/components/battle/monster-art";
 import { ChestStrip } from "@/components/chest/chest-strip";
 import { getCurrentUserId } from "@/lib/auth";
 import { loadLevel } from "@/lib/level";
@@ -14,7 +17,7 @@ import { cn } from "@/lib/utils";
  */
 export async function GatePanel() {
   const userId = await getCurrentUserId();
-  const [{ gate: status, chests, level, collection }, quick] = await Promise.all([loadLevel(userId), getQuickChests()]);
+  const [{ gate: status, battle, chests, level, collection }, quick] = await Promise.all([loadLevel(userId), getQuickChests()]);
   const { gate } = status;
   const left = Math.max(0, gate.hp - status.damage);
   const percentLeft = Math.round((1 - status.progress) * 100);
@@ -51,6 +54,26 @@ export async function GatePanel() {
               </span>
             </p>
           </div>
+
+          {battle && (
+            <div className="flex flex-col gap-3 border border-primary/20 bg-primary/5 p-3">
+              <div className="flex items-end justify-between gap-2 overflow-hidden">
+                <HeroFigure rank={level.rank} equipment={collection.equipment} state={status.cleared ? "win" : "idle"} size={130} />
+                <MonsterArt state={status.cleared ? "down" : "idle"} hp={Math.max(0, 1 - status.progress)} size={130} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {battle.turns.length === 0
+                  ? `Every set you log is a hit on the ${battle.monster.name}.`
+                  : `${battle.turns.length} set${battle.turns.length === 1 ? "" : "s"} so far this week. Your last: ${battle.turns.at(-1)!.damage.toLocaleString("en-US")} damage${battle.turns.at(-1)!.crit ? ", a critical hit" : ""}.`}
+              </p>
+              <Link
+                href="/dashboard/gate"
+                className="font-display inline-flex h-11 items-center justify-center border border-primary/40 bg-background/60 px-4 text-xs font-semibold tracking-wide hover:border-primary/70 hover:bg-primary/10"
+              >
+                Watch the fight
+              </Link>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1">
             <div

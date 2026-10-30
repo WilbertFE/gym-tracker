@@ -13,7 +13,8 @@ import { listExercises } from "@/lib/repositories/exercises";
 import { listPhotos } from "@/lib/repositories/photos";
 import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
-import { boosterGates, currentGate, gatesThrough, type GateStatus } from "@/lib/gates";
+import { buildBattle, type Battle } from "@/lib/battle/engine";
+import { boosterGates, currentGate, gatesThrough, type GateStatus, type Power } from "@/lib/gates";
 import { guideDone, guideSteps, type GuideStep } from "@/lib/guide";
 import { muscleLevels, type MuscleLevel } from "@/lib/muscle-levels";
 import { clearTrial, listClearedTrials } from "@/lib/repositories/trials";
@@ -35,6 +36,10 @@ export type GameState = {
   stats: Stat[];
   /** The weekly gate and how the fight stands. */
   gate: GateStatus;
+  /** The gate as a turn based fight, or null while this gate's rank has no monster. */
+  battle: Battle | null;
+  /** What the logger needs to show a hit right after a set: null while this gate has no monster. */
+  fight: FightSummary | null;
   /** Each muscle's own level. */
   muscles: MuscleLevel[];
   /** Every title with whether it is earned, and the one worn. */
@@ -51,6 +56,15 @@ export type GameState = {
   collection: { owned: string[]; equipment: Equipment };
   /** Plain counts of what the user has done, for the profile. */
   activity: ProfileActivity;
+};
+
+/** The small part of the fight a workout screen needs to show what a set just did to the monster. */
+export type FightSummary = {
+  monster: string;
+  weekStart: string;
+  /** The monster's HP left now. 0 once it has fallen. */
+  hpLeft: number;
+  power: Power;
 };
 
 /**
@@ -152,6 +166,9 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
   }
   const levelInfo = levelForXp(xp.total, levelCap(blocking));
 
+  const gate = currentGate(gateInput, today);
+  const exerciseNames = Object.fromEntries(exercises.map((e) => [e.id, e.name]));
+  const battle = buildBattle({ gate: gate.gate, gateInput, names: exerciseNames, stats });
   const muscles = muscleLevels(sets, exercises);
   const titleInput: TitleInput = {
     workouts: xp.workouts,
@@ -171,7 +188,9 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     quests,
     guide,
     stats,
-    gate: currentGate(gateInput, today),
+    gate: gate,
+    battle,
+    fight: battle ? { monster: battle.monster.name, weekStart: gate.gate.weekStart, hpLeft: Math.max(0, gate.gate.hp - battle.totalDamage), power: battle.hero.power } : null,
     muscles,
     titles: titleStatuses(titleInput),
     title: bestTitle(titleInput),

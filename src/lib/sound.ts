@@ -55,7 +55,11 @@ export type SoundName =
   | "tourStep"
   | "workoutDone"
   | "setLogged"
-  | "checkIn";
+  | "checkIn"
+  | "hit"
+  | "crit"
+  | "monsterStrike"
+  | "victory";
 
 export type SoundOptions = {
   /** For `reveal`: the grade that was won. */
@@ -150,6 +154,36 @@ const TONES: Record<Exclude<SoundName, "reveal" | "seraBlip">, Tone[]> = {
   checkIn: [
     { freq: midiToHz(72), at: 0, dur: 0.12, type: "triangle", gain: 0.45 },
     { freq: midiToHz(79), at: 0.1, dur: 0.25, type: "triangle", gain: 0.45 },
+  ],
+  // A set lands on the monster: a whoosh of the blade, then a solid thump.
+  hit: [
+    { freq: 0, at: 0, dur: 0.12, gain: 0.3, noise: { filter: "bandpass", from: 1800, to: 500, q: 1.2 } },
+    { freq: 150, at: 0.07, dur: 0.22, type: "sine", gain: 0.6, to: 52 },
+    { freq: 0, at: 0.07, dur: 0.1, gain: 0.35, noise: { filter: "lowpass", from: 1400, to: 200, q: 0.8 } },
+  ],
+  // The same, with a bright ring on top.
+  crit: [
+    { freq: 0, at: 0, dur: 0.12, gain: 0.34, noise: { filter: "bandpass", from: 2400, to: 600, q: 1.2 } },
+    { freq: 170, at: 0.07, dur: 0.26, type: "sine", gain: 0.6, to: 48 },
+    { freq: 0, at: 0.07, dur: 0.12, gain: 0.4, noise: { filter: "lowpass", from: 1800, to: 200, q: 0.8 } },
+    { freq: midiToHz(88), at: 0.09, dur: 0.35, type: "sine", gain: 0.22 },
+    { freq: midiToHz(95), at: 0.15, dur: 0.45, type: "sine", gain: 0.2 },
+  ],
+  // The golem answers: a heavy, grinding blow.
+  monsterStrike: [
+    { freq: 80, at: 0, dur: 0.3, type: "sawtooth", gain: 0.35, to: 42 },
+    { freq: 0, at: 0, dur: 0.26, gain: 0.35, noise: { filter: "lowpass", from: 700, to: 120, q: 1 } },
+    { freq: 60, at: 0.05, dur: 0.3, type: "sine", gain: 0.55, to: 34 },
+  ],
+  // The monster falls: a rumble, then a rising run.
+  victory: [
+    { freq: 70, at: 0, dur: 0.6, type: "sine", gain: 0.55, to: 32 },
+    { freq: 0, at: 0, dur: 0.5, gain: 0.35, noise: { filter: "lowpass", from: 900, to: 90, q: 0.9 } },
+    { freq: midiToHz(72), at: 0.5, dur: 0.14, type: "triangle", gain: 0.5 },
+    { freq: midiToHz(76), at: 0.6, dur: 0.14, type: "triangle", gain: 0.5 },
+    { freq: midiToHz(79), at: 0.7, dur: 0.14, type: "triangle", gain: 0.5 },
+    { freq: midiToHz(84), at: 0.8, dur: 0.7, type: "triangle", gain: 0.55 },
+    { freq: midiToHz(88), at: 0.8, dur: 0.7, type: "sine", gain: 0.25 },
   ],
 };
 

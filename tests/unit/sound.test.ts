@@ -4,7 +4,7 @@ import { GRADE_ORDER } from "@/lib/items";
 import { MOODS } from "@/lib/mascot/types";
 import { BLIP_PITCH, buzz, midiToHz, playSound, resetSoundEngine, revealBuzz, revealNotes, setSoundEnabled, sparkles, soundEnabled, tonesFor, type SoundName } from "@/lib/sound";
 
-const NAMES: SoundName[] = ["chestShake", "chestOpen", "reveal", "xpTick", "levelUp", "rankUp", "stageAppear", "seraBlip", "tourStep", "workoutDone", "setLogged", "checkIn"];
+const NAMES: SoundName[] = ["chestShake", "chestOpen", "reveal", "xpTick", "levelUp", "rankUp", "stageAppear", "seraBlip", "tourStep", "workoutDone", "setLogged", "checkIn", "hit", "crit", "monsterStrike", "victory"];
 
 beforeEach(() => {
   localStorage.clear();

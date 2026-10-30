@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/api-client";
 import { playSound } from "@/lib/sound";
-import { isBodyweightExercise } from "@/lib/load";
+import { effectiveLoadKg, isBodyweightExercise } from "@/lib/load";
+import { hitFor } from "@/lib/gates";
+import type { FightSummary } from "@/lib/level";
 import { searchExercises } from "@/lib/exercise-search";
 import { MUSCLE_GROUPS, MUSCLE_LABELS } from "@/lib/muscles";
 import type { Exercise } from "@/lib/types";
@@ -38,6 +40,8 @@ type SetLoggerProps = {
   unit: WeightUnit;
   /** Today's body weight in kilograms (60 when none is logged), for the share a bodyweight exercise moves. */
   bodyWeightKg: number;
+  /** This week's gate fight, or null when there is none to hit (no monster yet, or this workout is from another week). */
+  fight?: FightSummary | null;
 };
 
 export function SetLogger({
@@ -48,6 +52,7 @@ export function SetLogger({
   focusExerciseId,
   unit,
   bodyWeightKg,
+  fight = null,
 }: SetLoggerProps) {
   const router = useRouter();
   const initial = focusExerciseId ?? sessionExerciseIds[sessionExerciseIds.length - 1] ?? "";
@@ -90,7 +95,7 @@ export function SetLogger({
     }
 
     setSubmitting(true);
-    const result = await apiRequest(`/api/workouts/${sessionId}/sets`, "POST", parsed.data);
+    const result = await apiRequest<{ id?: string }>(`/api/workouts/${sessionId}/sets`, "POST", parsed.data);
     setSubmitting(false);
 
     if (!result.ok) {
@@ -98,7 +103,23 @@ export function SetLogger({
       return;
     }
     // Inputs stay as they are so the next identical set is a single tap.
-    playSound("setLogged");
+    if (fight && chosen) {
+      // The set is a hit on this week's monster. The same numbers the server uses, so what shows here is what it counts.
+      const hit = hitFor(
+        { id: result.data?.id, session_id: sessionId, reps: parsed.data.reps, weight_kg: effectiveLoadKg(parsed.data.weight_kg, chosen, bodyWeightKg) },
+        0,
+        fight.weekStart,
+        fight.power,
+      );
+      const left = Math.max(0, fight.hpLeft - hit.damage);
+      const falls = fight.hpLeft > 0 && left === 0;
+      toast(`${hit.crit ? "Critical hit! " : ""}${fight.monster} takes ${hit.damage.toLocaleString("en-US")} damage`, {
+        description: falls ? `The ${fight.monster} falls!` : left > 0 ? `${left.toLocaleString("en-US")} HP left` : undefined,
+      });
+      playSound(falls ? "victory" : hit.crit ? "crit" : "hit");
+    } else {
+      playSound("setLogged");
+    }
     router.refresh();
   }
 

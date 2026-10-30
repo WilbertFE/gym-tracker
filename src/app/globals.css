@@ -299,6 +299,82 @@ body {
   100% { transform: translate(0, 0); }
 }
 
+/*
+ * The gate fight. The figures are SVG groups moved with CSS. The look of a fallen monster is static, and everything
+ * that moves is inside the reduced motion query.
+ */
+.battle-monster[data-state="down"] .battle-monster-body {
+  transform: translateY(16px) rotate(3deg) scale(0.97);
+  transform-origin: 50% 100%;
+  filter: grayscale(0.7) brightness(0.7);
+}
+
+@keyframes battle-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes battle-lunge {
+  0% { transform: translateX(0); }
+  35% { transform: translateX(34px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes battle-swing {
+  0% { transform: rotate(-32deg); }
+  40% { transform: rotate(46deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes battle-recoil {
+  0% { transform: translateX(0); filter: none; }
+  25% { transform: translateX(-16px); filter: brightness(1.8) saturate(1.4); }
+  100% { transform: translateX(0); filter: none; }
+}
+
+@keyframes battle-monster-hit {
+  0% { transform: translateX(0); filter: none; }
+  20% { transform: translateX(10px) scale(1.02); filter: brightness(2.2); }
+  50% { transform: translateX(-4px); filter: brightness(1.4); }
+  100% { transform: translateX(0); filter: none; }
+}
+
+@keyframes battle-monster-strike {
+  0% { transform: translateX(0) rotate(0); }
+  40% { transform: translateX(-52px) rotate(-6deg); }
+  100% { transform: translateX(0) rotate(0); }
+}
+
+@keyframes battle-float {
+  0% { opacity: 0; transform: translateY(8px) scale(0.8); }
+  15% { opacity: 1; transform: translateY(0) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-46px) scale(1); }
+}
+
+@keyframes battle-core {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+@keyframes battle-raise {
+  0% { transform: rotate(0); }
+  100% { transform: rotate(-38deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .battle-hero[data-state="idle"] .battle-hero-body,
+  .battle-monster[data-state="idle"] .battle-monster-body { animation: battle-breathe 3.2s ease-in-out infinite; }
+  .battle-hero[data-state="attack"] .battle-hero-body { animation: battle-lunge 0.45s ease-out; }
+  .battle-hero[data-state="attack"] .battle-hero-arm { transform-origin: 148px 112px; animation: battle-swing 0.45s ease-out; }
+  .battle-hero[data-state="hurt"] .battle-hero-body { animation: battle-recoil 0.45s ease-out; }
+  .battle-hero[data-state="win"] .battle-hero-arm { transform-origin: 148px 112px; animation: battle-raise 0.5s ease-out forwards; }
+  .battle-monster[data-state="hit"] .battle-monster-body { animation: battle-monster-hit 0.45s ease-out; }
+  .battle-monster[data-state="strike"] .battle-monster-body { animation: battle-monster-strike 0.5s ease-in-out; }
+  .battle-monster[data-state="down"] .battle-monster-body { transition: transform 0.7s ease-in, filter 0.7s; }
+  .battle-core { animation: battle-core 2.4s ease-in-out infinite; }
+  .battle-float { animation: battle-float 0.95s ease-out forwards; }
+}
+
 @keyframes chest-shimmer {
   to { stroke-dashoffset: -40; }
 }

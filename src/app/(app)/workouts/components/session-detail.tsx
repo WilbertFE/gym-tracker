@@ -7,8 +7,10 @@ import { RestTimer } from "@/components/rest-timer";
 import { Stat } from "@/components/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
+import { addDaysISO } from "@/lib/week";
 import { bodyWeightOn, withBodyweightLoad } from "@/lib/load";
 import { listExercises } from "@/lib/repositories/exercises";
+import { loadLevel } from "@/lib/level";
 import { listWeights } from "@/lib/repositories/weights";
 import { getSettings } from "@/lib/repositories/settings";
 import { getSessionWithSets, lastSetsByExercise } from "@/lib/repositories/workouts";
@@ -38,12 +40,16 @@ export async function SessionDetail({
 
   const { session, sets } = found;
   const active = session.ended_at === null;
-  const [exercises, lastSets, settings, weights] = await Promise.all([
+  const [exercises, lastSets, settings, weights, game] = await Promise.all([
     listExercises(userId),
     lastSetsByExercise(userId, id),
     getSettings(userId),
     listWeights(userId),
+    // Only a workout that is still open needs the fight, to show what each set does to the monster.
+    active ? loadLevel(userId) : Promise.resolve(null),
   ]);
+  // A hit counts only for a workout done in the gate's own week.
+  const fight = game?.fight && session.date >= game.fight.weekStart && session.date <= addDaysISO(game.fight.weekStart, 6) ? game.fight : null;
   const unit = settings.weight_unit;
 
   const groups = groupSetsByExercise(sets, exercises);
@@ -92,6 +98,7 @@ export async function SessionDetail({
             lastSets={lastSets}
             unit={unit}
             bodyWeightKg={bodyWeightKg}
+            fight={fight}
             sessionExerciseIds={groups.map((g) => g.exercise_id)}
             focusExerciseId={focusExercise?.id}
           />
