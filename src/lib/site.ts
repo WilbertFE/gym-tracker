@@ -15,6 +15,7 @@ export const PROTECTED_PREFIXES = [
   "/membership",
   "/schedule",
   "/settings",
+  "/battle",
   "/leaderboard",
   "/friends",
   "/guide",

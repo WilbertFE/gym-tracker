@@ -1,24 +1,9 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { PageHeader } from "@/components/page-header";
-import { Skeleton } from "@/components/ui/skeleton";
-import { buildMetadata } from "@/lib/metadata";
-import { BossView } from "./components/boss-view";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = buildMetadata({
-  title: "The friends boss",
-  description: "Fight one boss together with your friends every week: everyone's damage counts toward one health bar.",
-  path: "/friends/boss",
-  keywords: ["friends boss", "weekly boss", "workout game"],
-});
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
-export default function FriendsBossPage() {
-  return (
-    <main className="flex flex-col gap-6">
-      <PageHeader label="Compete" title="The friends boss" description="One boss a week, fought together. Every set you log hurts it." />
-      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <BossView />
-      </Suspense>
-    </main>
-  );
+/** The fights moved to the Battle page. The old address keeps working, so bookmarks and links do not break. */
+export default function Page() {
+  redirect("/battle?tab=friends");
 }

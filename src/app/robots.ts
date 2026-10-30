@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
         "/membership/",
         "/schedule/",
         "/settings/",
+        "/battle/",
         "/leaderboard/",
         "/friends/",
         "/guide/",

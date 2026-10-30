@@ -1,14 +1,11 @@
 import { addDays, format, parseISO } from "date-fns";
 import Link from "next/link";
 import { MonsterArt } from "@/components/battle/monster-art";
-import { ChestStrip } from "@/components/chest/chest-strip";
-import { FeatureGate } from "@/components/feature-gate";
 import { Panel } from "@/components/panel";
 import { getCurrentUserId } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
 import { friendBossFor, MVP_MIN_GROUP, MVP_PLACES } from "@/lib/friends";
 import { loadLevel } from "@/lib/level";
-import { getQuickChests } from "@/lib/unlock-state";
 import { weekRange } from "@/lib/week";
 import { cn } from "@/lib/utils";
 
@@ -16,17 +13,9 @@ const linkClass =
   "font-display inline-flex h-11 items-center justify-center border border-primary/40 bg-background/60 px-4 text-xs font-semibold tracking-wide hover:border-primary/70 hover:bg-primary/10";
 
 /** The weekly boss you fight with your friends: the monster, the shared health bar and what each of you did. */
-export async function BossView() {
-  return (
-    <FeatureGate id="friends">
-      <BossContent />
-    </FeatureGate>
-  );
-}
-
-async function BossContent() {
+export async function FriendsTab() {
   const userId = await getCurrentUserId();
-  const [{ friends, chests, level, collection }, quick] = await Promise.all([loadLevel(userId), getQuickChests()]);
+  const { friends } = await loadLevel(userId);
   const today = todayISO();
 
   if (!friends.available) {
@@ -52,7 +41,6 @@ async function BossContent() {
   const week = weekRange(today).start;
   const boss = friendBossFor(friends.members, week, today);
   const lastWeek = friendBossFor(friends.members, format(addDays(parseISO(week), -7), "yyyy-MM-dd"), today);
-  const mine = (kind: "friends" | "mvp") => chests.available.filter((c) => c.kind === kind);
   const daysLeft = boss ? Math.max(0, Math.round((Date.parse(boss.weekEnd) - Date.parse(today)) / 86_400_000)) + 1 : 0;
 
   return (
@@ -159,15 +147,9 @@ async function BossContent() {
         </Panel>
       )}
 
-      <ChestStrip kind="friends" available={mine("friends")} done={0} total={0} rank={level.rank} worn={collection.equipment} quick={quick} />
-      <ChestStrip kind="mvp" available={mine("mvp")} done={0} total={0} rank={level.rank} worn={collection.equipment} quick={quick} />
-
       <nav aria-label="Related" className="flex flex-wrap gap-x-6">
         <Link href="/friends" className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
           Friends and your code
-        </Link>
-        <Link href="/dashboard" className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-          Back to the dashboard
         </Link>
       </nav>
     </div>

@@ -35,7 +35,7 @@ describe("the phone bar", () => {
   it("opens a sheet with every other open page, in the order of the desktop rail, and Sign out", () => {
     render(<AppNav level={30} showAll={false} />);
     openMore();
-    expect(sheetLinks()).toEqual(["Status", "Collection", "Profile", "Leaderboard", "Friends", "Schedule", "Membership", "Settings"]);
+    expect(sheetLinks()).toEqual(["Battle", "Status", "Collection", "Profile", "Leaderboard", "Friends", "Schedule", "Membership", "Settings"]);
     expect(within(screen.getByRole("dialog")).getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 
@@ -111,6 +111,7 @@ describe("the desktop rail", () => {
       "Dashboard",
       "Workouts",
       "Body",
+      "Battle",
       "Status",
       "Collection",
       "Profile",

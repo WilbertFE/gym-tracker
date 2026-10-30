@@ -6,6 +6,7 @@ const PAGES: { test: RegExp; name: string; lines: string[] }[] = [
   { test: /^\/workouts\/exercises/, name: "the exercise library", lines: ["This is the exercise library.", "Each exercise lists the muscles it works. You can add your own."] },
   { test: /^\/workouts\/[^/]+/, name: "a workout", lines: ["This is a workout.", "Pick an exercise, log the weight and reps, and the timer measures the rest for you. Tap Finish when you are done."] },
   { test: /^\/workouts/, name: "workouts", lines: ["This is where workouts start.", "You need to check in first. Then start one and log your sets."] },
+  { test: /^\/battle/, name: "the battle page", lines: ["Every fight in one place.", "Each set you log is a hit. Beat the boss before the time runs out for a chest."] },
   { test: /^\/dashboard\/level/, name: "levels", lines: ["This page shows every rank and your boosters.", "A booster doubles the XP of a day you choose."] },
   { test: /^\/dashboard\/diary/, name: "the gym diary", lines: ["The diary keeps the photos from your check-ins and weigh-ins, day by day."] },
   { test: /^\/dashboard/, name: "the dashboard", lines: ["This is home.", "Your level is at the top, then today's check-in and workout. More cards appear as you level up. Be patient."] },

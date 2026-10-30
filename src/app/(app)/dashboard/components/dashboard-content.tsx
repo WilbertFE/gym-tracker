@@ -5,9 +5,7 @@ import { loadLevel } from "@/lib/level";
 import { featureById, isUnlocked } from "@/lib/unlocks";
 import { getShowAll } from "@/lib/unlock-state";
 import { CheckinPanel } from "./checkin-panel";
-import { FriendBossPanel } from "./friend-boss-panel";
-import { GatePanel } from "./gate-panel";
-import { SeasonPanel } from "./season-panel";
+import { BattlesPanel } from "./battles-panel";
 import { GettingStarted } from "./getting-started";
 import { LevelHero } from "./level-hero";
 import { MembershipSnapshotPanel } from "./membership-snapshot-panel";
@@ -56,21 +54,9 @@ export async function DashboardContent() {
         </Suspense>
       )}
 
-      {open("gates") && (
-        <Suspense fallback={<Skeleton className="h-56 w-full" />}>
-          <GatePanel />
-        </Suspense>
-      )}
-
-      {open("gates") && (
-        <Suspense fallback={<Skeleton className="h-56 w-full" />}>
-          <SeasonPanel />
-        </Suspense>
-      )}
-
-      {open("friends") && (
-        <Suspense fallback={<Skeleton className="h-56 w-full" />}>
-          <FriendBossPanel />
+      {(open("gates") || open("friends")) && (
+        <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+          <BattlesPanel gates={open("gates")} withFriends={open("friends")} />
         </Suspense>
       )}
 

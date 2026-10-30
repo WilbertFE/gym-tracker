@@ -33,7 +33,7 @@ async function FriendsContent({ userId, card }: { userId: string; card: { code: 
   return (
     <div className="flex flex-col gap-6">
       <Link
-        href="/friends/boss"
+        href="/battle?tab=friends"
         className="font-display inline-flex h-11 items-center justify-center self-start border border-primary/40 bg-background/60 px-4 text-xs font-semibold tracking-wide hover:border-primary/70 hover:bg-primary/10"
       >
         Go to the weekly boss
