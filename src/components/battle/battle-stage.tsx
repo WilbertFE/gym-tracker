@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { describeTurn, type Battle } from "@/lib/battle/engine";
 import type { Equipment } from "@/lib/items";
 import { useReducedMotion } from "@/components/mascot/typed-text";
+import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
+import { HEAL_SHARE_PER_DAY, IDLE_DAYS_BEFORE_HEAL, WEAK_POINT_BONUS } from "@/lib/gates";
 import type { Rank } from "@/lib/ranks";
 import { playSound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
@@ -164,7 +166,7 @@ export function BattleStage({ battle, rank, equipment, gateName }: BattleStagePr
                 {turn.crit ? "CRIT " : ""}-{turn.damage.toLocaleString("en-US")}
               </span>
             )}
-            <MonsterArt state={monsterState} hp={monsterHp / battle.monsterHpMax} size={figure} />
+            <MonsterArt monster={battle.monster.id} state={monsterState} hp={monsterHp / battle.monsterHpMax} size={figure} />
           </div>
         </div>
 
@@ -231,6 +233,13 @@ export function BattleStage({ battle, rank, equipment, gateName }: BattleStagePr
         <p className="text-xs text-muted-foreground">
           Your stats from the training before this week. Strength makes every set hit harder and Agility gives critical hits. Endurance, Vitality and Discipline decide how you stand up to the {battle.monster.name}.
         </p>
+        <p className="text-xs">
+          <span className="uppercase tracking-widest text-muted-foreground">This week&apos;s weak point </span>
+          {MUSCLE_LABELS[battle.weakMuscle as MuscleGroup]}: a set that trains it deals {Math.round(WEAK_POINT_BONUS * 100)} percent more.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          If you skip {IDLE_DAYS_BEFORE_HEAL} days in a row the {battle.monster.name} starts to recover {Math.round(HEAL_SHARE_PER_DAY * 100)} percent of its HP a day.
+        </p>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
           <div className="flex justify-between gap-2">
             <dt className="text-muted-foreground">Damage</dt>
@@ -264,7 +273,7 @@ export function BattleStage({ battle, rank, equipment, gateName }: BattleStagePr
             {log.map((t) => (
               <li key={t.n} className="flex items-start gap-3 px-3 py-2 text-sm">
                 <span className="tabular w-7 shrink-0 text-xs text-muted-foreground">{t.n}</span>
-                <span className={cn(t.crit && "text-[#ffb83d]")}>{describeTurn(t, battle.monster)}</span>
+                <span className={cn(t.crit && "text-[#ffb83d]", t.weak && !t.crit && "text-primary")}>{describeTurn(t, battle.monster)}</span>
               </li>
             ))}
           </ol>

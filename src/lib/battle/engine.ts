@@ -1,4 +1,5 @@
-import { hitFor, powerBefore, seeded, type Gate, type GateInput, type Power } from "@/lib/gates";
+import { dailyDamage, gateFlow, hitFor, powerBefore, seeded, weakPointFor, type Gate, type GateInput, type Power } from "@/lib/gates";
+import { addDaysISO } from "@/lib/week";
 import type { Stat } from "@/lib/stats";
 import { heroCombat, type HeroCombat } from "./hero";
 import { monsterFor, type Monster } from "./monsters";
@@ -36,7 +37,11 @@ export type Turn = {
   /** What the set is worth before any bonus. */
   base: number;
   crit: boolean;
+  /** The set trained the week's weak point, for extra damage. */
+  weak: boolean;
   damage: number;
+  /** HP the monster recovered since your last turn, on idle days. */
+  healed: number;
   /** The monster's HP left after this hit, 0 once it has fallen. */
   monsterHp: number;
   /** The monster's answer, or null when this hit finished it. */
@@ -49,6 +54,8 @@ export type Turn = {
 
 export type Battle = {
   monster: Monster;
+  /** The muscle the monster is weak against this week. */
+  weakMuscle: string;
   monsterHpMax: number;
   hero: HeroCombat;
   turns: Turn[];
@@ -67,8 +74,10 @@ export function buildBattle(input: {
   names: Record<string, string>;
   /** The hero's five stats now. */
   stats: readonly Stat[];
+  /** Today, so idle days that are over can heal the monster the way the gate counts them. */
+  today: string;
 }): Battle | null {
-  const { gate, gateInput, names, stats } = input;
+  const { gate, gateInput, names, stats, today } = input;
   const monster = monsterFor(gate.rank.letter);
   if (!monster) return null;
 
@@ -82,6 +91,8 @@ export function buildBattle(input: {
     .filter((x): x is { set: SetRow; index: number; date: string } => x.date !== undefined && x.date >= gate.weekStart && x.date <= gate.weekEnd)
     .sort((a, b) => a.date.localeCompare(b.date) || (a.set.completed_at ?? "").localeCompare(b.set.completed_at ?? "") || a.index - b.index);
 
+  // The days it recovered, worked out by the gate itself, so the fight and the gate always agree.
+  const flow = gateFlow(gate, dailyDamage(gateInput), today);
   const turns: Turn[] = [];
   let hp = gate.hp;
   let total = 0;
@@ -90,7 +101,7 @@ export function buildBattle(input: {
   let lastDate: string | null = null;
 
   for (const { set, index, date } of inWeek) {
-    const hit = hitFor(set, index, gate.weekStart, power);
+    const hit = hitFor(set, index, gate.weekStart, power, gateInput.exerciseMuscles);
     total += hit.damage;
 
     // A new training day brings some stamina back.
@@ -99,6 +110,12 @@ export function buildBattle(input: {
       const back = Math.min(hero.staminaMax - stamina, Math.round(hero.staminaMax * hero.regen));
       stamina += back;
       restedBy = back;
+    }
+    // What the monster recovered on the idle days since the last turn.
+    let healed = 0;
+    if (lastDate !== null && date !== lastDate && hp > 0) {
+      for (let d = addDaysISO(lastDate, 1); d < date; d = addDaysISO(d, 1)) healed += flow.heals.get(d) ?? 0;
+      hp = Math.min(gate.hp, hp + healed);
     }
     lastDate = date;
 
@@ -128,7 +145,9 @@ export function buildBattle(input: {
       loadKg: set.reps > 0 ? Math.round((hit.base / set.reps) * 10) / 10 : 0,
       base: hit.base,
       crit: hit.crit,
+      weak: hit.weak,
       damage: hit.damage,
+      healed,
       monsterHp: hp,
       strike,
       stamina,
@@ -136,13 +155,14 @@ export function buildBattle(input: {
     });
   }
 
-  return { monster, monsterHpMax: gate.hp, hero, turns, totalDamage: total, defeatedAt };
+  return { monster, weakMuscle: weakPointFor(gate.weekStart), monsterHpMax: gate.hp, hero, turns, totalDamage: total, defeatedAt };
 }
 
 /** The line a turn gets in the log, in words. */
 export function describeTurn(turn: Turn, monster: Monster): string {
   const what = turn.exercise ? `${turn.exercise}, ${turn.reps} reps` : `${turn.reps} reps`;
-  const hit = `${turn.crit ? "Critical hit! " : ""}${what} deal ${turn.damage.toLocaleString("en-US")} damage.`;
+  const rested = turn.healed > 0 ? `The ${monster.name} recovered ${turn.healed.toLocaleString("en-US")} HP while you rested. ` : "";
+  const hit = `${rested}${turn.crit ? "Critical hit! " : ""}${turn.weak ? "Weak point! " : ""}${what} deal ${turn.damage.toLocaleString("en-US")} damage.`;
   const answer = turn.monsterHp === 0 ? ` The ${monster.name} falls.` : turn.strike ? ` The ${monster.name} ${turn.strike.line}${turn.strike.taken > 0 ? `, and you lose ${turn.strike.taken} stamina` : ""}.` : "";
   return hit + answer;
 }

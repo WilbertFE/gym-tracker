@@ -10,6 +10,12 @@ import {
   gateStatus,
   hitFor,
   MAX_ATTACK_BONUS,
+  WEAK_POINT_BONUS,
+  WEAK_POINT_MUSCLES,
+  weakPointFor,
+  gateFlow,
+  MAX_HEAL_SHARE,
+  HEAL_SHARE_PER_DAY,
   MAX_CRIT_CHANCE,
   powerBefore,
   powerFromStats,
@@ -87,7 +93,7 @@ describe("one set's hit", () => {
 
   it("is its volume with no power, and the same every time", () => {
     const none = powerFromStats(0, 0);
-    expect(hitFor(s, 0, MON, none)).toEqual({ base: 500, crit: false, damage: 500 });
+    expect(hitFor(s, 0, MON, none)).toEqual({ base: 500, crit: false, weak: false, damage: 500 });
     expect(hitFor(s, 0, MON, none)).toEqual(hitFor(s, 0, MON, none));
   });
 
@@ -124,10 +130,11 @@ describe("the damage of a gate", () => {
     const old = Array.from({ length: 60 }, (_, i) => set("old", 10, 100, `2026-10-26T10:${String(i % 60).padStart(2, "0")}:00Z`, ["bench", "squat", "row", "curl"][i % 4]));
     const week = [set("w", 10, 100, "2026-11-10T10:00:00Z"), set("w", 10, 100, "2026-11-10T10:05:00Z", "squat")];
     const withHistory = dailyDamage({ sessions, sets: [...old, ...week], exerciseMuscles: muscles }).get("2026-11-10")!;
-    const plain = dailyDamage({ sessions: [sessions[1]], sets: week, exerciseMuscles: muscles }).get("2026-11-10")!;
+    // Without exercise muscles no set trains the week's weak point, so this is the plain volume.
+    const plain = dailyDamage({ sessions: [sessions[1]], sets: week }).get("2026-11-10")!;
     expect(plain).toBe(2000);
     expect(withHistory).toBeGreaterThanOrEqual(plain);
-    expect(withHistory).toBeLessThanOrEqual(plain * (1 + MAX_ATTACK_BONUS) * CRIT_MULTIPLIER + 1);
+    expect(withHistory).toBeLessThanOrEqual(plain * (1 + MAX_ATTACK_BONUS) * (1 + WEAK_POINT_BONUS) * CRIT_MULTIPLIER + 1);
   });
 
   it("keeps the old result for a hero with no history: the same damage, the same clear", () => {
@@ -140,20 +147,29 @@ describe("the damage of a gate", () => {
     expect(gateStatus(gateE(1301), days, "2026-11-12").cleared).toBe(false);
   });
 
-  it("guards a rank E gate with the Iron Golem, and leaves the other ranks on their listed bosses", () => {
-    const days = new Map<string, number>();
-    const bosses = new Set<string>();
-    const letters = new Set<string>();
-    for (let i = 0; i < 60; i++) {
-      const g = gateFor(`2027-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 4) * 7 + 1).padStart(2, "0")}`, days);
-      letters.add(g.rank.letter);
-      if (g.rank.letter === "E") expect(g.boss).toBe("Iron Golem");
-      else bosses.add(g.boss);
+  it("guards every gate rank with a monster of its own, named after it", () => {
+    for (const rank of GATE_RANKS) {
+      const monster = monsterFor(rank.letter)!;
+      expect(monster, rank.letter).not.toBeNull();
+      expect(monster.rank).toBe(rank.letter);
     }
-    expect(letters.has("E")).toBe(true);
-    expect(bosses.has("Iron Golem")).toBe(false);
+    expect(new Set(MONSTERS.map((m) => m.id)).size).toBe(GATE_RANKS.length);
+    expect(new Set(MONSTERS.map((m) => m.name)).size).toBe(GATE_RANKS.length);
+    const days = new Map<string, number>();
+    const seen = new Set<string>();
+    for (let i = 0; i < 80; i++) {
+      const g = gateFor(`2027-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 4) * 7 + 1).padStart(2, "0")}`, days);
+      expect(g.boss).toBe(monsterFor(g.rank.letter)!.name);
+      seen.add(g.rank.letter);
+    }
+    expect(seen.has("E")).toBe(true);
     expect(monsterFor("E")?.name).toBe("Iron Golem");
-    expect(monsterFor("D")).toBeNull();
+  });
+
+  it("makes the harder monsters hit harder", () => {
+    const strength = (letter: (typeof GATE_RANKS)[number]["letter"]) => Math.max(...monsterFor(letter)!.moves.map((m) => m.power));
+    const order = GATE_RANKS.map((r) => strength(r.letter));
+    expect(order).toEqual([...order].sort((x, y) => x - y));
   });
 });
 
@@ -171,15 +187,18 @@ describe("the fight", () => {
     set("a", 8, 60, "2026-11-09T09:00:00Z"),
     set("out", 10, 60, "2026-11-16T09:00:00Z"),
   ];
-  const gateInput: GateInput = { sessions, sets, exerciseMuscles: muscles };
+  // No exercise muscles here, so no set trains a weak point and the numbers below are the plain ones.
+  const gateInput: GateInput = { sessions, sets };
 
-  it("has no fight for a rank without a monster", () => {
-    const gateD: Gate = { ...gateE(5000), rank: GATE_RANKS[1] };
-    expect(buildBattle({ gate: gateD, gateInput, names, stats })).toBeNull();
+  it("has a fight for every rank, against that rank's monster", () => {
+    for (const rank of GATE_RANKS) {
+      const battle = buildBattle({ gate: { ...gateE(5000), rank }, gateInput, names, stats, today: "2026-11-15" });
+      expect(battle?.monster.rank, rank.letter).toBe(rank.letter);
+    }
   });
 
   it("plays the week's sets in the order they were done, and leaves out other weeks", () => {
-    const battle = buildBattle({ gate: gateE(100_000), gateInput, names, stats })!;
+    const battle = buildBattle({ gate: gateE(100_000), gateInput, names, stats, today: "2026-11-15" })!;
     expect(battle.monster.id).toBe("iron-golem");
     expect(battle.turns.map((t) => [t.n, t.date, t.reps])).toEqual([
       [1, "2026-11-09", 8],
@@ -191,7 +210,7 @@ describe("the fight", () => {
   });
 
   it("adds up to exactly the damage the gate itself counts, so the fight and the clear never disagree", () => {
-    const battle = buildBattle({ gate: gateE(100_000), gateInput, names, stats })!;
+    const battle = buildBattle({ gate: gateE(100_000), gateInput, names, stats, today: "2026-11-15" })!;
     const days = dailyDamage(gateInput);
     let week = 0;
     for (const [date, damage] of days) if (date >= MON && date <= SUN) week += damage;
@@ -200,7 +219,7 @@ describe("the fight", () => {
   });
 
   it("brings the monster down turn by turn, finishes it on the turn that reaches its HP, and strikes no more after that", () => {
-    const battle = buildBattle({ gate: gateE(1000), gateInput, names, stats })!;
+    const battle = buildBattle({ gate: gateE(1000), gateInput, names, stats, today: "2026-11-15" })!;
     expect(battle.turns.map((t) => t.monsterHp)).toEqual([520, 0, 0]);
     expect(battle.defeatedAt).toBe(2);
     expect(battle.turns[0].strike).not.toBeNull();
@@ -210,27 +229,27 @@ describe("the fight", () => {
   });
 
   it("leaves the monster standing when the sets are not enough", () => {
-    const battle = buildBattle({ gate: gateE(50_000), gateInput, names, stats })!;
+    const battle = buildBattle({ gate: gateE(50_000), gateInput, names, stats, today: "2026-11-15" })!;
     expect(battle.defeatedAt).toBeNull();
     expect(battle.turns.at(-1)!.monsterHp).toBe(50_000 - battle.totalDamage);
   });
 
   it("is an empty fight for a week with no sets", () => {
-    const battle = buildBattle({ gate: gateE(5000, "2026-11-23"), gateInput, names, stats })!;
+    const battle = buildBattle({ gate: gateE(5000, "2026-11-23"), gateInput, names, stats, today: "2026-11-15" })!;
     expect(battle.turns).toEqual([]);
     expect(battle.totalDamage).toBe(0);
     expect(battle.defeatedAt).toBeNull();
   });
 
   it("is the same fight every time it is played", () => {
-    const one = buildBattle({ gate: gateE(100_000), gateInput, names, stats });
-    const two = buildBattle({ gate: gateE(100_000), gateInput: { ...gateInput, sets: [...sets].reverse() }, names, stats });
+    const one = buildBattle({ gate: gateE(100_000), gateInput, names, stats, today: "2026-11-15" });
+    const two = buildBattle({ gate: gateE(100_000), gateInput: { ...gateInput, sets: [...sets].reverse() }, names, stats, today: "2026-11-15" });
     expect(two).toEqual(one);
   });
 
   it("can never be lost: the hero is never knocked below a tenth of her stamina, however long it goes", () => {
     const many = Array.from({ length: 200 }, (_, i) => set("a", 1, 1, `2026-11-09T${String(8 + Math.floor(i / 60)).padStart(2, "0")}:${String(i % 60).padStart(2, "0")}:00Z`));
-    const battle = buildBattle({ gate: gateE(10_000_000), gateInput: { sessions, sets: many, exerciseMuscles: muscles }, names, stats })!;
+    const battle = buildBattle({ gate: gateE(10_000_000), gateInput: { sessions, sets: many, exerciseMuscles: muscles }, names, stats, today: "2026-11-15" })!;
     for (const turn of battle.turns) expect(turn.stamina).toBeGreaterThanOrEqual(battle.hero.staminaFloor);
     expect(battle.turns.at(-1)!.stamina).toBe(battle.hero.staminaFloor);
   });
@@ -242,7 +261,7 @@ describe("the fight", () => {
       sets: [],
       questsCompleted: 5000,
     });
-    const battle = buildBattle({ gate: gateE(10_000_000), gateInput, names, stats: tough })!;
+    const battle = buildBattle({ gate: gateE(10_000_000), gateInput, names, stats: tough, today: "2026-11-15" })!;
     expect(battle.hero.block).toBeGreaterThan(0);
     const day2 = battle.turns.find((t) => t.date === "2026-11-11")!;
     expect(day2.restedBy).toBeGreaterThanOrEqual(0);
@@ -252,7 +271,7 @@ describe("the fight", () => {
   });
 
   it("says what happened in plain words with no em dash", () => {
-    const battle = buildBattle({ gate: gateE(1000), gateInput, names, stats })!;
+    const battle = buildBattle({ gate: gateE(1000), gateInput, names, stats, today: "2026-11-15" })!;
     for (const turn of battle.turns) {
       const line = describeTurn(turn, battle.monster);
       expect(line.length).toBeGreaterThan(10);
@@ -285,5 +304,88 @@ describe("the hero", () => {
     expect(fit.staminaMax).toBe(180);
     expect(fit.block).toBe(0.5);
     expect(fit.regen).toBeCloseTo(0.4);
+  });
+});
+
+describe("the weak point", () => {
+  it("is one muscle for the whole week, from the list of big muscles, and the same every time", () => {
+    expect(WEAK_POINT_MUSCLES).toContain(weakPointFor(MON));
+    expect(weakPointFor(MON)).toBe(weakPointFor(MON));
+    const seen = new Set(Array.from({ length: 40 }, (_, i) => weakPointFor(`2027-01-${String((i % 28) + 1).padStart(2, "0")}`)));
+    expect(seen.size).toBeGreaterThan(3);
+  });
+
+  it("adds 15 percent to a set that trains it and nothing to any other set", () => {
+    const weak = weakPointFor(MON);
+    const other = WEAK_POINT_MUSCLES.find((m) => m !== weak)!;
+    const power = powerFromStats(0, 0);
+    const s = { session_id: "x", exercise_id: "e", reps: 10, weight_kg: 100, id: "w1" };
+    expect(hitFor(s, 0, MON, power, { e: weak })).toMatchObject({ weak: true, damage: Math.round(1000 * (1 + WEAK_POINT_BONUS)) });
+    expect(hitFor(s, 0, MON, power, { e: other })).toMatchObject({ weak: false, damage: 1000 });
+    expect(hitFor(s, 0, MON, power)).toMatchObject({ weak: false, damage: 1000 });
+  });
+
+  it("is counted by the gate and by the fight alike, and named in the log", () => {
+    const weak = weakPointFor(MON);
+    const input: GateInput = {
+      sessions: [{ id: "a", date: MON }],
+      sets: [set("a", 10, 100, "2026-11-09T09:00:00Z", "e")],
+      exerciseMuscles: { e: weak },
+    };
+    expect(dailyDamage(input).get(MON)).toBe(Math.round(1000 * (1 + WEAK_POINT_BONUS)));
+    const stats = computeStats({ checkins: [], sessions: [], sets: [], questsCompleted: 0 });
+    const battle = buildBattle({ gate: gateE(100_000), gateInput: input, names: { e: "Move" }, stats, today: "2026-11-15" })!;
+    expect(battle.weakMuscle).toBe(weak);
+    expect(battle.turns[0].weak).toBe(true);
+    expect(battle.totalDamage).toBe(Math.round(1000 * (1 + WEAK_POINT_BONUS)));
+    expect(describeTurn(battle.turns[0], battle.monster)).toContain("Weak point!");
+  });
+});
+
+describe("the monster recovers when you stop", () => {
+  const gate = gateE(10_000);
+  const days = (entries: Record<string, number>) => new Map(Object.entries(entries));
+
+  it("does nothing for a normal training week with a rest day or two", () => {
+    const flow = gateFlow(gate, days({ "2026-11-09": 3000, "2026-11-12": 3000, "2026-11-14": 2000 }), "2026-11-15");
+    expect(flow.healed).toBe(0);
+    expect(flow.lost).toBe(8000);
+    // Three idle days in a row (Tue, Wed, Thu) and then a session: only the third heals, once.
+    const three = gateFlow(gate, days({ "2026-11-09": 3000, "2026-11-13": 1000 }), "2026-11-13");
+    expect([...three.heals.keys()]).toEqual(["2026-11-12"]);
+  });
+
+  it("starts after three idle days in a row, recovers 3 percent a day, and never more than 15 percent in a week", () => {
+    const flow = gateFlow(gate, days({ "2026-11-09": 3000 }), "2026-11-15");
+    // Tue, Wed and Thu are idle: it heals from Thu, then Fri and Sat (Sun is today and is not over).
+    expect([...flow.heals.keys()]).toEqual(["2026-11-12", "2026-11-13", "2026-11-14"]);
+    expect(flow.heals.get("2026-11-12")).toBe(Math.round(10_000 * HEAL_SHARE_PER_DAY));
+    expect(flow.healed).toBe(900);
+    expect(flow.lost).toBe(2100);
+    const long = gateFlow({ ...gate, hp: 100_000 }, days({ "2026-11-09": 90_000 }), "2026-11-15");
+    expect(long.healed).toBeLessThanOrEqual(Math.round(100_000 * MAX_HEAL_SHARE));
+  });
+
+  it("never heals today, nothing that was not lost, or a monster that has fallen", () => {
+    expect(gateFlow(gate, days({ "2026-11-09": 3000 }), "2026-11-11").healed).toBe(0);
+    expect(gateFlow(gate, new Map(), "2026-11-15").healed).toBe(0);
+    const felled = gateFlow(gate, days({ "2026-11-09": 12_000 }), "2026-11-15");
+    expect(felled.clearedOn).toBe(MON);
+    expect(felled.healed).toBe(0);
+  });
+
+  it("shows in the gate's status and in the fight, and the two agree", () => {
+    const sessions = [{ id: "a", date: MON }, { id: "b", date: "2026-11-14" }];
+    const sets = [set("a", 10, 100, "2026-11-09T09:00:00Z"), set("b", 5, 100, "2026-11-14T09:00:00Z")];
+    const input: GateInput = { sessions, sets };
+    const status = gateStatus(gate, dailyDamage(input), "2026-11-15");
+    expect(status.healed).toBeGreaterThan(0);
+    expect(status.hpLeft).toBe(10_000 - 1000 - 500 + status.healed);
+    const stats = computeStats({ checkins: [], sessions: [], sets: [], questsCompleted: 0 });
+    const battle = buildBattle({ gate, gateInput: input, names: {}, stats, today: "2026-11-15" })!;
+    expect(battle.turns[0].healed).toBe(0);
+    expect(battle.turns[1].healed).toBeGreaterThan(0);
+    expect(battle.turns[1].monsterHp).toBe(status.hpLeft);
+    expect(describeTurn(battle.turns[1], battle.monster)).toContain("recovered");
   });
 });

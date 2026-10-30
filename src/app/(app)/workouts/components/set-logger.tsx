@@ -106,14 +106,15 @@ export function SetLogger({
     if (fight && chosen) {
       // The set is a hit on this week's monster. The same numbers the server uses, so what shows here is what it counts.
       const hit = hitFor(
-        { id: result.data?.id, session_id: sessionId, reps: parsed.data.reps, weight_kg: effectiveLoadKg(parsed.data.weight_kg, chosen, bodyWeightKg) },
+        { id: result.data?.id, session_id: sessionId, exercise_id: chosen.id, reps: parsed.data.reps, weight_kg: effectiveLoadKg(parsed.data.weight_kg, chosen, bodyWeightKg) },
         0,
         fight.weekStart,
         fight.power,
+        { [chosen.id]: chosen.primary_muscle },
       );
       const left = Math.max(0, fight.hpLeft - hit.damage);
       const falls = fight.hpLeft > 0 && left === 0;
-      toast(`${hit.crit ? "Critical hit! " : ""}${fight.monster} takes ${hit.damage.toLocaleString("en-US")} damage`, {
+      toast(`${hit.crit ? "Critical hit! " : ""}${hit.weak ? "Weak point! " : ""}${fight.monster} takes ${hit.damage.toLocaleString("en-US")} damage`, {
         description: falls ? `The ${fight.monster} falls!` : left > 0 ? `${left.toLocaleString("en-US")} HP left` : undefined,
       });
       playSound(falls ? "victory" : hit.crit ? "crit" : "hit");

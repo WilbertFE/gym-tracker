@@ -15,7 +15,7 @@ const sets = [
   { id: "s2", session_id: "a", exercise_id: "bench", reps: 5, weight_kg: 80, completed_at: "2026-11-09T09:05:00Z" },
 ];
 const stats = computeStats({ checkins: [], sessions: [], sets: [], questsCompleted: 0 });
-const battle = buildBattle({ gate, gateInput: { sessions, sets }, names: { bench: "Bench Press" }, stats })!;
+const battle = buildBattle({ gate, gateInput: { sessions, sets }, names: { bench: "Bench Press" }, stats, today: "2026-11-15" })!;
 
 function mockMotion(reduce: boolean) {
   vi.stubGlobal("matchMedia", (query: string) => ({

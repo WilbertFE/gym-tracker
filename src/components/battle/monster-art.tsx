@@ -1,7 +1,9 @@
 import { useId } from "react";
 import { cn } from "@/lib/utils";
+import { ColossusArt, DrakeArt, HydraArt, TitanArt, WraithArt } from "./monsters";
+import { woundCount, type MonsterArtProps, type MonsterState } from "./monster-shared";
 
-export type MonsterState = "idle" | "hit" | "strike" | "down";
+export type { MonsterState };
 
 const C = {
   line: "#16233f",
@@ -15,24 +17,15 @@ const C = {
   crack: "#0a101c",
 } as const;
 
-type MonsterArtProps = {
-  state?: MonsterState;
-  /** 0 to 1, the share of its HP left. Cracks spread across it as it falls. */
-  hp?: number;
-  /** Width in pixels. The height follows. */
-  size?: number;
-  className?: string;
-};
-
 /**
  * The Iron Golem, a wall of old riveted plates with an ember for a heart, facing left toward the hero. Pure inline SVG
  * in the System palette. Its look follows what it is doing (`state`, moved by CSS) and how hurt it is (`hp`).
  */
-export function MonsterArt({ state = "idle", hp = 1, size = 240, className }: MonsterArtProps) {
+export function GolemArt({ state = "idle", hp = 1, size = 240, className }: MonsterArtProps) {
   const uid = useId().replace(/:/g, "");
   const down = state === "down";
   // Cracks show once it is hurt: one at 75 percent, two at 50, three at 25, all of them when it falls.
-  const cracks = down ? 3 : hp <= 0.25 ? 3 : hp <= 0.5 ? 2 : hp <= 0.75 ? 1 : 0;
+  const cracks = woundCount(hp, down);
 
   return (
     <svg
@@ -118,4 +111,25 @@ export function MonsterArt({ state = "idle", hp = 1, size = 240, className }: Mo
       </g>
     </svg>
   );
+}
+
+/**
+ * The monster of a gate, by its id: the Iron Golem (rank E), Rep Wraith (D), Plate Titan (C), Barbell Hydra (B), Lactic
+ * Drake (A) or Deadlift Colossus (S). An id that is not known draws the Iron Golem.
+ */
+export function MonsterArt({ monster = "iron-golem", ...props }: MonsterArtProps & { monster?: string }) {
+  switch (monster) {
+    case "rep-wraith":
+      return <WraithArt {...props} />;
+    case "plate-titan":
+      return <TitanArt {...props} />;
+    case "barbell-hydra":
+      return <HydraArt {...props} />;
+    case "lactic-drake":
+      return <DrakeArt {...props} />;
+    case "deadlift-colossus":
+      return <ColossusArt {...props} />;
+    default:
+      return <GolemArt {...props} />;
+  }
 }

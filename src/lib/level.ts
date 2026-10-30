@@ -14,7 +14,7 @@ import { listPhotos } from "@/lib/repositories/photos";
 import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { buildBattle, type Battle } from "@/lib/battle/engine";
-import { boosterGates, currentGate, gatesThrough, type GateStatus, type Power } from "@/lib/gates";
+import { boosterGates, currentGate, gatesThrough, weakPointFor, type GateStatus, type Power } from "@/lib/gates";
 import { guideDone, guideSteps, type GuideStep } from "@/lib/guide";
 import { muscleLevels, type MuscleLevel } from "@/lib/muscle-levels";
 import { clearTrial, listClearedTrials } from "@/lib/repositories/trials";
@@ -65,6 +65,8 @@ export type FightSummary = {
   /** The monster's HP left now. 0 once it has fallen. */
   hpLeft: number;
   power: Power;
+  /** The muscle this week's monster is weak against, and the exercises' primary muscles, so a logged set can tell if it hit the weak point. */
+  weakMuscle: string;
 };
 
 /**
@@ -168,7 +170,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
 
   const gate = currentGate(gateInput, today);
   const exerciseNames = Object.fromEntries(exercises.map((e) => [e.id, e.name]));
-  const battle = buildBattle({ gate: gate.gate, gateInput, names: exerciseNames, stats });
+  const battle = buildBattle({ gate: gate.gate, gateInput, names: exerciseNames, stats, today });
   const muscles = muscleLevels(sets, exercises);
   const titleInput: TitleInput = {
     workouts: xp.workouts,
@@ -190,7 +192,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     stats,
     gate: gate,
     battle,
-    fight: battle ? { monster: battle.monster.name, weekStart: gate.gate.weekStart, hpLeft: Math.max(0, gate.gate.hp - battle.totalDamage), power: battle.hero.power } : null,
+    fight: battle ? { monster: battle.monster.name, weekStart: gate.gate.weekStart, hpLeft: gate.hpLeft, power: battle.hero.power, weakMuscle: weakPointFor(gate.gate.weekStart) } : null,
     muscles,
     titles: titleStatuses(titleInput),
     title: bestTitle(titleInput),

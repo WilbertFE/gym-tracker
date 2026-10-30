@@ -46,17 +46,6 @@ const HISTORY_WEEKS = 4;
 /** Damage of one bodyweight rep, so a pull-up counts for something in a fight about volume. */
 export const BODYWEIGHT_REP_DAMAGE = 20;
 
-const BOSSES = [
-  "Granite Warden",
-  "Rep Wraith",
-  "Plate Titan",
-  "Barbell Hydra",
-  "Lactic Drake",
-  "Rust Giant",
-  "Pump Phantom",
-  "Deadlift Colossus",
-] as const;
-
 const DOMAINS = ["Iron", "Chalk", "Steel", "Sweat", "Thunder", "Ember", "Frost", "Stone"] as const;
 
 function hash(text: string): number {
@@ -130,19 +119,34 @@ export function powerBefore(weekStart: string, input: GateInput): Power {
 /** A number from 0 up to but not including 1, the same for the same text, so a critical hit replays the same every time. */
 export const seeded = (text: string): number => hash(text) / 2 ** 32;
 
+/** The muscles a week's monster can be weak against: the big ones, so there is always an exercise for it. */
+export const WEAK_POINT_MUSCLES = ["chest", "lats", "quads", "hamstrings", "glutes", "front_delts", "side_delts", "biceps", "triceps", "abs"] as const;
+/** Extra damage for a set that trains the week's weak point. */
+export const WEAK_POINT_BONUS = 0.15;
+
+/** The muscle this week's monster is weak against, the same for everyone and fixed by the week, so it nudges what you train. */
+export const weakPointFor = (weekStart: string): (typeof WEAK_POINT_MUSCLES)[number] =>
+  WEAK_POINT_MUSCLES[hash(`weak:${weekStart}`) % WEAK_POINT_MUSCLES.length];
+
 export type Hit = {
   /** What the set is worth before any bonus. */
   base: number;
   crit: boolean;
+  /** The set trained the week's weak point. */
+  weak: boolean;
   damage: number;
 };
 
-/** One set's hit: its volume, times the Strength bonus, times 1.5 on a critical hit. `index` is the set's place in the input, the seed when it has no id. */
-export function hitFor(set: GateInput["sets"][number], index: number, weekStart: string, power: Power): Hit {
+/**
+ * One set's hit: its volume, times the Strength bonus, times 1.15 when it trains the week's weak point (`muscles` maps an
+ * exercise to its primary muscle), times 1.5 on a critical hit. `index` is the set's place in the input, the seed when it has no id.
+ */
+export function hitFor(set: GateInput["sets"][number], index: number, weekStart: string, power: Power, muscles?: Record<string, string>): Hit {
   const base = setDamage(set.reps, set.weight_kg);
   const key = set.id ?? `${set.session_id}:${index}`;
   const crit = seeded(`crit:${weekStart}:${key}`) < power.critChance;
-  return { base, crit, damage: Math.round(base * power.attack * (crit ? CRIT_MULTIPLIER : 1)) };
+  const weak = !!muscles && !!set.exercise_id && muscles[set.exercise_id] === weakPointFor(weekStart);
+  return { base, crit, weak, damage: Math.round(base * power.attack * (weak ? 1 + WEAK_POINT_BONUS : 1) * (crit ? CRIT_MULTIPLIER : 1)) };
 }
 
 /** Damage dealt on each date. */
@@ -159,7 +163,7 @@ export function dailyDamage(input: GateInput): Map<string, number> {
       power = powerBefore(week, input);
       powers.set(week, power);
     }
-    days.set(date, (days.get(date) ?? 0) + hitFor(set, index, week, power).damage);
+    days.set(date, (days.get(date) ?? 0) + hitFor(set, index, week, power, input.exerciseMuscles).damage);
   });
   return days;
 }
@@ -197,16 +201,73 @@ export function gateFor(weekStart: string, days: Map<string, number>): Gate {
     weekEnd: addDaysISO(weekStart, 6),
     rank,
     name: `Gate of ${DOMAINS[hash(`domain:${weekStart}`) % DOMAINS.length]}`,
-    // A gate rank with a monster of its own is guarded by it, the others by a boss picked from the list.
-    boss: monsterFor(rank.letter)?.name ?? BOSSES[hash(`boss:${weekStart}`) % BOSSES.length],
+    // Every gate rank has its own monster.
+    boss: monsterFor(rank.letter)?.name ?? rank.letter,
     hp: Math.max(500, Math.round((base * rank.multiplier) / 100) * 100),
   };
+}
+
+/** Training stops for this many days in a row before the monster starts to recover. */
+export const IDLE_DAYS_BEFORE_HEAL = 3;
+/** What it recovers each further idle day, as a share of its HP. */
+export const HEAL_SHARE_PER_DAY = 0.03;
+/** The most it can recover in a week, as a share of its HP. */
+export const MAX_HEAL_SHARE = 0.15;
+
+export type GateFlow = {
+  /** HP lost so far, with what it recovered taken off. */
+  lost: number;
+  /** HP it recovered in all. */
+  healed: number;
+  /** The day the damage first reached the HP. */
+  clearedOn: string | null;
+  /** HP recovered on each idle day that healed it. */
+  heals: Map<string, number>;
+};
+
+/**
+ * How a week goes, day by day: damage takes HP off the monster, and a run of idle days gives some back. After
+ * {@link IDLE_DAYS_BEFORE_HEAL} days in a row with no training (days that are over, not today) it recovers
+ * {@link HEAL_SHARE_PER_DAY} of its HP a day, up to {@link MAX_HEAL_SHARE} in a week, and never beyond full. A monster
+ * that has fallen stays down. A normal training week with a rest day or two between sessions never gives it a thing.
+ */
+export function gateFlow(gate: Gate, days: Map<string, number>, today: string): GateFlow {
+  let lost = 0;
+  let healed = 0;
+  let idle = 0;
+  let clearedOn: string | null = null;
+  const heals = new Map<string, number>();
+  const cap = Math.round(gate.hp * MAX_HEAL_SHARE);
+  const last = today < gate.weekEnd ? today : gate.weekEnd;
+  for (let d = gate.weekStart; d <= last; d = addDaysISO(d, 1)) {
+    const damage = days.get(d) ?? 0;
+    if (damage > 0) {
+      idle = 0;
+      lost += damage;
+      if (clearedOn === null && lost >= gate.hp) clearedOn = d;
+    } else if (d < today && clearedOn === null) {
+      idle += 1;
+      if (idle >= IDLE_DAYS_BEFORE_HEAL) {
+        const heal = Math.min(Math.round(gate.hp * HEAL_SHARE_PER_DAY), cap - healed, lost);
+        if (heal > 0) {
+          lost -= heal;
+          healed += heal;
+          heals.set(d, heal);
+        }
+      }
+    }
+  }
+  return { lost, healed, clearedOn, heals };
 }
 
 export type GateStatus = {
   gate: Gate;
   /** Damage dealt this week so far, not capped at the HP. */
   damage: number;
+  /** HP the monster recovered on idle days. */
+  healed: number;
+  /** HP the monster has left, after the damage and what it recovered. 0 once it has fallen. */
+  hpLeft: number;
   /** 0 to 1 of the HP gone. */
   progress: number;
   cleared: boolean;
@@ -220,21 +281,21 @@ export type GateStatus = {
 
 /** How a gate stands, counting damage up to `today`. */
 export function gateStatus(gate: Gate, days: Map<string, number>, today: string): GateStatus {
+  const flow = gateFlow(gate, days, today);
   let damage = 0;
-  let clearedOn: string | null = null;
   const last = today < gate.weekEnd ? today : gate.weekEnd;
-  for (let d = gate.weekStart; d <= last; d = addDaysISO(d, 1)) {
-    damage += days.get(d) ?? 0;
-    if (clearedOn === null && damage >= gate.hp) clearedOn = d;
-  }
+  for (let d = gate.weekStart; d <= last; d = addDaysISO(d, 1)) damage += days.get(d) ?? 0;
   const over = today > gate.weekEnd;
+  const hpLeft = Math.max(0, Math.round(gate.hp - flow.lost));
   return {
     gate,
     damage: Math.round(damage),
-    progress: Math.min(1, damage / gate.hp),
-    cleared: clearedOn !== null,
-    clearedOn,
-    failed: over && clearedOn === null,
+    healed: flow.healed,
+    hpLeft,
+    progress: Math.min(1, flow.lost / gate.hp),
+    cleared: flow.clearedOn !== null,
+    clearedOn: flow.clearedOn,
+    failed: over && flow.clearedOn === null,
     daysLeft: over ? 0 : Math.round((Date.parse(gate.weekEnd) - Date.parse(today)) / 86_400_000) + 1,
   };
 }

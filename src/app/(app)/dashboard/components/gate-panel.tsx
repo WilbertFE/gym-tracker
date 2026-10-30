@@ -7,7 +7,9 @@ import { MonsterArt } from "@/components/battle/monster-art";
 import { ChestStrip } from "@/components/chest/chest-strip";
 import { getCurrentUserId } from "@/lib/auth";
 import { loadLevel } from "@/lib/level";
+import { MUSCLE_LABELS, type MuscleGroup } from "@/lib/muscles";
 import { notice } from "@/lib/system-voice";
+import { WEAK_POINT_BONUS } from "@/lib/gates";
 import { getQuickChests } from "@/lib/unlock-state";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +21,7 @@ export async function GatePanel() {
   const userId = await getCurrentUserId();
   const [{ gate: status, battle, chests, level, collection }, quick] = await Promise.all([loadLevel(userId), getQuickChests()]);
   const { gate } = status;
-  const left = Math.max(0, gate.hp - status.damage);
+  const left = status.hpLeft;
   const percentLeft = Math.round((1 - status.progress) * 100);
 
   return (
@@ -59,8 +61,13 @@ export async function GatePanel() {
             <div className="flex flex-col gap-3 border border-primary/20 bg-primary/5 p-3">
               <div className="flex items-end justify-center gap-4 overflow-hidden sm:gap-10">
                 <HeroFigure rank={level.rank} equipment={collection.equipment} state={status.cleared ? "win" : "idle"} size={160} />
-                <MonsterArt state={status.cleared ? "down" : "idle"} hp={Math.max(0, 1 - status.progress)} size={160} />
+                <MonsterArt monster={battle.monster.id} state={status.cleared ? "down" : "idle"} hp={Math.max(0, 1 - status.progress)} size={160} />
               </div>
+              <p className="tabular text-xs">
+                <span className="uppercase tracking-widest text-muted-foreground">Weak point </span>
+                {MUSCLE_LABELS[battle.weakMuscle as MuscleGroup]} <span className="text-primary">+{Math.round(WEAK_POINT_BONUS * 100)}% damage</span>
+                {status.healed > 0 && <span className="text-muted-foreground"> · it recovered {status.healed.toLocaleString("en-US")} HP while you rested</span>}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {battle.turns.length === 0
                   ? `Every set you log is a hit on the ${battle.monster.name}.`
