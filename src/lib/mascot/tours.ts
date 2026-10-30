@@ -74,8 +74,8 @@ export const TOURS: readonly Tour[] = [
     feature: "schedule",
     name: "Schedule",
     steps: [
-      { target: "best-times", title: "Best times to train", text: "This works out when the gym suits you, around your classes and other plans.", pose: "point" },
-      { target: "commitments", title: "Your commitments", text: "Add your classes and busy hours here. The best times update by themselves.", pose: "point" },
+      { target: "commitments", title: "Your commitments", text: "Your classes and busy hours, week by week, so you can see where the gym fits.", pose: "point" },
+      { target: "add-commitment", title: "Add one", text: "Add a class or a busy hour with exact times. It repeats every week.", pose: "point" },
     ],
   },
   {

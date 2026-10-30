@@ -11,7 +11,7 @@ const PAGES: { test: RegExp; name: string; lines: string[] }[] = [
   { test: /^\/dashboard/, name: "the dashboard", lines: ["This is home.", "Your level is at the top, then today's check-in and workout. More cards appear as you level up. Be patient."] },
   { test: /^\/body\/progress/, name: "progress photos", lines: ["Progress photos.", "Compare two dates side by side. Photos are private."] },
   { test: /^\/body/, name: "body", lines: ["The muscle map shows what you trained this week or overall.", "The weight tab charts your body weight over time."] },
-  { test: /^\/schedule/, name: "the schedule", lines: ["Tell me when you are busy, and I will work out the best times to train. You are welcome."] },
+  { test: /^\/schedule/, name: "the schedule", lines: ["Tell me when you are busy, and I will keep it all in one place. You are welcome."] },
   { test: /^\/status/, name: "your status", lines: ["This is your status window.", "Five stats grow as you train. Each one rises with a different habit."] },
   { test: /^\/leaderboard/, name: "the leaderboard", lines: ["The leaderboard ranks XP worldwide or in your country.", "You stay hidden until you join. No pressure. Mostly."] },
   { test: /^\/collection/, name: "your collection", lines: ["Chests from your quests, and the items you found in them.", "Preview an item on yourself before you equip it."] },

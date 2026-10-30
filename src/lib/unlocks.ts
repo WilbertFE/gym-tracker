@@ -43,7 +43,7 @@ export const FEATURES: readonly Feature[] = [
   { id: "quests", name: "Daily and weekly quests", level: 10, blurb: "Small goals every day and week for bonus XP.", href: "/dashboard" },
   { id: "boosters", name: "XP boosters", level: 10, blurb: "Double the XP of a day. Earn them by training.", href: "/dashboard/level" },
   { id: "chests", name: "Quest chests", level: 10, blurb: "Finish a day or week of quests to open a chest with a random item.", href: "/dashboard" },
-  { id: "schedule", name: "Schedule", level: 14, blurb: "Find the best time to train around your classes.", href: "/schedule" },
+  { id: "schedule", name: "Schedule", level: 14, blurb: "Keep your classes and busy hours in one weekly view.", href: "/schedule" },
   { id: "status", name: "Status window", level: 14, blurb: "Your rank letter and five stats, worked out from your training.", href: "/status" },
   { id: "membership", name: "Membership", level: 14, blurb: "Track your gym membership and when it ends.", href: "/membership" },
   { id: "leaderboard", name: "Leaderboard", level: 18, blurb: "Compare your XP with others, worldwide and at home.", href: "/leaderboard" },

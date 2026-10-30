@@ -5,13 +5,12 @@ import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/metadata";
 import { AvailabilityPanel } from "./components/availability-panel";
-import { BestTimesPanel } from "./components/best-times-panel";
 
 export const metadata: Metadata = buildMetadata({
   title: "Schedule",
-  description: "Find the best time to train around your classes and other commitments.",
+  description: "Keep your classes and other weekly commitments in one place.",
   path: "/schedule",
-  keywords: ["gym schedule", "best time to train"],
+  keywords: ["gym schedule", "weekly commitments"],
 });
 
 export default function SchedulePage() {
@@ -20,13 +19,12 @@ export default function SchedulePage() {
       <PageHeader
         label="Planning"
         title="Schedule"
-        description="Best times to train around your commitments."
+        description="Your classes and other plans, week by week."
       />
 
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
         <FeatureGate id="schedule">
           <div className="flex flex-col gap-6">
-            <BestTimesPanel />
             <AvailabilityPanel />
           </div>
         </FeatureGate>
