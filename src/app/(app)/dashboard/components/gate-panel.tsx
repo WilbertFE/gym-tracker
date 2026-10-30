@@ -57,9 +57,9 @@ export async function GatePanel() {
 
           {battle && (
             <div className="flex flex-col gap-3 border border-primary/20 bg-primary/5 p-3">
-              <div className="flex items-end justify-between gap-2 overflow-hidden">
-                <HeroFigure rank={level.rank} equipment={collection.equipment} state={status.cleared ? "win" : "idle"} size={130} />
-                <MonsterArt state={status.cleared ? "down" : "idle"} hp={Math.max(0, 1 - status.progress)} size={130} />
+              <div className="flex items-end justify-center gap-4 overflow-hidden sm:gap-10">
+                <HeroFigure rank={level.rank} equipment={collection.equipment} state={status.cleared ? "win" : "idle"} size={160} />
+                <MonsterArt state={status.cleared ? "down" : "idle"} hp={Math.max(0, 1 - status.progress)} size={160} />
               </div>
               <p className="text-xs text-muted-foreground">
                 {battle.turns.length === 0

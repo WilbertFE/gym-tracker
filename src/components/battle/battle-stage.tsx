@@ -45,6 +45,21 @@ export function BattleStage({ battle, rank, equipment, gateName }: BattleStagePr
   const speed = SPEEDS[speedIndex];
   const first = useRef(true);
 
+  // The figures grow with the stage: about half its width each, from a phone up to a wide screen.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [figure, setFigure] = useState(190);
+  useEffect(() => {
+    const node = stageRef.current;
+    if (!node) return;
+    const measure = () => setFigure(Math.max(130, Math.min(300, Math.round(node.clientWidth * 0.5))));
+    measure();
+    // An old browser without a resize observer keeps the size it measured once.
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   // Reduced motion: show where it ended, with nothing moving.
   const done = reduced ? total : shown;
   const turn = done > 0 ? battle.turns[done - 1] : null;
@@ -135,9 +150,9 @@ export function BattleStage({ battle, rank, equipment, gateName }: BattleStagePr
         </div>
 
         {/* The stage: your hero on the left, the monster on the right. */}
-        <div className="relative mx-auto flex w-full max-w-xl items-end justify-between gap-2 overflow-hidden border border-primary/25 bg-[radial-gradient(ellipse_at_50%_100%,color-mix(in_srgb,var(--primary)_14%,transparent),transparent_70%)] px-2 pb-2 pt-10">
+        <div ref={stageRef} className="relative mx-auto flex w-full max-w-2xl items-end justify-between gap-2 overflow-hidden border border-primary/25 bg-[radial-gradient(ellipse_at_50%_100%,color-mix(in_srgb,var(--primary)_14%,transparent),transparent_70%)] px-2 pb-2 pt-10">
           <div className="relative">
-            <HeroFigure rank={rank} equipment={equipment} state={heroState} size={190} />
+            <HeroFigure rank={rank} equipment={equipment} state={heroState} size={figure} />
           </div>
           <div className="relative">
             {turn && phase === "impact" && (
@@ -149,7 +164,7 @@ export function BattleStage({ battle, rank, equipment, gateName }: BattleStagePr
                 {turn.crit ? "CRIT " : ""}-{turn.damage.toLocaleString("en-US")}
               </span>
             )}
-            <MonsterArt state={monsterState} hp={monsterHp / battle.monsterHpMax} size={190} />
+            <MonsterArt state={monsterState} hp={monsterHp / battle.monsterHpMax} size={figure} />
           </div>
         </div>
 

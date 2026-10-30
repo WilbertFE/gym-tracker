@@ -14,8 +14,10 @@ const C = {
   skinShade: "#d9ad9b",
   armor: "#0d1930",
   armorMid: "#17284b",
-  armorLight: "#1f3562",
+  armorLight: "#233d70",
   piping: "#4aa8ff",
+  scarf: "#2f7fd6",
+  scarfDark: "#1d5aa6",
   hair: "#6f8fd0",
   hairDark: "#4b69a6",
   boot: "#0a1224",
@@ -30,10 +32,21 @@ type HeroArtProps = {
   className?: string;
 };
 
+/** A limb as a thick outlined stroke: a dark line under a lighter one, so the outline follows the bend. */
+function Limb({ d, width, fill }: { d: string; width: number; fill: string }) {
+  return (
+    <>
+      <path d={d} fill="none" stroke={C.line} strokeWidth={width + 5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={fill} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  );
+}
+
 /**
- * The hero, a fighter in the System jacket's colors with a blade of light, facing right toward the monster. Pure inline
- * SVG, in layers (legs, torso, back arm, head, front arm, blade) so a weapon or an outfit can replace one layer later.
- * What she is doing (`state`) is moved by CSS. The chest is left open for the rank badge, which `HeroFigure` lays on it.
+ * The hero, a fighter in the System jacket's colors with a scarf and a blade of light, facing right toward the monster.
+ * Pure inline SVG, in layers (scarf, legs, torso, back arm, head, front arm, blade) so a weapon or an outfit can replace
+ * one layer later. What she is doing (`state`) is moved by CSS. The chest is left open for the rank badge, which
+ * `HeroFigure` lays on it.
  */
 export function HeroArt({ state = "idle", size = 240, className }: HeroArtProps) {
   return (
@@ -46,50 +59,60 @@ export function HeroArt({ state = "idle", size = 240, className }: HeroArtProps)
       className={cn("battle-hero block overflow-visible", className)}
       data-state={state}
     >
-      <ellipse cx={116} cy={250} rx={62} ry={6} fill="#000" opacity={0.4} />
+      <ellipse cx={118} cy={250} rx={70} ry={7} fill="#000" opacity={0.4} />
 
       <g className="battle-hero-body" stroke={C.line} strokeWidth={3} strokeLinejoin="round" strokeLinecap="round">
-        {/* Legs and boots */}
-        <path d="M96 168 L92 236 H70 L72 246 H114 L110 168 Z" fill={C.armorMid} />
-        <path d="M124 168 L134 236 H122 L122 246 H168 L164 232 L146 168 Z" fill={C.armor} />
-        <path d="M70 236 H92 V246 H72 Z M124 236 H146 L164 232 V246 H122 Z" fill={C.boot} />
-        <path d="M97 178 L93 226 M133 178 L142 226" stroke={C.piping} strokeWidth={2} fill="none" opacity={0.7} />
+        {/* The scarf, streaming behind her */}
+        <g className="battle-hero-scarf">
+          <path d="M96 104 Q62 104 34 136 Q30 142 40 140 Q66 128 98 130 Z" fill={C.scarf} />
+          <path d="M92 118 Q64 124 46 152 Q44 158 52 154 Q72 140 94 138 Z" fill={C.scarfDark} />
+        </g>
+
+        {/* Legs in a fighting stance: the back leg straight, the front leg bent forward */}
+        <Limb d="M104 168 L90 208 L82 238" width={22} fill={C.armorMid} />
+        <Limb d="M134 168 L152 204 L160 238" width={23} fill={C.armor} />
+        <path d="M70 232 Q70 226 78 226 H96 L100 246 H68 Z" fill={C.boot} />
+        <path d="M150 232 Q150 226 158 226 H176 Q184 230 182 246 H146 Z" fill={C.boot} />
+        <path d="M70 242 H100 M148 242 H182" stroke={C.piping} strokeWidth={2} fill="none" opacity={0.8} />
+        <path d="M93 192 L86 212 M144 190 L156 210" stroke={C.piping} strokeWidth={2} fill="none" opacity={0.6} />
 
         {/* The back arm, behind the body */}
-        <path d="M92 114 L74 144 L84 168" fill="none" stroke={C.line} strokeWidth={17} />
-        <path d="M92 114 L74 144 L84 168" fill="none" stroke={C.armorMid} strokeWidth={12} />
-        <circle cx={85} cy={171} r={8} fill={C.skin} />
+        <Limb d="M96 116 L76 142 L90 164" width={17} fill={C.armorMid} />
+        <circle cx={91} cy={167} r={9} fill={C.skin} />
 
-        {/* Torso: a fitted jacket with a belt, the chest left open for the badge */}
-        <path d="M88 100 Q120 90 152 100 L158 170 H82 Z" fill={C.armor} />
-        <path d="M96 104 Q120 96 144 104 L148 128 Q120 138 92 128 Z" fill={C.armorLight} stroke="none" />
-        <path d="M82 158 H158 V170 H82 Z" fill={C.armorMid} />
-        <rect x={112} y={158} width={16} height={12} rx={2} fill={C.armor} stroke={C.piping} strokeWidth={2} />
-        <path d="M100 100 L120 132 L140 100" fill="none" stroke={C.piping} strokeWidth={2.2} />
-        <path d="M86 108 Q82 140 90 168" fill="none" stroke={C.piping} strokeWidth={1.8} opacity={0.6} />
+        {/* Torso: a fitted jacket, wide at the shoulders and narrow at the belt, the chest left open for the badge */}
+        <path d="M82 108 Q122 94 162 108 L154 172 H92 Z" fill={C.armor} />
+        <path d="M92 110 Q122 100 152 110 L148 140 Q122 152 96 140 Z" fill={C.armorLight} stroke="none" />
+        <path d="M92 160 H154 V174 H92 Z" fill={C.armorMid} />
+        <rect x={114} y={160} width={18} height={14} rx={2.5} fill={C.armor} stroke={C.piping} strokeWidth={2} />
+        <path d="M100 106 L122 144 L146 106" fill="none" stroke={C.piping} strokeWidth={2.4} />
+        <path d="M86 114 Q84 144 94 170" fill="none" stroke={C.piping} strokeWidth={1.8} opacity={0.6} />
+        {/* Shoulder plates */}
+        <path d="M76 110 Q76 96 94 98 L98 118 Q82 124 76 110 Z" fill={C.armorLight} />
+        <path d="M168 110 Q168 96 150 98 L146 118 Q162 124 168 110 Z" fill={C.armorLight} />
 
         {/* Head */}
-        <rect x={110} y={90} width={20} height={14} rx={4} fill={C.skinShade} />
-        <circle cx={120} cy={70} r={25} fill={C.skin} />
-        <path d="M94 68 Q94 40 120 40 Q148 40 146 70 Q140 56 126 54 Q108 54 94 68 Z" fill={C.hair} />
-        <path d="M94 68 L88 92 L100 84 Z" fill={C.hairDark} />
-        <path d="M96 66 H144" stroke={C.piping} strokeWidth={5} fill="none" />
-        <path d="M96 66 H144" stroke="#ffffff" strokeWidth={1.4} fill="none" opacity={0.7} />
-        <circle cx={132} cy={78} r={2.6} fill={C.line} stroke="none" />
-        <path d="M126 88 Q132 91 138 88" fill="none" strokeWidth={2.2} />
+        <rect x={112} y={90} width={22} height={16} rx={5} fill={C.skinShade} />
+        <circle cx={122} cy={66} r={25} fill={C.skin} />
+        <path d="M96 66 Q92 36 124 36 Q156 36 148 68 Q144 52 130 50 Q108 50 96 66 Z" fill={C.hair} />
+        <path d="M96 66 L88 90 L102 82 Z" fill={C.hairDark} />
+        <path d="M148 64 L160 50 L150 44 Z" fill={C.hair} />
+        <path d="M98 64 H148" stroke={C.piping} strokeWidth={5.5} fill="none" />
+        <path d="M98 64 H148" stroke="#ffffff" strokeWidth={1.4} fill="none" opacity={0.7} />
+        <circle cx={136} cy={78} r={2.8} fill={C.line} stroke="none" />
+        <path d="M130 88 Q137 91 143 87" fill="none" strokeWidth={2.2} />
 
-        {/* The front arm and the blade, swung from the hand */}
+        {/* The front arm and the blade, swung from the shoulder */}
         <g className="battle-hero-arm">
-          <path d="M148 112 L170 138 L172 156" fill="none" stroke={C.line} strokeWidth={17} />
-          <path d="M148 112 L170 138 L172 156" fill="none" stroke={C.armorLight} strokeWidth={12} />
-          <path d="M150 116 L168 138" fill="none" stroke={C.piping} strokeWidth={1.6} opacity={0.7} />
-          <circle cx={172} cy={158} r={8.5} fill={C.skin} />
+          <Limb d="M152 118 L172 140 L182 154" width={19} fill={C.armorLight} />
+          <path d="M156 122 L172 140" fill="none" stroke={C.piping} strokeWidth={1.8} opacity={0.7} />
+          <circle cx={184} cy={157} r={10} fill={C.skin} />
           <g className="battle-hero-blade">
-            <path d="M172 164 L172 150 L226 52 L232 60 Z" fill={C.blade} opacity={0.4} stroke="none" />
-            <path d="M172 158 L226 56" stroke={C.blade} strokeWidth={9} strokeLinecap="round" opacity={0.55} />
-            <path d="M172 158 L226 56" stroke={C.bladeCore} strokeWidth={3.4} strokeLinecap="round" />
-            <path d="M160 150 L184 162" stroke={C.line} strokeWidth={7} strokeLinecap="round" />
-            <path d="M160 150 L184 162" stroke={C.piping} strokeWidth={3.2} strokeLinecap="round" />
+            <path d="M184 166 L184 150 L236 40 L242 50 Z" fill={C.blade} opacity={0.35} stroke="none" />
+            <path d="M184 158 L238 44" stroke={C.blade} strokeWidth={10} strokeLinecap="round" opacity={0.5} />
+            <path d="M184 158 L238 44" stroke={C.bladeCore} strokeWidth={3.6} strokeLinecap="round" />
+            <path d="M172 150 L198 164" stroke={C.line} strokeWidth={8} strokeLinecap="round" />
+            <path d="M172 150 L198 164" stroke={C.piping} strokeWidth={3.4} strokeLinecap="round" />
           </g>
         </g>
       </g>
@@ -120,7 +143,7 @@ export function HeroFigure({ rank, equipment, state = "idle", size = 240, classN
     <span
       aria-hidden
       className="pointer-events-none absolute"
-      style={{ left: `${(120 / 240) * 100}%`, top: `${(134 / 260) * 100}%`, transform: "translate(-50%, -50%)" } as CSSProperties}
+      style={{ left: `${(122 / 240) * 100}%`, top: `${(134 / 260) * 100}%`, transform: "translate(-50%, -50%)" } as CSSProperties}
     >
       <RankBadge rank={rank} size={Math.round(size * 0.17)} decor={(frame?.value as FrameStyle | undefined) ?? null} />
     </span>
