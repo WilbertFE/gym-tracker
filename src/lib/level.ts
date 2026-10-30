@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { boostersEarned, summarizeBoosts, type BoostSummary } from "@/lib/boosters";
-import { chestState, earnedChests, gateChests, type AvailableChest, type Chest, type Opening } from "@/lib/chests";
+import { chestState, earnedChests, gateChests, seasonChests, type AvailableChest, type Chest, type Opening } from "@/lib/chests";
 import { itemById, NO_EQUIPMENT, SLOTS, type Equipment } from "@/lib/items";
 import { todayISO } from "@/lib/dates";
 import { listBoosts } from "@/lib/repositories/boosts";
@@ -15,7 +15,7 @@ import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { buildBattle, type Battle } from "@/lib/battle/engine";
 import type { SkillEffects } from "@/lib/battle/skills";
-import { boosterGates, currentGate, gatesThrough, weakPointFor, type GateInput, type GateStatus, type Power } from "@/lib/gates";
+import { boosterGates, currentGate, currentSeason, gatesThrough, seasonsThrough, weakPointFor, type GateInput, type GateStatus, type Power } from "@/lib/gates";
 import { guideDone, guideSteps, type GuideStep } from "@/lib/guide";
 import { muscleLevels, type MuscleLevel } from "@/lib/muscle-levels";
 import { clearTrial, listClearedTrials } from "@/lib/repositories/trials";
@@ -39,6 +39,10 @@ export type GameState = {
   gate: GateStatus;
   /** The gate as a turn based fight, or null while this gate's rank has no monster. */
   battle: Battle | null;
+  /** This month's season boss, or null before the seasons start. */
+  season: GateStatus | null;
+  /** The season boss as a turn based fight. */
+  seasonBattle: Battle | null;
   /** What the logger needs to show a hit right after a set: null while this gate has no monster. */
   fight: FightSummary | null;
   /** Each muscle's own level. */
@@ -142,7 +146,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
 
   // Chests: one for every day or week whose quests were all finished and every gate cleared, minus the opened and the expired.
   const chestsEarned = new Map<string, Chest>();
-  const earnedFromPlay = [...earnedChests(questRewards(questInput, { start: QUEST_START_DATE, today }).rewards), ...gateChests(gatesThrough(gateInput, today))];
+  const earnedFromPlay = [...earnedChests(questRewards(questInput, { start: QUEST_START_DATE, today }).rewards), ...gateChests(gatesThrough(gateInput, today)), ...seasonChests(seasonsThrough(gateInput, today))];
   for (const chest of [...earnedFromPlay, ...extraChests]) {
     chestsEarned.set(chest.id, chest);
   }
@@ -189,6 +193,8 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
   const gate = currentGate(gateInput, today);
   const exerciseNames = Object.fromEntries(exercises.map((e) => [e.id, e.name]));
   const battle = buildBattle({ gate: gate.gate, gateInput, names: exerciseNames, stats, today });
+  const season = currentSeason(gateInput, today);
+  const seasonBattle = season ? buildBattle({ gate: season.gate, gateInput, names: exerciseNames, stats, today }) : null;
   const muscles = muscleLevels(sets, exercises);
   const titleInput: TitleInput = {
     workouts: xp.workouts,
@@ -210,6 +216,8 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     stats,
     gate: gate,
     battle,
+    season,
+    seasonBattle,
     fight: battle ? { monster: battle.monster.name, weekStart: gate.gate.weekStart, hpLeft: gate.hpLeft, power: battle.hero.power, weakMuscle: weakPointFor(gate.gate.weekStart), skills: battle.skills, setsThisWeek: battle.turns.length, trainingDays: [...new Set(battle.turns.map((t) => t.date))] } : null,
     muscles,
     titles: titleStatuses(titleInput),

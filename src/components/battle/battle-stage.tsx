@@ -159,7 +159,7 @@ export function BattleStage({ battle, level, rank, equipment, gateName }: Battle
           <div className="relative">
             <HeroFigure rank={rank} equipment={equipment} state={heroState} size={figure} />
           </div>
-          <div className="relative">
+          <div className={cn("relative", battle.monster.name.startsWith("Awakened") && "battle-awakened")}>
             {turn && phase === "impact" && (
               <span
                 key={turn.n}

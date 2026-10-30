@@ -91,5 +91,19 @@ export const MONSTERS: readonly Monster[] = [
   },
 ];
 
+/** A monster by its id. */
+export const monsterById = (id: string): Monster | null => MONSTERS.find((m) => m.id === id) ?? null;
+
+/**
+ * The season boss's version of a monster: the same creature, awakened, with a name to match and strikes half as hard
+ * again. It keeps its id, so it keeps its art, which is drawn with a golden crown of light when it is awakened.
+ */
+export const awakened = (monster: Monster): Monster => ({
+  ...monster,
+  name: `Awakened ${monster.name}`,
+  blurb: `${monster.blurb} This one has woken for the whole season, and it is stronger than any gate.`,
+  moves: monster.moves.map((m) => ({ ...m, power: Math.round(m.power * 1.5 * 100) / 100 })),
+});
+
 /** The monster of a gate rank. Every rank has one. */
 export const monsterFor = (letter: GateLetter): Monster | null => MONSTERS.find((m) => m.rank === letter) ?? null;

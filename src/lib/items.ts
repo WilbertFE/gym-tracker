@@ -95,13 +95,17 @@ export const ITEMS: readonly Item[] = [
   { id: "look-ember", slot: "look", grade: "epic", name: "Ember", blurb: "A glowing orange look for share images.", value: "ember" },
   { id: "weapon-violet", slot: "weapon", grade: "epic", name: "Violet Reaver", blurb: "A deep violet edge that hums when swung.", value: "#b07cff" },
   { id: "outfit-violet", slot: "outfit", grade: "epic", name: "Violet Cloak", blurb: "Dark purple with a quiet shine.", value: "violet" },
-  // Legendary (Mythic has no items yet; the tier, its color and its art are ready for when it gets some)
+  // Legendary
   { id: "frame-apex", slot: "frame", grade: "legendary", name: "Apex", blurb: "A gold crest with a slow shimmer.", value: "apex" },
   { id: "aura-sovereign", slot: "aura", grade: "legendary", name: "Sovereign", blurb: "A pale gold glow, the brightest there is.", value: "#ffe08a" },
   { id: "plate-ascendant", slot: "plate", grade: "legendary", name: "Ascendant", blurb: "Always climbing.", value: "Ascendant" },
   { id: "look-aurora", slot: "look", grade: "legendary", name: "Aurora", blurb: "A shifting green and violet look for share images.", value: "aurora" },
   { id: "weapon-sunbrand", slot: "weapon", grade: "legendary", name: "Sunbrand", blurb: "A blade of pale gold light, the brightest there is.", value: "#ffd25c" },
   { id: "outfit-gilded", slot: "outfit", grade: "legendary", name: "Gilded Plate", blurb: "Black and gold, worn by the ones who clear every gate.", value: "gilded" },
+  // Mythic: only a season chest holds these
+  { id: "weapon-voidreaver", slot: "weapon", grade: "mythic", name: "Voidreaver", blurb: "A blade of red light that cuts through the whole System.", value: "#ff4d5e" },
+  { id: "outfit-eclipse", slot: "outfit", grade: "mythic", name: "Eclipse Mantle", blurb: "Black with a red edge, for whoever beat a whole season.", value: "eclipse" },
+  { id: "aura-bloodmoon", slot: "aura", grade: "mythic", name: "Blood Moon", blurb: "A deep red glow, the rarest there is.", value: "#ff4d5e" },
 ];
 
 /** The colors of the two chest-only share looks: a gradient from top to bottom and the accent. */

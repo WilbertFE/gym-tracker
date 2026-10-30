@@ -13,28 +13,29 @@ import { addDaysISO, weekRange } from "@/lib/week";
 /** Chests are earned for days from this one on, so nothing is handed out for the past. */
 export const CHEST_START_DATE = "2026-10-29";
 
-export type ChestKind = "daily" | "weekly" | "gate";
+export type ChestKind = "daily" | "weekly" | "gate" | "season";
 
 /** The chest kinds, rarest last. */
-export const CHEST_KINDS: readonly ChestKind[] = ["daily", "weekly", "gate"];
+export const CHEST_KINDS: readonly ChestKind[] = ["daily", "weekly", "gate", "season"];
 
-/** What each kind of chest is worth: its rarity, which colors it. Nothing beyond Rare can be earned yet. */
-export const CHEST_TIER: Record<ChestKind, Grade> = { daily: "common", weekly: "uncommon", gate: "rare" };
+/** What each kind of chest is worth: its rarity, which colors it. The season chest, earned by beating a whole month's boss, is the only Mythic one. */
+export const CHEST_TIER: Record<ChestKind, Grade> = { daily: "common", weekly: "uncommon", gate: "rare", season: "mythic" };
 
 /** The color of a chest, from its rarity. */
 export const chestColor = (kind: ChestKind): string => GRADES[CHEST_TIER[kind]].color;
 
-export const CHEST_NAMES: Record<ChestKind, string> = { daily: "Daily", weekly: "Weekly", gate: "Gate" };
+export const CHEST_NAMES: Record<ChestKind, string> = { daily: "Daily", weekly: "Weekly", gate: "Gate", season: "Season" };
 
 /** A chest can be opened this many days after it was earned. */
-export const CHEST_EXPIRY_DAYS: Record<ChestKind, number> = { daily: 7, weekly: 14, gate: 14 };
+export const CHEST_EXPIRY_DAYS: Record<ChestKind, number> = { daily: 7, weekly: 14, gate: 14, season: 28 };
 
 /** Chance of each grade, in percent. Each kind adds up to 100. */
 export const CHEST_ODDS: Record<ChestKind, Record<Grade, number>> = {
-  // Mythic is 0 on purpose: nothing in the app can earn a chest that rare yet, and there are no Mythic items.
+  // Mythic comes only from a season chest. The other chests have none, so the rarest item is still worth a month of training.
   daily: { common: 55, uncommon: 28, rare: 12, epic: 4, legendary: 1, mythic: 0 },
   weekly: { common: 15, uncommon: 35, rare: 30, epic: 14, legendary: 6, mythic: 0 },
   gate: { common: 0, uncommon: 20, rare: 45, epic: 25, legendary: 10, mythic: 0 },
+  season: { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 45, mythic: 55 },
 };
 
 /**
@@ -45,6 +46,8 @@ export const CHEST_PITY: Record<ChestKind, { after: number; atLeast: Grade }> = 
   daily: { after: 10, atLeast: "rare" },
   weekly: { after: 3, atLeast: "epic" },
   gate: { after: 2, atLeast: "epic" },
+  // Every season chest is already Legendary or better, so there is nothing to make up for.
+  season: { after: 1_000, atLeast: "legendary" },
 };
 
 export type Chest = {
@@ -57,14 +60,17 @@ export type Chest = {
   expiresOn: string;
 };
 
-export const chestKind = (id: string): ChestKind => (id.startsWith("w:") ? "weekly" : id.startsWith("g:") ? "gate" : "daily");
+export const chestKind = (id: string): ChestKind => (id.startsWith("w:") ? "weekly" : id.startsWith("g:") ? "gate" : id.startsWith("s:") ? "season" : "daily");
 
 export function chestId(kind: ChestKind, date: string): string {
-  return kind === "daily" ? `d:${date}` : `${kind === "gate" ? "g" : "w"}:${weekRange(date).start}`;
+  if (kind === "daily") return `d:${date}`;
+  // A season chest is named after the first day of its month, the others after the Monday of their week.
+  if (kind === "season") return `s:${date.slice(0, 7)}-01`;
+  return `${kind === "gate" ? "g" : "w"}:${weekRange(date).start}`;
 }
 
 /** A well formed chest id, or false. */
-export const isChestId = (id: string): boolean => /^[dwg]:\d{4}-\d{2}-\d{2}$/.test(id);
+export const isChestId = (id: string): boolean => /^[dwgs]:\d{4}-\d{2}-\d{2}$/.test(id);
 
 /** The chests the quest bonus days have earned, oldest first. */
 export function earnedChests(
@@ -93,6 +99,21 @@ export function gateChests(
       kind: "gate" as const,
       earnedOn: g.clearedOn,
       expiresOn: addDaysISO(g.clearedOn, CHEST_EXPIRY_DAYS.gate),
+    }));
+}
+
+/** The season chests earned by beaten season bosses, dated the day the boss fell, from `start` on. */
+export function seasonChests(
+  seasons: readonly { gate: { weekStart: string }; clearedOn: string | null }[],
+  start: string = CHEST_START_DATE,
+): Chest[] {
+  return seasons
+    .filter((s): s is { gate: { weekStart: string }; clearedOn: string } => s.clearedOn !== null && s.clearedOn >= start)
+    .map((s) => ({
+      id: chestId("season", s.gate.weekStart),
+      kind: "season" as const,
+      earnedOn: s.clearedOn,
+      expiresOn: addDaysISO(s.clearedOn, CHEST_EXPIRY_DAYS.season),
     }));
 }
 

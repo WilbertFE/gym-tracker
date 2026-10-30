@@ -1,4 +1,4 @@
-import { monsterFor } from "@/lib/battle/monsters";
+import { MONSTERS, monsterFor } from "@/lib/battle/monsters";
 import { COMBO_BONUS, COMBO_EVERY, NO_SKILLS, RHYTHM_BONUS, RHYTHM_DAYS, skillEffects, type SkillEffects } from "@/lib/battle/skills";
 import { computeStats } from "@/lib/stats";
 import { addDaysISO, weekRange } from "@/lib/week";
@@ -247,6 +247,10 @@ export type Gate = {
   boss: string;
   /** Damage needed to clear it. */
   hp: number;
+  /** A season boss, which lasts a whole month instead of a week. `weekStart` and `weekEnd` are then the first and last day of the month. */
+  season?: boolean;
+  /** The monster that guards it, when it is not the one of its rank (a season boss is a monster of any rank, awakened). */
+  monsterId?: string;
 };
 
 /** The gate of the week that starts on `weekStart`, from the damage dealt before it. */
@@ -362,6 +366,67 @@ export function gateStatus(gate: Gate, days: Map<string, number>, today: string,
     failed: over && flow.clearedOn === null,
     daysLeft: over ? 0 : Math.round((Date.parse(gate.weekEnd) - Date.parse(today)) / 86_400_000) + 1,
   };
+}
+
+/** Seasons count from this month. Nothing is handed out for the months before it. */
+export const SEASON_START_DATE = "2026-11-01";
+/** A season boss has this many times the HP of a normal gate's base, about 80 percent of what you did in a month lately. */
+export const SEASON_HP_MULTIPLIER = 3.4;
+/** The least HP a season boss has. */
+export const SEASON_MIN_HP = 10_000;
+/** A season boss is scored as a hard gate, but its reward is a chest and no XP, so the leaderboard is not affected. */
+export const SEASON_RANK: GateRank = { letter: "S", multiplier: SEASON_HP_MULTIPLIER, xp: 0, booster: false };
+
+/** The first and last day of the month a date falls in. */
+export function seasonRange(date: string): { start: string; end: string } {
+  const [year, month] = date.split("-").map(Number);
+  const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const mm = String(month).padStart(2, "0");
+  return { start: `${year}-${mm}-01`, end: `${year}-${mm}-${String(last).padStart(2, "0")}` };
+}
+
+/**
+ * The boss of the season that starts on `monthStart`: a monster of the six, one for each month in turn, awakened, with HP
+ * from how much you did in the weeks before the month, so it is a fair fight for a beginner and for a veteran.
+ */
+export function seasonFor(monthStart: string, days: Map<string, number>): Gate {
+  const firstMonday = weekRange(monthStart).start;
+  const previous = Array.from({ length: HISTORY_WEEKS }, (_, i) => weekTotal(addDaysISO(firstMonday, -7 * (i + 1)), days));
+  const trained = previous.filter((t) => t > 0);
+  const average = trained.length > 0 ? trained.reduce((a, b) => a + b, 0) / trained.length : 0;
+  const base = Math.max(MIN_BASE_DAMAGE, average);
+  const [year, month] = monthStart.split("-").map(Number);
+  const monster = MONSTERS[(year * 12 + month) % MONSTERS.length];
+  return {
+    weekStart: monthStart,
+    weekEnd: seasonRange(monthStart).end,
+    rank: SEASON_RANK,
+    name: `Season of ${DOMAINS[hash(`season:${monthStart}`) % DOMAINS.length]}`,
+    boss: `Awakened ${monster.name}`,
+    monsterId: monster.id,
+    season: true,
+    hp: Math.max(SEASON_MIN_HP, Math.round((base * SEASON_HP_MULTIPLIER) / 100) * 100),
+  };
+}
+
+/** Every season from the start to this month, oldest first. */
+export function seasonsThrough(input: GateInput, today: string, start = SEASON_START_DATE): GateStatus[] {
+  const days = dailyDamage(input);
+  const results: GateStatus[] = [];
+  let month = seasonRange(start).start;
+  const current = seasonRange(today).start;
+  while (month <= current) {
+    results.push(gateStatus(seasonFor(month, days), days, today, skillsBefore(month, input).healFactor));
+    const next = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 1));
+    month = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  }
+  return results;
+}
+
+/** This month's season boss, or null before the seasons start. */
+export function currentSeason(input: GateInput, today: string, start = SEASON_START_DATE): GateStatus | null {
+  const all = seasonsThrough(input, today, start);
+  return all.length > 0 ? all[all.length - 1] : null;
 }
 
 /** Every gate from the start date to today, oldest first. */

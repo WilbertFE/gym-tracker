@@ -32,6 +32,7 @@ const OUTFITS: Record<string, Partial<typeof BASE>> = {
   crimson: { armor: "#2a0e14", armorMid: "#45151f", armorLight: "#6c2230", piping: "#ff6b7d", scarf: "#d93a50", scarfDark: "#9c2438" },
   violet: { armor: "#1c1233", armorMid: "#2c1c52", armorLight: "#46308a", piping: "#c9a2ff", scarf: "#8a5cf0", scarfDark: "#5e3bb0" },
   gilded: { armor: "#16120a", armorMid: "#2a2210", armorLight: "#4a3c18", piping: "#ffd25c", scarf: "#f0b83a", scarfDark: "#b8861e" },
+  eclipse: { armor: "#0c0709", armorMid: "#1a0d12", armorLight: "#35151d", piping: "#ff4d5e", scarf: "#c41f36", scarfDark: "#7a1222" },
 };
 
 /** The outfit values that have colors, for tests and for checking an outfit item. */

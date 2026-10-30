@@ -23,13 +23,13 @@ beforeEach(() => {
 });
 
 describe("GET /api/chests", () => {
-  it("lists the chests waiting, daily, weekly and gate, with the days left", async () => {
+  it("lists the chests waiting, daily, weekly, gate and season, with the days left", async () => {
     const data = await state();
     expect(data.enabled).toBe(true);
-    expect(data.available.map((c: { kind: string }) => c.kind).sort()).toEqual(["daily", "daily", "daily", "daily", "daily", "gate", "weekly", "weekly"]);
+    expect(data.available.map((c: { kind: string }) => c.kind).sort()).toEqual(["daily", "daily", "daily", "daily", "daily", "gate", "season", "weekly", "weekly"]);
     for (const chest of data.available) {
       expect(chest.daysLeft).toBeGreaterThanOrEqual(0);
-      expect(chest.id).toMatch(/^[dwg]:\d{4}-\d{2}-\d{2}$/);
+      expect(chest.id).toMatch(/^[dwgs]:\d{4}-\d{2}-\d{2}$/);
     }
     expect(data.openings).toEqual([]);
     expect(data.collection.owned).toEqual([]);
@@ -46,10 +46,10 @@ describe("POST /api/chests/open", () => {
     expect(ITEMS.map((i) => i.id)).toContain(data.item.id);
     expect(data.item.grade).toBe(data.grade);
     expect(data.duplicate).toBe(false);
-    expect(data.remaining).toBe(7);
+    expect(data.remaining).toBe(8);
 
     const after = await state();
-    expect(after.available).toHaveLength(7);
+    expect(after.available).toHaveLength(8);
     expect(after.openings).toHaveLength(1);
     expect(after.collection.owned).toEqual([data.item.id]);
   });
@@ -98,7 +98,7 @@ describe("POST /api/chests/open", () => {
       owned.add(data.item.id);
     }
     expect(new Set(got).size).toBe(got.length);
-    expect(ids).toHaveLength(8);
+    expect(ids).toHaveLength(9);
     expect((await state()).available).toEqual([]);
   });
 });

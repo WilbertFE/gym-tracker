@@ -14,6 +14,7 @@ import {
   gateChests,
   isChestId,
   pityActive,
+  seasonChests,
   rollChest,
   secureRandom,
   type Opening,
@@ -37,11 +38,11 @@ const opening = (chest_id: string, grade: Opening["grade"], at: string): Opening
 });
 
 describe("the item catalog", () => {
-  it("has 32 items with unique ids and the planned spread of grades", () => {
-    expect(ITEMS).toHaveLength(32);
-    expect(new Set(ITEMS.map((i) => i.id)).size).toBe(32);
+  it("has 35 items with unique ids and the planned spread of grades", () => {
+    expect(ITEMS).toHaveLength(35);
+    expect(new Set(ITEMS.map((i) => i.id)).size).toBe(35);
     // Common, Uncommon, Rare, Epic, Legendary, Mythic. Mythic has no items yet.
-    expect(GRADE_ORDER.map((g) => itemsOfGrade(g).length)).toEqual([5, 5, 9, 7, 6, 0]);
+    expect(GRADE_ORDER.map((g) => itemsOfGrade(g).length)).toEqual([5, 5, 9, 7, 6, 3]);
   });
 
   it("has six grades with the usual colors, white to red", () => {
@@ -112,9 +113,22 @@ describe("earning chests", () => {
     expect(chestId("gate", "2026-11-01")).toBe("g:2026-10-26");
   });
 
-  it("colors each chest by its rarity: white, green, blue", () => {
-    expect(CHEST_TIER).toEqual({ daily: "common", weekly: "uncommon", gate: "rare" });
-    expect(CHEST_KINDS.map((k) => chestColor(k))).toEqual([GRADES.common.color, GRADES.uncommon.color, GRADES.rare.color]);
+  it("colors each chest by its rarity: white, green, blue, and red for the season chest", () => {
+    expect(CHEST_TIER).toEqual({ daily: "common", weekly: "uncommon", gate: "rare", season: "mythic" });
+    expect(CHEST_KINDS.map((k) => chestColor(k))).toEqual([GRADES.common.color, GRADES.uncommon.color, GRADES.rare.color, GRADES.mythic.color]);
+  });
+
+  it("names a season chest after the first day of its month, and earns one for every beaten season", () => {
+    expect(chestId("season", "2026-11-17")).toBe("s:2026-11-01");
+    expect(chestKind("s:2026-11-01")).toBe("season");
+    expect(isChestId("s:2026-11-01")).toBe(true);
+    const seasons = [
+      { gate: { weekStart: "2026-10-01" }, clearedOn: "2026-10-20" },
+      { gate: { weekStart: "2026-11-01" }, clearedOn: "2026-11-24" },
+      { gate: { weekStart: "2026-12-01" }, clearedOn: null },
+    ];
+    const chests = seasonChests(seasons, "2026-11-01");
+    expect(chests).toEqual([{ id: "s:2026-11-01", kind: "season", earnedOn: "2026-11-24", expiresOn: "2026-12-22" }]);
   });
 
   it("earns a gate chest for every cleared gate from the start date on, dated the day the boss fell", () => {
@@ -175,8 +189,9 @@ describe("the odds", () => {
     }
     expect(CHEST_ODDS.weekly.common).toBeLessThan(CHEST_ODDS.daily.common);
     expect(CHEST_ODDS.gate.common).toBe(0);
-    // Nothing can earn a Mythic chest yet, and there are no Mythic items.
-    for (const kind of CHEST_KINDS) expect(CHEST_ODDS[kind].mythic, kind).toBe(0);
+    // Only a season chest can drop Mythic, and it holds nothing below Legendary.
+    for (const kind of CHEST_KINDS.filter((k) => k !== "season")) expect(CHEST_ODDS[kind].mythic, kind).toBe(0);
+    expect(CHEST_ODDS.season).toEqual({ common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 45, mythic: 55 });
   });
 
   it("land on the grade whose slice the number falls in", () => {
@@ -281,13 +296,13 @@ describe("what a chest holds", () => {
     const history: Opening[] = [];
     let repeats = 0;
     for (let i = 0; i < 400 && owned.size < ITEMS.length; i++) {
-      const kind = i % 5 === 4 ? "gate" : i % 5 === 3 ? "weekly" : "daily";
+      const kind = i % 6 === 5 ? "season" : i % 6 === 4 ? "gate" : i % 6 === 3 ? "weekly" : "daily";
       const roll = rollChest({ kind, owned, history, rng });
       if (roll.duplicate) repeats += 1;
       // A repeat can only come up when its whole grade is owned.
       if (roll.duplicate) expect(itemsOfGrade(roll.grade).every((x) => owned.has(x.id))).toBe(true);
       owned.add(roll.item.id);
-      history.push({ chest_id: `${kind === "daily" ? "d" : kind === "weekly" ? "w" : "g"}:2027-01-${String(i).padStart(2, "0")}`, item_id: roll.item.id, grade: roll.grade, duplicate: roll.duplicate, bonus_xp: roll.bonusXp, opened_at: `2027-02-${String(i).padStart(3, "0")}`, opened_on: "2027-02-01" });
+      history.push({ chest_id: `${kind === "daily" ? "d" : kind === "weekly" ? "w" : kind === "gate" ? "g" : "s"}:2027-01-${String(i).padStart(2, "0")}`, item_id: roll.item.id, grade: roll.grade, duplicate: roll.duplicate, bonus_xp: roll.bonusXp, opened_at: `2027-02-${String(i).padStart(3, "0")}`, opened_on: "2027-02-01" });
     }
     expect(owned.size).toBe(ITEMS.length);
     expect(repeats).toBeGreaterThanOrEqual(0);

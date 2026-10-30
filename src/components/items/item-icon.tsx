@@ -19,6 +19,7 @@ import {
   PaletteIcon,
   ShieldCheckIcon,
   ShieldIcon,
+  SkullIcon,
   SnowflakeIcon,
   SparkleIcon,
   StarIcon,
@@ -58,6 +59,7 @@ const ICONS: Record<ItemIconName, typeof ShieldIcon> = {
   Lightning: LightningIcon,
   Hoodie: HoodieIcon,
   CoatHanger: CoatHangerIcon,
+  Skull: SkullIcon,
 };
 
 /** The icon of an item. Decorative: the name is always written next to it. */

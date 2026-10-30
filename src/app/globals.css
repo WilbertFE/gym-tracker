@@ -303,6 +303,11 @@ body {
  * The gate fight. The figures are SVG groups moved with CSS. The look of a fallen monster is static, and everything
  * that moves is inside the reduced motion query.
  */
+/* A season boss is awakened: the same monster, wrapped in a golden light. */
+.battle-awakened {
+  filter: drop-shadow(0 0 16px rgba(255, 210, 92, 0.55)) saturate(1.15);
+}
+
 .battle-monster[data-state="down"] .battle-monster-body {
   transform: translateY(16px) rotate(3deg) scale(0.97);
   transform-origin: 50% 100%;

@@ -76,13 +76,13 @@ function seedItems(now: Date): Opening[] {
   });
 }
 
-/** Five daily chests, two weekly ones and a gate chest, earned on recent days, each with some days left. */
+/** Five daily chests, two weekly ones, a gate chest and a season chest, earned on recent days, each with some days left. */
 function seedChests(now: Date): Chest[] {
   const earn = (kind: ChestKind, daysAgo: number): Chest => {
     const earnedOn = iso(subDays(now, daysAgo));
     return { id: chestId(kind, earnedOn), kind, earnedOn, expiresOn: iso(addDays(subDays(now, daysAgo), CHEST_EXPIRY_DAYS[kind])) };
   };
-  return [earn("daily", 1), earn("daily", 2), earn("daily", 3), earn("daily", 4), earn("daily", 5), earn("weekly", 2), earn("weekly", 9), earn("gate", 3)];
+  return [earn("daily", 1), earn("daily", 2), earn("daily", 3), earn("daily", 4), earn("daily", 5), earn("weekly", 2), earn("weekly", 9), earn("gate", 3), earn("season", 2)];
 }
 
 function seedWorkouts(userId: string, now: Date) {

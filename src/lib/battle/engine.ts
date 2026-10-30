@@ -3,7 +3,8 @@ import type { SkillEffects } from "./skills";
 import { addDaysISO } from "@/lib/week";
 import type { Stat } from "@/lib/stats";
 import { heroCombat, type HeroCombat } from "./hero";
-import { monsterFor, type Monster } from "./monsters";
+import { awakened, monsterById, monsterFor, type Monster } from "./monsters";
+import { weekRange } from "@/lib/week";
 
 /**
  * The gate as a turn based fight, played from the sets you logged. One turn is one set, in the order you did them: you
@@ -87,12 +88,26 @@ export function buildBattle(input: {
   today: string;
 }): Battle | null {
   const { gate, gateInput, names, stats, today } = input;
-  const monster = monsterFor(gate.rank.letter);
-  if (!monster) return null;
+  // A season boss is one of the six monsters, awakened. Any other gate is guarded by the monster of its rank.
+  const base = gate.monsterId ? monsterById(gate.monsterId) : monsterFor(gate.rank.letter);
+  if (!base) return null;
+  const monster = gate.season ? awakened(base) : base;
 
   const dateOf = new Map(gateInput.sessions.map((s) => [s.id, s.date]));
-  const power: Power = powerBefore(gate.weekStart, gateInput);
-  const skills = skillsBefore(gate.weekStart, gateInput);
+  // A week's power, skills and weak point come from that week, so a month-long season is played week by week, the way the
+  // gate counts it. The hero card shows the latest week of the fight.
+  const cache = new Map<string, { power: Power; skills: SkillEffects }>();
+  const weekPower = (week: string) => {
+    let entry = cache.get(week);
+    if (!entry) {
+      entry = { power: powerBefore(week, gateInput), skills: skillsBefore(week, gateInput) };
+      cache.set(week, entry);
+    }
+    return entry;
+  };
+  const showWeek = weekRange(today < gate.weekEnd ? (today > gate.weekStart ? today : gate.weekStart) : gate.weekEnd).start;
+  const { power, skills } = weekPower(showWeek);
+  const flowSkills = skillsBefore(gate.weekStart, gateInput);
   const order = weekOrder(gateInput);
   const hero = heroCombat(stats, power);
 
@@ -103,7 +118,7 @@ export function buildBattle(input: {
     .sort((a, b) => a.date.localeCompare(b.date) || (a.set.completed_at ?? "").localeCompare(b.set.completed_at ?? "") || a.index - b.index);
 
   // The days it recovered, worked out by the gate itself, so the fight and the gate always agree.
-  const flow = gateFlow(gate, dailyDamage(gateInput), today, skills.healFactor);
+  const flow = gateFlow(gate, dailyDamage(gateInput), today, flowSkills.healFactor);
   const turns: Turn[] = [];
   let hp = gate.hp;
   let total = 0;
@@ -112,7 +127,9 @@ export function buildBattle(input: {
   let lastDate: string | null = null;
 
   for (const { set, index, date } of inWeek) {
-    const hit = hitFor(set, index, gate.weekStart, power, gateInput.exerciseMuscles, { place: order.get(index), skills });
+    const setWeek = weekRange(date).start;
+    const weekly = weekPower(setWeek);
+    const hit = hitFor(set, index, setWeek, weekly.power, gateInput.exerciseMuscles, { place: order.get(index), skills: weekly.skills });
     total += hit.damage;
 
     // A new training day brings some stamina back.
@@ -168,7 +185,7 @@ export function buildBattle(input: {
     });
   }
 
-  return { monster, weakMuscle: weakPointFor(gate.weekStart), skills, skillLevel: gateInput.levelBefore?.(gate.weekStart) ?? 0, monsterHpMax: gate.hp, hero, turns, totalDamage: total, defeatedAt };
+  return { monster, weakMuscle: weakPointFor(showWeek), skills, skillLevel: gateInput.levelBefore?.(showWeek) ?? 0, monsterHpMax: gate.hp, hero, turns, totalDamage: total, defeatedAt };
 }
 
 /** The line a turn gets in the log, in words. */

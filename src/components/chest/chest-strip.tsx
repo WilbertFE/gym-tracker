@@ -56,7 +56,9 @@ export function ChestStrip({ kind, available, done, total, rank, worn, quick }: 
           <p className="text-xs text-muted-foreground">
             {ready
               ? `${available.length > 1 ? `${available.length} waiting. ` : ""}${expiry}`
-              : kind === "gate"
+              : kind === "season"
+                ? "Beat the season boss to earn it. It holds a Legendary or Mythic item."
+                : kind === "gate"
                 ? "Clear this week's gate to earn it. Better odds for rare items."
                 : `Finish all ${total} quests to earn it (${done} of ${total}).${kind === "weekly" ? " Better odds for rarer items." : ""}`}
           </p>

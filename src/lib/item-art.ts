@@ -11,7 +11,7 @@ export type ItemIconName =
   | "Shield" | "Diamond" | "Star" | "Hexagon" | "Crown"
   | "Snowflake" | "Leaf" | "Wind" | "FlowerLotus" | "MoonStars" | "Sparkle" | "Sun"
   | "Feather" | "SunHorizon" | "Moon" | "GearSix" | "ShieldCheck" | "Flame" | "Mountains"
-  | "Fire" | "Palette" | "Knife" | "Axe" | "Lightning" | "Hoodie" | "CoatHanger";
+  | "Fire" | "Palette" | "Knife" | "Axe" | "Lightning" | "Hoodie" | "CoatHanger" | "Skull";
 
 export const ITEM_ICONS: Record<string, ItemIconName> = {
   "frame-steel": "Shield",
@@ -46,6 +46,9 @@ export const ITEM_ICONS: Record<string, ItemIconName> = {
   "outfit-crimson": "Axe",
   "outfit-violet": "Hoodie",
   "outfit-gilded": "Crown",
+  "weapon-voidreaver": "Skull",
+  "outfit-eclipse": "MoonStars",
+  "aura-bloodmoon": "Moon",
 };
 
 /** What an aura is made of: a soft glow, one or two thin rings, a ring with twinkling sparks, ice crystals, or radiant rays. */
@@ -59,6 +62,7 @@ export const AURA_ART: Record<string, AuraKind> = {
   "aura-violet": "ring",
   "aura-gilded": "sparks",
   "aura-sovereign": "rays",
+  "aura-bloodmoon": "rays",
 };
 
 /** A bare colour, for an aura that is not an item (or one that is not known): a plain halo. */
