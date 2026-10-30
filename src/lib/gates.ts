@@ -212,8 +212,23 @@ export function hitFor(
   return { base, crit, weak, combo, rhythm, damage };
 }
 
-/** Damage dealt on each date. */
+/**
+ * The damage of one input, worked out once. Every gate, the season, the boosters, the gate XP, both fights and the friends boss all
+ * start from it, and it is the heaviest loop in the game (every set of the history, with the stats before each week), so one request
+ * used to run it about ten times. Keyed by the input object, so a new input always gets a fresh result and nothing needs clearing.
+ */
+const damageCache = new WeakMap<GateInput, Map<string, number>>();
+
+/** Damage dealt on each date. The map is shared by everything that asks about the same input, so it must be treated as read only. */
 export function dailyDamage(input: GateInput): Map<string, number> {
+  const cached = damageCache.get(input);
+  if (cached) return cached;
+  const days = computeDailyDamage(input);
+  damageCache.set(input, days);
+  return days;
+}
+
+function computeDailyDamage(input: GateInput): Map<string, number> {
   const dateOf = new Map(input.sessions.map((s) => [s.id, s.date]));
   const days = new Map<string, number>();
   const powers = new Map<string, { power: Power; skills: SkillEffects }>();

@@ -203,9 +203,15 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
 
   const gate = currentGate(gateInput, today);
   const exerciseNames = Object.fromEntries(exercises.map((e) => [e.id, e.name]));
-  const battle = buildBattle({ gate: gate.gate, gateInput, names: exerciseNames, stats, today });
   const season = currentSeason(gateInput, today);
-  const seasonBattle = season ? buildBattle({ gate: season.gate, gateInput, names: exerciseNames, stats, today }) : null;
+  // The two fights are only needed by the pages that show or log into one, and building each replays the week or the month set by
+  // set. They are built the first time they are read, so a page that only wants your level or your quests never pays for them.
+  const once = <T,>(make: () => T): (() => T) => {
+    let made: { value: T } | null = null;
+    return () => (made ??= { value: make() }).value;
+  };
+  const getBattle = once(() => buildBattle({ gate: gate.gate, gateInput, names: exerciseNames, stats, today }));
+  const getSeasonBattle = once(() => (season ? buildBattle({ gate: season.gate, gateInput, names: exerciseNames, stats, today }) : null));
   const muscles = muscleLevels(sets, exercises);
   const titleInput: TitleInput = {
     workouts: xp.workouts,
@@ -226,10 +232,17 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     guide,
     stats,
     gate: gate,
-    battle,
+    get battle() {
+      return getBattle();
+    },
     season,
-    seasonBattle,
-    fight: battle ? { monster: battle.monster.name, weekStart: gate.gate.weekStart, hpLeft: gate.hpLeft, power: battle.hero.power, weakMuscle: weakPointFor(gate.gate.weekStart), skills: battle.skills, setsThisWeek: battle.turns.length, trainingDays: [...new Set(battle.turns.map((t) => t.date))] } : null,
+    get seasonBattle() {
+      return getSeasonBattle();
+    },
+    get fight() {
+      const battle = getBattle();
+      return battle ? { monster: battle.monster.name, weekStart: gate.gate.weekStart, hpLeft: gate.hpLeft, power: battle.hero.power, weakMuscle: weakPointFor(gate.gate.weekStart), skills: battle.skills, setsThisWeek: battle.turns.length, trainingDays: [...new Set(battle.turns.map((t) => t.date))] } : null;
+    },
     muscles,
     titles: titleStatuses(titleInput),
     title: bestTitle(titleInput),
