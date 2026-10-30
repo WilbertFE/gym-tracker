@@ -114,8 +114,8 @@ describe("earning chests", () => {
   });
 
   it("colors each chest by its rarity: white, green, blue, and red for the season chest", () => {
-    expect(CHEST_TIER).toEqual({ daily: "common", weekly: "uncommon", gate: "rare", season: "mythic" });
-    expect(CHEST_KINDS.map((k) => chestColor(k))).toEqual([GRADES.common.color, GRADES.uncommon.color, GRADES.rare.color, GRADES.mythic.color]);
+    expect(CHEST_TIER).toEqual({ daily: "common", weekly: "uncommon", gate: "rare", friends: "rare", mvp: "epic", season: "mythic" });
+    expect(CHEST_KINDS.map((k) => chestColor(k))).toEqual([GRADES.common.color, GRADES.uncommon.color, GRADES.rare.color, GRADES.rare.color, GRADES.epic.color, GRADES.mythic.color]);
   });
 
   it("names a season chest after the first day of its month, and earns one for every beaten season", () => {

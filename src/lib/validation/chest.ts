@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** `d:2026-10-29` or `w:2026-10-26`. The server re-derives the chest, so this only has to be well formed. */
 export const openChestSchema = z.object({
-  chestId: z.string().regex(/^[dwgs]:\d{4}-\d{2}-\d{2}$/),
+  chestId: z.string().regex(/^[dwgsft]:\d{4}-\d{2}-\d{2}$/),
 });
 
 export const equipSchema = z.object({

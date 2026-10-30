@@ -115,6 +115,17 @@ export const TOURS: readonly Tour[] = [
     ],
   },
   {
+    id: "friends",
+    path: "/friends",
+    feature: "friends",
+    name: "Friends",
+    steps: [
+      { target: "friend-code", title: "Your friend code", text: "Share this code with a friend. Only players who have it can add you.", pose: "point" },
+      { target: "add-friend", title: "Add a friend", text: "Type a friend's code and send a request. They accept, and you are friends.", pose: "point" },
+      { target: "friends-list", title: "Your group", text: "Everyone here fights the weekly boss with you. Their damage and yours fill one health bar.", pose: "point" },
+    ],
+  },
+  {
     id: "profile",
     path: "/u/",
     feature: "profile",

@@ -56,7 +56,11 @@ export function ChestStrip({ kind, available, done, total, rank, worn, quick }: 
           <p className="text-xs text-muted-foreground">
             {ready
               ? `${available.length > 1 ? `${available.length} waiting. ` : ""}${expiry}`
-              : kind === "season"
+              : kind === "mvp"
+                ? "Be one of the 3 who dealt the most damage to the friends boss, in a group of 4 or more."
+                : kind === "friends"
+                ? "Beat the friends boss together to earn it. Deal some damage yourself."
+                : kind === "season"
                 ? "Beat the season boss to earn it. It holds a Legendary or Mythic item."
                 : kind === "gate"
                 ? "Clear this week's gate to earn it. Better odds for rare items."

@@ -5,6 +5,7 @@ import { loadLevel } from "@/lib/level";
 import { featureById, isUnlocked } from "@/lib/unlocks";
 import { getShowAll } from "@/lib/unlock-state";
 import { CheckinPanel } from "./checkin-panel";
+import { FriendBossPanel } from "./friend-boss-panel";
 import { GatePanel } from "./gate-panel";
 import { SeasonPanel } from "./season-panel";
 import { GettingStarted } from "./getting-started";
@@ -64,6 +65,12 @@ export async function DashboardContent() {
       {open("gates") && (
         <Suspense fallback={<Skeleton className="h-56 w-full" />}>
           <SeasonPanel />
+        </Suspense>
+      )}
+
+      {open("friends") && (
+        <Suspense fallback={<Skeleton className="h-56 w-full" />}>
+          <FriendBossPanel />
         </Suspense>
       )}
 

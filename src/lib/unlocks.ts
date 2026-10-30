@@ -13,6 +13,7 @@ export type FeatureId =
   | "status"
   | "membership"
   | "leaderboard"
+  | "friends"
   | "titles"
   | "profile"
   | "collection"
@@ -46,6 +47,7 @@ export const FEATURES: readonly Feature[] = [
   { id: "status", name: "Status window", level: 14, blurb: "Your rank letter and five stats, worked out from your training.", href: "/status" },
   { id: "membership", name: "Membership", level: 14, blurb: "Track your gym membership and when it ends.", href: "/membership" },
   { id: "leaderboard", name: "Leaderboard", level: 18, blurb: "Compare your XP with others, worldwide and at home.", href: "/leaderboard" },
+  { id: "friends", name: "Friends", level: 18, blurb: "Add friends with a code and fight a weekly boss together.", href: "/friends" },
   { id: "titles", name: "Titles", level: 18, blurb: "Earn titles for streaks and milestones and wear one.", href: "/status" },
   { id: "profile", name: "Profile", level: 18, blurb: "A player page other users can open, if you choose.", href: "/profile" },
   { id: "collection", name: "Collection", level: 18, blurb: "Every item you found in chests, and the ones you wear.", href: "/collection" },

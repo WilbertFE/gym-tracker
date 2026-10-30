@@ -45,7 +45,7 @@ export function ChestArt({ kind, phase }: { kind: ChestKind; phase: ChestPhase }
         {/* corner brackets, the same ones the System windows carry */}
         <path d="M30 100 V84 H46 M190 100 V84 H174 M30 154 V170 H46 M190 154 V170 H174" fill="none" stroke="var(--glow)" strokeWidth={3} opacity={0.9} />
         <rect x={98} y={104} width={24} height={30} rx={3} fill={look.strap} stroke={look.rim} strokeWidth={2} />
-        {(kind === "gate" || kind === "season") && <path d="M110 105 L116 112 L110 119 L104 112 Z" fill={look.color} opacity={0.9} />}
+        {(kind === "gate" || kind === "season" || kind === "mvp") && <path d="M110 105 L116 112 L110 119 L104 112 Z" fill={look.color} opacity={0.9} />}
         <circle cx={110} cy={116} r={4} fill="var(--glow)" />
         <rect x={108.5} y={118} width={3} height={9} fill="var(--glow)" />
       </svg>

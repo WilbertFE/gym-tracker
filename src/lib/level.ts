@@ -15,7 +15,9 @@ import { listWeights } from "@/lib/repositories/weights";
 import { listAllSets, listSessions } from "@/lib/repositories/workouts";
 import { buildBattle, type Battle } from "@/lib/battle/engine";
 import type { SkillEffects } from "@/lib/battle/skills";
-import { boosterGates, currentGate, currentSeason, gatesThrough, seasonsThrough, weakPointFor, type GateInput, type GateStatus, type Power } from "@/lib/gates";
+import { boosterGates, currentGate, currentSeason, dailyDamage, gatesThrough, seasonsThrough, weakPointFor, type GateInput, type GateStatus, type Power } from "@/lib/gates";
+import { friendChests, weeklyDamage, type BossMember } from "@/lib/friends";
+import { loadFriendGroup } from "@/lib/friends-server";
 import { guideDone, guideSteps, type GuideStep } from "@/lib/guide";
 import { muscleLevels, type MuscleLevel } from "@/lib/muscle-levels";
 import { clearTrial, listClearedTrials } from "@/lib/repositories/trials";
@@ -57,6 +59,8 @@ export type GameState = {
    * `enabled` is false until the chests migration has run, and then no chests are offered at all.
    */
   chests: { enabled: boolean; available: AvailableChest[]; expired: Chest[]; openings: Opening[] };
+  /** Friends: whether the feature is set up, your own card (null until you open the Friends page), and your group for the weekly boss. */
+  friends: { available: boolean; card: { code: string; name: string; level: number } | null; members: BossMember[] };
   /** The cosmetic items owned (ids) and the ones worn, one per slot. */
   collection: { owned: string[]; equipment: Equipment };
   /** Plain counts of what the user has done, for the profile. */
@@ -146,11 +150,18 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
 
   // Chests: one for every day or week whose quests were all finished and every gate cleared, minus the opened and the expired.
   const chestsEarned = new Map<string, Chest>();
-  const earnedFromPlay = [...earnedChests(questRewards(questInput, { start: QUEST_START_DATE, today }).rewards), ...gateChests(gatesThrough(gateInput, today)), ...seasonChests(seasonsThrough(gateInput, today))];
+  const openedIds = new Set(openingRows.openings.map((o) => o.chest_id));
+  // The friends boss: your damage is worked out live, your friends' is what the server stored the last time they were in the app.
+  const friends = await loadFriendGroup(userId, { weeks: weeklyDamage(dailyDamage(gateInput)), level: levelForXp(xp.total).level }, today);
+  const earnedFromPlay = [
+    ...earnedChests(questRewards(questInput, { start: QUEST_START_DATE, today }).rewards),
+    ...gateChests(gatesThrough(gateInput, today)),
+    ...seasonChests(seasonsThrough(gateInput, today)),
+    ...friendChests(friends.members, today, openedIds),
+  ];
   for (const chest of [...earnedFromPlay, ...extraChests]) {
     chestsEarned.set(chest.id, chest);
   }
-  const openedIds = new Set(openingRows.openings.map((o) => o.chest_id));
   const chestInfo = openingRows.available ? chestState([...chestsEarned.values()], openedIds, today) : { available: [], expired: [] };
 
   // Only items that are owned, exist and fit their slot count as worn.
@@ -224,6 +235,7 @@ export const loadLevel = cache(async (userId: string): Promise<GameState> => {
     title: bestTitle(titleInput),
     trial,
     chests: { enabled: openingRows.available, ...chestInfo, openings: openingRows.openings },
+    friends,
     collection: { owned, equipment },
     activity: {
       workouts: titleInput.workouts,

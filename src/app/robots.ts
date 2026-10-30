@@ -15,6 +15,7 @@ export default function robots(): MetadataRoute.Robots {
         "/schedule/",
         "/settings/",
         "/leaderboard/",
+        "/friends/",
         "/guide/",
         "/status/",
         "/collection/",

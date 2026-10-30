@@ -12,6 +12,7 @@ import {
   SignOutIcon,
   TreasureChestIcon,
   UserCircleIcon,
+  UsersThreeIcon,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -42,6 +43,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/status", label: "Status", icon: SealCheckIcon, desktopOnly: true, feature: "status" },
   { href: "/collection", label: "Collection", icon: TreasureChestIcon, desktopOnly: true, feature: "collection" },
   { href: "/leaderboard", label: "Leaderboard", icon: RankingIcon, desktopOnly: true, feature: "leaderboard" },
+  { href: "/friends", label: "Friends", icon: UsersThreeIcon, desktopOnly: true, feature: "friends" },
   { href: "/profile", label: "Profile", icon: UserCircleIcon, desktopOnly: true, matchPrefix: "/u/", feature: "profile" },
   { href: "/membership", label: "Membership", icon: IdentificationCardIcon, desktopOnly: true, feature: "membership" },
   { href: "/settings", label: "Settings", icon: GearSixIcon, alsoActive: "/membership" },

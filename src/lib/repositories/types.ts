@@ -34,3 +34,12 @@ export type CreateBoostResult =
 export type CreateLogPhotoResult =
   | { ok: true; photo: LogPhoto }
   | { ok: false; reason: "entry_not_found" | "limit_reached" };
+
+export type CreateCardResult = { ok: true } | { ok: false; reason: "code_taken" | "unavailable" };
+
+export type LinkResult = { ok: true; id: string } | { ok: false; reason: "exists" | "unavailable" };
+
+export type AcceptResult = "accepted" | "not_found" | "full";
+
+/** The damage a player dealt in a week. */
+export type DamageRow = { user_id: string; week_start: string; damage: number };

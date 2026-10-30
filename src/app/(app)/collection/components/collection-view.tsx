@@ -56,6 +56,9 @@ export async function CollectionView() {
             {strip("daily")}
             {strip("weekly")}
             {strip("gate")}
+            {strip("friends")}
+            {strip("mvp")}
+            {strip("season")}
             {chests.expired.length > 0 && (
               <p className="tabular mt-3 text-xs text-muted-foreground">
                 {chests.expired.length} chest{chests.expired.length === 1 ? "" : "es"} ran out before they were opened.
@@ -110,7 +113,7 @@ export async function CollectionView() {
               Once you own every item of a grade, a repeat pays XP instead: {GRADE_ORDER.map((g) => `${GRADES[g].name} ${GRADES[g].duplicateXp}`).join(", ")}.
             </li>
             <li>
-              {GRADES.mythic.name} is the rarest grade, but no chest can drop it yet. The chests are {CHEST_KINDS.map((k) => `${CHEST_NAMES[k]} (${GRADES[CHEST_TIER[k]].name})`).join(", ")}.
+              {GRADES.mythic.name} is the rarest grade, and only a season chest can drop it. The chests are {CHEST_KINDS.map((k) => `${CHEST_NAMES[k]} (${GRADES[CHEST_TIER[k]].name})`).join(", ")}.
             </li>
             <li>Items only change how things look. They never change how much XP you earn.</li>
             <li>{ITEMS.length} items to find.</li>

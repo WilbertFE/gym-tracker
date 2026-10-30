@@ -5,6 +5,7 @@ import { DEMO_USER_ID } from "@/lib/demo";
 import { ITEMS, NO_EQUIPMENT, type Equipment } from "@/lib/items";
 import { ISO_FORMAT } from "@/lib/dates";
 import { builtInId } from "@/lib/exercise-library";
+import { resetFriends } from "./friends";
 import { resetLeaderboard } from "./leaderboard";
 import { resetProfiles } from "./profiles";
 import type {
@@ -330,5 +331,6 @@ export function getStore(userId: string): Store {
 export function resetStores() {
   stores.clear();
   resetLeaderboard();
+  resetFriends();
   resetProfiles();
 }

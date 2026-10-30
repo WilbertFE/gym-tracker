@@ -63,11 +63,11 @@ describe("the unlock table", () => {
     expect(byLevel(4)).toEqual(["body"]);
     expect(byLevel(10)).toEqual(["quests", "boosters", "chests"]);
     expect(byLevel(14)).toEqual(["schedule", "status", "membership"]);
-    expect(byLevel(18)).toEqual(["leaderboard", "titles", "profile", "collection"]);
+    expect(byLevel(18)).toEqual(["leaderboard", "friends", "titles", "profile", "collection"]);
     expect(byLevel(22)).toEqual(["trials"]);
     expect(byLevel(26)).toEqual(["gates"]);
     expect(byLevel(33)).toEqual(["muscleLevels"]);
-    expect(FEATURES).toHaveLength(14);
+    expect(FEATURES).toHaveLength(15);
   });
 
   it("loses nothing for an account that is already past every level", () => {
