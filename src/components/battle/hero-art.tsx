@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export type HeroState = "idle" | "attack" | "hurt" | "win";
 
-const C = {
+const BASE = {
   line: "#16233f",
   skin: "#f1d3c4",
   skinShade: "#d9ad9b",
@@ -23,10 +23,26 @@ const C = {
   boot: "#0a1224",
   blade: "#8fd0ff",
   bladeCore: "#ffffff",
-} as const;
+};
+
+/** The jacket colors of each outfit item, by the outfit's value. The default is the System jacket. */
+const OUTFITS: Record<string, Partial<typeof BASE>> = {
+  snow: { armor: "#2b3a52", armorMid: "#3b4f6d", armorLight: "#5b7498", piping: "#e6f4ff", scarf: "#cfe6ff", scarfDark: "#93b8e0" },
+  scout: { armor: "#10281c", armorMid: "#1a3d2a", armorLight: "#2a5d3f", piping: "#5be88a", scarf: "#3fbf6a", scarfDark: "#2a8a4a" },
+  crimson: { armor: "#2a0e14", armorMid: "#45151f", armorLight: "#6c2230", piping: "#ff6b7d", scarf: "#d93a50", scarfDark: "#9c2438" },
+  violet: { armor: "#1c1233", armorMid: "#2c1c52", armorLight: "#46308a", piping: "#c9a2ff", scarf: "#8a5cf0", scarfDark: "#5e3bb0" },
+  gilded: { armor: "#16120a", armorMid: "#2a2210", armorLight: "#4a3c18", piping: "#ffd25c", scarf: "#f0b83a", scarfDark: "#b8861e" },
+};
+
+/** The outfit values that have colors, for tests and for checking an outfit item. */
+export const OUTFIT_IDS = Object.keys(OUTFITS);
 
 type HeroArtProps = {
   state?: HeroState;
+  /** The blade's color, from the weapon you wear. The default is a blade of pale blue light. */
+  blade?: string;
+  /** The jacket's colors, from the outfit you wear (an outfit item's value). The default is the System jacket. */
+  outfit?: string | null;
   /** Width in pixels. The height follows. */
   size?: number;
   className?: string;
@@ -36,7 +52,7 @@ type HeroArtProps = {
 function Limb({ d, width, fill }: { d: string; width: number; fill: string }) {
   return (
     <>
-      <path d={d} fill="none" stroke={C.line} strokeWidth={width + 5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={BASE.line} strokeWidth={width + 5} strokeLinecap="round" strokeLinejoin="round" />
       <path d={d} fill="none" stroke={fill} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
     </>
   );
@@ -48,7 +64,8 @@ function Limb({ d, width, fill }: { d: string; width: number; fill: string }) {
  * one layer later. What she is doing (`state`) is moved by CSS. The chest is left open for the rank badge, which
  * `HeroFigure` lays on it.
  */
-export function HeroArt({ state = "idle", size = 240, className }: HeroArtProps) {
+export function HeroArt({ state = "idle", blade, outfit = null, size = 240, className }: HeroArtProps) {
+  const C = { ...BASE, ...(outfit ? OUTFITS[outfit] : undefined), ...(blade ? { blade, piping: outfit && OUTFITS[outfit]?.piping ? OUTFITS[outfit].piping : BASE.piping } : undefined) };
   return (
     <svg
       viewBox="0 0 240 260"
@@ -131,12 +148,15 @@ type HeroFigureProps = {
 };
 
 /**
- * You as the hero: the figure standing in the aura you wear, with your rank badge (and the frame you wear) on her chest.
- * The aura and frame come from the same items as the Collection page, so what you win there shows up here.
+ * You as the hero: the figure standing in the aura you wear, with your rank badge (and the frame you wear) on her chest,
+ * the blade of your weapon and the jacket of your outfit. All of it comes from the same items as the Collection page, so
+ * what you win there shows up here. Gear is looks only: it never changes damage.
  */
 export function HeroFigure({ rank, equipment, state = "idle", size = 240, className }: HeroFigureProps) {
   const aura = equipment.aura ? itemById(equipment.aura) : null;
   const frame = equipment.frame ? itemById(equipment.frame) : null;
+  const weapon = equipment.weapon ? itemById(equipment.weapon) : null;
+  const outfit = equipment.outfit ? itemById(equipment.outfit) : null;
   const width = (size * 240) / 260;
   const badge = (
     // The badge sits on the chest, where the jacket was left open for it.
@@ -150,7 +170,7 @@ export function HeroFigure({ rank, equipment, state = "idle", size = 240, classN
   );
   const figure = (
     <span className={cn("battle-hero-wrap relative inline-block", className)} style={{ width, height: size }} data-state={state}>
-      <HeroArt state={state} size={width} />
+      <HeroArt state={state} size={width} blade={weapon?.value} outfit={outfit?.value ?? null} />
       {badge}
     </span>
   );

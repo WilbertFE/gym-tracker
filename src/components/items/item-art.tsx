@@ -1,3 +1,4 @@
+import { HeroArt } from "@/components/battle/hero-art";
 import { RankBadge } from "@/components/rank-badge";
 import type { FrameStyle, Item } from "@/lib/items";
 import { auraKindFor } from "@/lib/item-art";
@@ -23,6 +24,15 @@ export function ItemArt({ item, rank, size = 88, animated = false }: { item: Ite
         <AuraArt color={item.value} kind={auraKindFor(item.id)} size={inner} animated={animated}>
           <RankBadge rank={rank} size={inner} />
         </AuraArt>
+      </span>
+    );
+  }
+
+  if (item.slot === "weapon" || item.slot === "outfit") {
+    // Gear is shown on the hero herself, so you see what it does to her.
+    return (
+      <span className="flex items-end justify-center overflow-visible" style={{ width: size, height: size }}>
+        <HeroArt size={Math.round(size * 0.82)} blade={item.slot === "weapon" ? item.value : undefined} outfit={item.slot === "outfit" ? item.value : null} />
       </span>
     );
   }

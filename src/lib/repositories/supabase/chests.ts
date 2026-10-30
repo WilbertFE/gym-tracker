@@ -45,10 +45,22 @@ export async function recordOpening(userId: string, input: Omit<Opening, "opened
   return { ok: true, opening: data as unknown as Opening };
 }
 
+/** The slots that existed before the weapon and outfit slots, and the ones the gear migration added. */
+const OLD_SLOTS = ["frame", "aura", "plate", "look"] as const;
+const NEW_SLOTS = ["weapon", "outfit"] as const;
+/** The gear migration adds the weapon and outfit columns. Until it has run, those two slots are left out instead of failing. */
+const isMissingGearColumn = (error: { message?: string } | null) => /weapon|outfit/.test(error?.message ?? "");
+let hasGearColumns = true;
+
 export async function getEquipment(userId: string): Promise<Equipment> {
   if (!isUuid(userId)) return { ...NO_EQUIPMENT };
   const db = await getDb();
-  const { data, error } = await db.from("equipment").select("frame,aura,plate,look").eq("user_id", userId).maybeSingle();
+  const read = (columns: readonly string[]) => db.from("equipment").select(columns.join(",")).eq("user_id", userId).maybeSingle();
+  let { data, error } = await read(hasGearColumns ? [...OLD_SLOTS, ...NEW_SLOTS] : OLD_SLOTS);
+  if (hasGearColumns && isMissingGearColumn(error)) {
+    hasGearColumns = false;
+    ({ data, error } = await read(OLD_SLOTS));
+  }
   if (isMissingTable(error)) return { ...NO_EQUIPMENT };
   check(error);
   const row = (data ?? {}) as Partial<Equipment>;
@@ -59,9 +71,14 @@ export async function getEquipment(userId: string): Promise<Equipment> {
 export async function setEquipment(userId: string, equipment: Equipment): Promise<void> {
   if (!isUuid(userId)) return;
   const admin = createAdminClient();
-  const { error } = await admin
-    .from("equipment")
-    .upsert({ user_id: userId, ...equipment, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  const save = (row: Partial<Equipment>) =>
+    admin.from("equipment").upsert({ user_id: userId, ...row, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  const rest = Object.fromEntries(Object.entries(equipment).filter(([slot]) => !(NEW_SLOTS as readonly string[]).includes(slot))) as Partial<Equipment>;
+  let { error } = await save(hasGearColumns ? equipment : rest);
+  if (hasGearColumns && isMissingGearColumn(error)) {
+    hasGearColumns = false;
+    ({ error } = await save(rest));
+  }
   if (isMissingTable(error)) return;
   check(error);
 }

@@ -1,4 +1,6 @@
 import {
+  AxeIcon,
+  CoatHangerIcon,
   CrownIcon,
   DiamondIcon,
   FeatherIcon,
@@ -7,7 +9,10 @@ import {
   FlowerLotusIcon,
   GearSixIcon,
   HexagonIcon,
+  HoodieIcon,
+  KnifeIcon,
   LeafIcon,
+  LightningIcon,
   MoonIcon,
   MoonStarsIcon,
   MountainsIcon,
@@ -48,6 +53,11 @@ const ICONS: Record<ItemIconName, typeof ShieldIcon> = {
   Mountains: MountainsIcon,
   Fire: FireIcon,
   Palette: PaletteIcon,
+  Knife: KnifeIcon,
+  Axe: AxeIcon,
+  Lightning: LightningIcon,
+  Hoodie: HoodieIcon,
+  CoatHanger: CoatHangerIcon,
 };
 
 /** The icon of an item. Decorative: the name is always written next to it. */

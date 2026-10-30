@@ -37,11 +37,11 @@ const opening = (chest_id: string, grade: Opening["grade"], at: string): Opening
 });
 
 describe("the item catalog", () => {
-  it("has 21 items with unique ids and the planned spread of grades", () => {
-    expect(ITEMS).toHaveLength(21);
-    expect(new Set(ITEMS.map((i) => i.id)).size).toBe(21);
+  it("has 32 items with unique ids and the planned spread of grades", () => {
+    expect(ITEMS).toHaveLength(32);
+    expect(new Set(ITEMS.map((i) => i.id)).size).toBe(32);
     // Common, Uncommon, Rare, Epic, Legendary, Mythic. Mythic has no items yet.
-    expect(GRADE_ORDER.map((g) => itemsOfGrade(g).length)).toEqual([3, 3, 6, 5, 4, 0]);
+    expect(GRADE_ORDER.map((g) => itemsOfGrade(g).length)).toEqual([5, 5, 9, 7, 6, 0]);
   });
 
   it("has six grades with the usual colors, white to red", () => {
@@ -270,7 +270,7 @@ describe("what a chest holds", () => {
 
   it("can give every item of a grade, so none is out of reach", () => {
     const seen = new Set<string>();
-    for (let i = 0; i < 3; i++) seen.add(rollChest({ kind: "daily", owned: new Set(), history: [], rng: sequence(0, i / 3 + 0.01) }).item.id);
+    for (let i = 0; i < 5; i++) seen.add(rollChest({ kind: "daily", owned: new Set(), history: [], rng: sequence(0, i / 5 + 0.01) }).item.id);
     expect(seen).toEqual(new Set(itemsOfGrade("common").map((i) => i.id)));
   });
 

@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { HeroFigure } from "@/components/battle/hero-art";
 import { RankBadge } from "@/components/rank-badge";
 import { auraKindFor } from "@/lib/item-art";
 import { itemById, type Equipment, type FrameStyle } from "@/lib/items";
@@ -62,6 +63,12 @@ export function LoadoutPreview({ rank, level, name, title, equipment, previewing
             <span className="text-3xl font-bold leading-none [text-shadow:0_0_18px_var(--aura,var(--primary))]">{level}</span>
           </p>
         </div>
+      </div>
+      <div className="flex items-end gap-3 border-t pt-3">
+        <HeroFigure rank={rank} equipment={equipment} size={150} />
+        <p className="pb-2 text-xs text-muted-foreground">
+          Your hero in the gate fight, wearing your aura, frame, weapon and outfit. Gear only changes how she looks.
+        </p>
       </div>
       {look && (
         <div className="flex items-center gap-3 border-t pt-3">

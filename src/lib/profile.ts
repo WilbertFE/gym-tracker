@@ -1,4 +1,4 @@
-import { itemById, type Equipment, type Item } from "@/lib/items";
+import { itemById, SLOTS, type Equipment, type Item, type Slot } from "@/lib/items";
 import { validateDisplayName, type NameCheck } from "@/lib/leaderboard";
 import type { MuscleLevel } from "@/lib/muscle-levels";
 import { rankForLevel, type Rank } from "@/lib/ranks";
@@ -177,7 +177,7 @@ export type PublicProfile = {
   visibility: Visibility;
   level: { level: number; rank: Rank; xp: number; title: string | null } | null;
   stats: { name: string; value: number }[] | null;
-  collection: { owned: Item[]; worn: Partial<Record<"frame" | "aura" | "plate" | "look", Item>> } | null;
+  collection: { owned: Item[]; worn: Partial<Record<Slot, Item>> } | null;
   titles: string[] | null;
   muscles: ProfileSnapshot["muscles"] | null;
   activity: (ProfileActivity & { firstDate: string | null }) | null;
@@ -199,9 +199,9 @@ export function toPublicProfile(
 
   const owned = snap ? snap.owned.map((id) => itemById(id)).filter((i): i is Item => i !== null) : [];
   const ownedIds = new Set(owned.map((i) => i.id));
-  const worn: Partial<Record<"frame" | "aura" | "plate" | "look", Item>> = {};
+  const worn: Partial<Record<Slot, Item>> = {};
   if (snap) {
-    for (const slot of ["frame", "aura", "plate", "look"] as const) {
+    for (const { id: slot } of SLOTS) {
       const id = snap.equipment[slot];
       const item = id ? itemById(id) : null;
       if (item && item.slot === slot && ownedIds.has(item.id)) worn[slot] = item;

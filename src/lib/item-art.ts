@@ -11,7 +11,7 @@ export type ItemIconName =
   | "Shield" | "Diamond" | "Star" | "Hexagon" | "Crown"
   | "Snowflake" | "Leaf" | "Wind" | "FlowerLotus" | "MoonStars" | "Sparkle" | "Sun"
   | "Feather" | "SunHorizon" | "Moon" | "GearSix" | "ShieldCheck" | "Flame" | "Mountains"
-  | "Fire" | "Palette";
+  | "Fire" | "Palette" | "Knife" | "Axe" | "Lightning" | "Hoodie" | "CoatHanger";
 
 export const ITEM_ICONS: Record<string, ItemIconName> = {
   "frame-steel": "Shield",
@@ -35,6 +35,17 @@ export const ITEM_ICONS: Record<string, ItemIconName> = {
   "plate-ascendant": "Mountains",
   "look-ember": "Fire",
   "look-aurora": "Palette",
+  "weapon-steel": "Knife",
+  "weapon-ember": "Flame",
+  "weapon-frost": "Snowflake",
+  "weapon-verdant": "Leaf",
+  "weapon-violet": "Lightning",
+  "weapon-sunbrand": "Sun",
+  "outfit-snow": "Hoodie",
+  "outfit-scout": "CoatHanger",
+  "outfit-crimson": "Axe",
+  "outfit-violet": "Hoodie",
+  "outfit-gilded": "Crown",
 };
 
 /** What an aura is made of: a soft glow, one or two thin rings, a ring with twinkling sparks, ice crystals, or radiant rays. */

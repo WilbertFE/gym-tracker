@@ -6,7 +6,7 @@ export const openChestSchema = z.object({
 });
 
 export const equipSchema = z.object({
-  slot: z.enum(["frame", "aura", "plate", "look"]),
+  slot: z.enum(["frame", "aura", "plate", "look", "weapon", "outfit"]),
   /** An item id, or null to take the slot's item off. */
   itemId: z.string().min(1).max(40).nullable(),
 });

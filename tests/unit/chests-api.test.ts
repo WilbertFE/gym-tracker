@@ -154,6 +154,6 @@ describe("the XP from a repeat", () => {
   });
 
   it("is only possible with a whole grade owned (the roll's own rule)", () => {
-    expect(itemsOfGrade("legendary")).toHaveLength(4);
+    expect(itemsOfGrade("legendary")).toHaveLength(6);
   });
 });
