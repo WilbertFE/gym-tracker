@@ -139,7 +139,8 @@ export function HeroArt({ state = "idle", blade, outfit = null, size = 240, clas
 }
 
 type HeroFigureProps = {
-  rank: Rank;
+  /** The rank whose badge is worn on the chest. Without one (a profile that keeps its level private) there is no badge. */
+  rank?: Rank;
   /** What is worn: the frame around the badge and the aura around the figure. */
   equipment: Equipment;
   state?: HeroState;
@@ -159,7 +160,7 @@ export function HeroFigure({ rank, equipment, state = "idle", size = 240, classN
   const weapon = equipment.weapon ? itemById(equipment.weapon) : null;
   const outfit = equipment.outfit ? itemById(equipment.outfit) : null;
   const width = (size * 240) / 260;
-  const badge = (
+  const badge = rank && (
     // The badge sits on the chest, where the jacket was left open for it.
     <span
       aria-hidden

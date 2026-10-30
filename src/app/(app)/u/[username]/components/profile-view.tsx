@@ -1,21 +1,17 @@
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
-import type { CSSProperties } from "react";
-import { AuraArt } from "@/components/items/aura-art";
 import { GradeCard, GradeLabel } from "@/components/items/grade-card";
 import { ItemArt } from "@/components/items/item-art";
 import { ItemMedal } from "@/components/items/item-icon";
-import { Nameplate } from "@/components/items/nameplate";
 import { Panel } from "@/components/panel";
-import { RankBadge } from "@/components/rank-badge";
 import { StatsRadar } from "@/components/stats-radar";
 import { getCurrentUserId } from "@/lib/auth";
-import { auraKindFor } from "@/lib/item-art";
-import { GRADE_ORDER, GRADES, ITEMS, gradeRank, type FrameStyle } from "@/lib/items";
+import { GRADE_ORDER, GRADES, ITEMS, gradeRank } from "@/lib/items";
 import type { PublicProfile, SectionId } from "@/lib/profile";
 import { loadProfileView } from "@/lib/profile-view";
 import { rankForLevel } from "@/lib/ranks";
 import { TITLES } from "@/lib/titles";
+import { ProfileHeader } from "./profile-header";
 
 /** Owners are told which sections others cannot see. */
 function HiddenNote({ view, section }: { view: PublicProfile; section: SectionId }) {
@@ -24,60 +20,6 @@ function HiddenNote({ view, section }: { view: PublicProfile; section: SectionId
     <p className="tabular mb-3 border border-dashed px-2 py-1 text-[11px] uppercase tracking-widest text-muted-foreground">
       Hidden from others{view.visibility === "private" ? ", and so is the whole profile" : ""}
     </p>
-  );
-}
-
-function Header({ view }: { view: PublicProfile }) {
-  const worn = view.collection?.worn ?? {};
-  const aura = worn.aura?.value;
-  const style = aura ? ({ "--aura": aura } as CSSProperties) : undefined;
-  const rank = view.level ? view.level.rank : null;
-
-  return (
-    <section aria-label="Player" data-tour="player" className="system-window p-4 sm:p-6" data-glow style={style}>
-      <div className="flex items-center gap-4 sm:gap-6">
-        {rank ? (
-          worn.aura ? (
-            <span className="flex size-[150px] shrink-0 items-center justify-center">
-              <AuraArt color={worn.aura.value} kind={auraKindFor(worn.aura.id)} size={112} animated>
-                <RankBadge rank={rank} size={112} decor={(worn.frame?.value as FrameStyle | undefined) ?? null} />
-              </AuraArt>
-            </span>
-          ) : (
-            <RankBadge rank={rank} size={112} decor={(worn.frame?.value as FrameStyle | undefined) ?? null} />
-          )
-        ) : (
-          <span
-            aria-hidden
-            className="font-display flex size-24 shrink-0 items-center justify-center border border-primary/50 text-4xl font-bold text-primary"
-          >
-            {view.displayName.slice(0, 1).toUpperCase()}
-          </span>
-        )}
-
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <p className="tabular text-[11px] uppercase tracking-widest text-muted-foreground">@{view.username}</p>
-          <h1 className="break-words text-3xl font-bold leading-tight">{view.displayName}</h1>
-          {(worn.plate || view.level?.title) && (
-            <p className="flex flex-wrap items-center gap-2">
-              {worn.plate && <Nameplate text={worn.plate.value} grade={worn.plate.grade} />}
-              {view.level?.title && <span className="text-sm text-muted-foreground">{view.level.title}</span>}
-            </p>
-          )}
-          {view.level && (
-            <p className="tabular flex flex-wrap items-baseline gap-x-2">
-              <span className="whitespace-nowrap text-[11px] uppercase tracking-widest text-muted-foreground">[ {view.level.rank.name} ]</span>
-              <span className="text-sm text-muted-foreground">Level</span>
-              <span className="text-3xl font-bold leading-none [text-shadow:0_0_18px_var(--aura,var(--primary))]">{view.level.level}</span>
-            </p>
-          )}
-        </div>
-      </div>
-      {view.bio && <p className="mt-4 border-t pt-4 text-sm">{view.bio}</p>}
-      {view.level && (
-        <p className="tabular mt-3 text-xs text-muted-foreground">{view.level.xp.toLocaleString("en-US")} XP in total</p>
-      )}
-    </section>
   );
 }
 
@@ -285,7 +227,7 @@ export async function ProfileView({ username }: { username: string }) {
         </div>
       )}
 
-      <Header view={view} />
+      <ProfileHeader view={view} />
 
       {!anyShown && (
         <Panel label="Private" variant="plain">
